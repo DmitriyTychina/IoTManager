@@ -36,6 +36,9 @@ class Energy : public IoTItem {
     }
 
     ~Energy(){};
+#ifdef DevGetSize
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 
@@ -59,6 +62,9 @@ class Power : public IoTItem {
     }
 
     ~Power(){};
+#ifdef DevGetSize
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void* getAPI_Emon(String subtype, String param) {

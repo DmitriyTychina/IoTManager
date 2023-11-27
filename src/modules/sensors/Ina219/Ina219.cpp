@@ -70,6 +70,9 @@ public:
     }
 
     ~Ina219voltage(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 class Ina219shuntvoltage : public IoTItem
@@ -93,6 +96,9 @@ public:
     }
 
     ~Ina219shuntvoltage(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 class Ina219curr : public IoTItem
@@ -116,6 +122,9 @@ public:
     }
 
     ~Ina219curr(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 class Ina219Power : public IoTItem
@@ -139,6 +148,9 @@ public:
     }
 
     ~Ina219Power(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 class Ina219Setting : public IoTItem
@@ -208,6 +220,9 @@ public:
     }
 
     ~Ina219Setting(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void *getAPI_Ina219(String subtype, String param)

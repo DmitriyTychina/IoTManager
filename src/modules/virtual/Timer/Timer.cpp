@@ -62,6 +62,9 @@ class Timer : public IoTItem {
     }
 
     ~Timer() {};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void* getAPI_Timer(String subtype, String param) {

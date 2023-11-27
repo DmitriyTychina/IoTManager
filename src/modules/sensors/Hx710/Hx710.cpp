@@ -37,6 +37,9 @@ class HX710b : public IoTItem {
     }
 
     ~HX710b() {};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void* getAPI_Hx710(String subtype, String param) {

@@ -39,6 +39,9 @@ class Pzem004v : public IoTItem {
     }
 
     ~Pzem004v(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 class Pzem004a : public IoTItem {
@@ -68,6 +71,9 @@ class Pzem004a : public IoTItem {
     }
 
     ~Pzem004a(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 class Pzem004w : public IoTItem {
@@ -97,6 +103,9 @@ class Pzem004w : public IoTItem {
     }
 
     ~Pzem004w(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 class Pzem004wh : public IoTItem {
@@ -126,6 +135,9 @@ class Pzem004wh : public IoTItem {
     }
 
     ~Pzem004wh(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 class Pzem004hz : public IoTItem {
@@ -155,6 +167,9 @@ class Pzem004hz : public IoTItem {
     }
 
     ~Pzem004hz(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 class Pzem004pf : public IoTItem {
@@ -184,6 +199,9 @@ class Pzem004pf : public IoTItem {
     }
 
     ~Pzem004pf(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 class Pzem004cmd : public IoTItem {
@@ -226,6 +244,9 @@ class Pzem004cmd : public IoTItem {
     }
 
     ~Pzem004cmd(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void* getAPI_Pzem004(String subtype, String param) {

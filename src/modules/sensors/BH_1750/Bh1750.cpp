@@ -21,6 +21,9 @@ class Bh1750 : public IoTItem {
     }
 
     ~Bh1750() {};   
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void* getAPI_Bh1750(String subtype, String param) {

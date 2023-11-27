@@ -28,6 +28,9 @@ class Hdc1080t : public IoTItem {
     }
 
     ~Hdc1080t(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 class Hdc1080h : public IoTItem {
@@ -43,6 +46,9 @@ class Hdc1080h : public IoTItem {
     }
 
     ~Hdc1080h(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void* getAPI_Hdc1080(String subtype, String param) {

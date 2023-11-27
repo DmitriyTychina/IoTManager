@@ -107,6 +107,9 @@ class RTC : public IoTItem {
     ~RTC(){
         if (_watch) delete _watch;
     };
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void* getAPI_RTC(String subtype, String param) {

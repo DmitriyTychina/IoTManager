@@ -27,6 +27,9 @@ class GY21t : public IoTItem {
     }
 
     ~GY21t(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 class GY21h : public IoTItem {
@@ -43,6 +46,9 @@ class GY21h : public IoTItem {
     }
 
     ~GY21h(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void* getAPI_GY21(String subtype, String param) {

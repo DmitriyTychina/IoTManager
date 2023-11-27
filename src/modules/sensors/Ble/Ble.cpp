@@ -82,6 +82,12 @@ public:
           setNewWidgetAttributes();
         }
       }
+      else
+      {
+        value.isDecimal = 0;
+        value.valS = "";
+        regEvent(value.valS, _id);
+      }
     }
   }
   char *TimeToString(unsigned long t)
@@ -166,6 +172,9 @@ public:
   }
 
   ~BleSens(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 //=======================================================================================================
@@ -318,6 +327,9 @@ public:
   }
 
   ~BleScan() { BleSensArray.clear(); };
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 //=======================================================================================================

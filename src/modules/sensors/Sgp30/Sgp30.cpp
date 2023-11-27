@@ -36,6 +36,9 @@ class Sgp30t : public IoTItem {
     }
 
     ~Sgp30t() {};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 class Sgp30e : public IoTItem {
@@ -69,6 +72,9 @@ class Sgp30e : public IoTItem {
     }   
 
     ~Sgp30e() {};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 

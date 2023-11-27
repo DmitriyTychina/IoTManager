@@ -155,6 +155,9 @@ public:
         sendSubWidgetsValues(_id, json);
     }
     ~ExternalMQTT(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void *getAPI_ExternalMQTT(String subtype, String param)

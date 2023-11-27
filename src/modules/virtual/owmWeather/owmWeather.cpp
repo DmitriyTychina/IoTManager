@@ -357,6 +357,9 @@ public:
     }
 
     ~owmWeather(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void *getAPI_owmWeather(String subtype, String param)

@@ -347,6 +347,9 @@ class IoTmUART : public IoTItem {
         return {}; 
     }
 
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void* getAPI_UART(String subtype, String param) {

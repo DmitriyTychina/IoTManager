@@ -68,6 +68,9 @@ class AnalogAdc : public IoTItem {
     }
 
     ~AnalogAdc(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 // после замены названия сенсора, на функцию можно не обращать внимания

@@ -30,6 +30,9 @@ class Sht30t : public IoTItem {
         }
     }
     ~Sht30t() {};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 class Sht30h : public IoTItem {
@@ -46,6 +49,9 @@ class Sht30h : public IoTItem {
         }   
     }
     ~Sht30h() {};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 

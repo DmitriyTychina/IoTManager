@@ -74,6 +74,9 @@ class Mcp23017 : public IoTItem {
     ~Mcp23017() {
         delete _driver;
     };
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void* getAPI_Mcp23017(String subtype, String param) {

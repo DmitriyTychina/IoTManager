@@ -92,6 +92,9 @@ public:
     //=======================================================================================================
 
     ~Mhz19uart(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 //после замены названия сенсора, на функцию можно не обращать внимания
@@ -207,6 +210,9 @@ public:
     }
 
     ~Mhz19pwm(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 //====================TEMP===================================================================================
@@ -262,6 +268,9 @@ public:
     //=======================================================================================================
 
     ~Mhz19temp(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void *getAPI_Mhz19(String subtype, String param)

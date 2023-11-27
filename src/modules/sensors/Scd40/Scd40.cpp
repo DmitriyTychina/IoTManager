@@ -242,6 +242,9 @@ public:
     }
 
     ~Scd40co2(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 class Scd40t : public IoTItem
@@ -341,6 +344,9 @@ public:
     }
 
     ~Scd40t(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 class Scd40h : public IoTItem
@@ -401,6 +407,9 @@ public:
     }
 
     ~Scd40h(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void *getAPI_Scd40(String subtype, String param)

@@ -127,6 +127,9 @@ class Pcf8574 : public IoTItem {
     ~Pcf8574() {
         delete _driver;
     }
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void* getAPI_Pcf8574(String subtype, String param) {

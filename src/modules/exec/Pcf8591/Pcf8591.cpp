@@ -60,6 +60,9 @@ class Pcf8591 : public IoTItem {
     }
 
     ~Pcf8591(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void *getAPI_Pcf8591(String subtype, String param) {

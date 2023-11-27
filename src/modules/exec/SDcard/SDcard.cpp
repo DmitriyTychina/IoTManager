@@ -59,6 +59,9 @@ class SDcard : public IoTItem {
     ~SDcard() {
 
     };
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void* getAPI_SDcard(String subtype, String param) {

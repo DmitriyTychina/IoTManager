@@ -33,6 +33,9 @@ public:
     }
 
     ~Bme280t(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 class Bme280h : public IoTItem
@@ -56,6 +59,9 @@ public:
     }
 
     ~Bme280h(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 class Bme280p : public IoTItem
@@ -82,6 +88,9 @@ public:
     }
 
     ~Bme280p(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 class Bme280dp : public IoTItem
@@ -111,6 +120,9 @@ public:
     }
 
     ~Bme280dp(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void *getAPI_Bme280(String subtype, String param)

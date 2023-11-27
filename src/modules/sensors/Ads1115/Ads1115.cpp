@@ -68,6 +68,9 @@ class Ads1115 : public IoTItem {
     }
 
     ~Ads1115(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void *getAPI_Ads1115(String subtype, String param) {

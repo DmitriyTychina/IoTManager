@@ -240,6 +240,9 @@ public:
         delete ld2410;
         radar = nullptr;
     };
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 //---------------------------------------------------------------------------
 
@@ -300,6 +303,9 @@ public:
         delete ld2410;
         radar = nullptr;
     };
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 //---------------------------------------------------------------------------
 
@@ -359,6 +365,9 @@ public:
         delete ld2410;
         radar = nullptr;
     };
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 //---------------------------------------------------------------------------
 
@@ -421,6 +430,9 @@ public:
         delete ld2410;
         radar = nullptr;
     };
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 //---------------------------------------------------------------------------
 void *getAPI_ld2410(String subtype, String param)

@@ -60,6 +60,9 @@ class Smi2_m : public IoTItem {
     }
 
     ~Smi2_m(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void* getAPI_Smi2_m(String subtype, String param) {

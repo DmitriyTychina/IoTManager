@@ -85,6 +85,10 @@ class IoTItem {
     virtual void setTodayDate();
 
     bool isTracking(IoTItem* item);    // проверка на отслеживание
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    // если в логах будет отрицательное значение, значит getSize() не реализована в модуле или IoTItem создан createItemFromNet()
+    virtual int32_t getSize() { return -1 * sizeof(*this); };
+#endif
 
    protected:
     bool _needSave = false;  // признак необходимости сохранять и загружать значение элемента на flash

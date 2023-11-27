@@ -78,6 +78,9 @@ class Ds18b20 : public IoTItem {
     ~Ds18b20() {
         if (_sensor) delete _sensor;
     };
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 // после замены названия сенсора, на функцию можно не обращать внимания

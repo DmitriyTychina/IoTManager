@@ -48,6 +48,7 @@
 #include "utils/JsonUtils.h"
 #include "utils/SerialPrint.h"
 #include "utils/StringUtils.h"
+#include "utils/DevUtils.h"
 #include "PeriodicTasks.h"
 #include "classes/IoTGpio.h"
 

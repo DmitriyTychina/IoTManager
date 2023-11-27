@@ -20,6 +20,9 @@ class Sht20t : public IoTItem {
     }
 
     ~Sht20t(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 class Sht20h : public IoTItem {
@@ -36,6 +39,9 @@ class Sht20h : public IoTItem {
     }
 
     ~Sht20h(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void* getAPI_Sht20(String subtype, String param) {

@@ -124,6 +124,9 @@ class Mp3 : public IoTItem {
     }
 
     ~Mp3() {};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void* getAPI_Mp3(String subtype, String param) {

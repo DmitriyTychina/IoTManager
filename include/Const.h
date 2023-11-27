@@ -66,6 +66,15 @@ WEB_SOCKETS_FRAME_SIZE создан для того что бы не загру�
 
 // #define LOOP_DEBUG
 
+// только для разработчика (utils/Dev_Utils)
+// ***** Dev_Utils 0 - для версии stable
+#define Dev_Utils 1
+#if defined(Dev_Utils) && Dev_Utils == 1
+// ***** инфа о размере экземпляра IoTItem в RAM при их создании
+#define Dev_GetSize 1
+
+#endif // Dev_Utils
+
 // выбор сервера
 // #define ASYNC_WEB_SERVER
 // #define ASYNC_WEB_SOCKETS

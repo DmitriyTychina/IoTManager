@@ -59,6 +59,9 @@ public:
         SerialPrint("E", F("IoTMath"), F("Unknown command or wrong parameters."));
         return {};
     }
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void *getAPI_IoTMath(String subtype, String param) {

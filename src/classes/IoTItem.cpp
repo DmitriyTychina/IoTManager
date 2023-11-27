@@ -328,6 +328,7 @@ IoTItem* createItemFromNet(const String& itemId, const String& value, int interv
 // создаем временную копию элемента из сети на основе события
 IoTItem* createItemFromNet(const String& msgFromNet) {
     IoTItem* tmpp = new IoTItem(msgFromNet);
+    DevPrint_ID_sizeRAM(tmpp);
 
     //Serial.println("vvvvvvvvvvv " + msgFromNet + " " + (String)tmpp->getInterval());
 

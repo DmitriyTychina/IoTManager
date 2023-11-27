@@ -45,6 +45,9 @@ class GyverHX711g : public IoTItem {
     ~GyverHX711g() {
         if (_thermocouple) delete _thermocouple;
     };
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void* getAPI_Hx711(String subtype, String param) {

@@ -74,6 +74,9 @@ class RCswitch : public IoTItem {
     }
 
     ~RCswitch() {};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void* getAPI_RCswitch(String subtype, String param) {

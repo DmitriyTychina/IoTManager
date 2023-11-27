@@ -134,6 +134,9 @@ class Lcd2004 : public IoTItem {
         if (LCDI2C) delete LCDI2C;
         LCDI2C = nullptr;
     };
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void* getAPI_Lcd2004(String subtype, String param) {

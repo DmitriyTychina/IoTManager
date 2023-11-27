@@ -66,6 +66,9 @@ class IoTServo : public IoTItem {
         }
 
         ~IoTServo() {};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void* getAPI_IoTServo(String subtype, String param) {

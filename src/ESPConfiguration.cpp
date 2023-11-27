@@ -36,6 +36,7 @@ void configure(String path) {
                     // пробуем спросить драйвер Telegram_v2
                     if (driver = myIoTItem->getTlgrmDriver()) tlgrmItem = (IoTItem*)driver;
                     IoTItems.push_back(myIoTItem);
+                    DevPrint_ID_sizeRAM(myIoTItem);
                 }
             }
         }

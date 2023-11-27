@@ -30,6 +30,9 @@ class Dht1122t : public IoTItem {
     }
 
     ~Dht1122t(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 class Dht1122h : public IoTItem {
@@ -50,6 +53,9 @@ class Dht1122h : public IoTItem {
     }
 
     ~Dht1122h(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void* getAPI_Dht1122(String subtype, String param) {

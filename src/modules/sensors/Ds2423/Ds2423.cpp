@@ -96,6 +96,9 @@ public:
     //=======================================================================================================
 
     ~Ds2423a(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 class Ds2423b : public IoTItem
@@ -159,6 +162,9 @@ public:
     //=======================================================================================================
 
     ~Ds2423b(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void *getAPI_Ds2423(String subtype, String param)

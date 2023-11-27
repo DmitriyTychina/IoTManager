@@ -34,6 +34,9 @@ class MAX6675t : public IoTItem {
     }
 
     ~MAX6675t(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void* getAPI_Max6675(String subtype, String param) {

@@ -50,6 +50,9 @@ class DS2401 : public IoTItem {
     ~DS2401() {
         if (_ds) delete _ds;
     };
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void* getAPI_DS2401(String subtype, String param) {

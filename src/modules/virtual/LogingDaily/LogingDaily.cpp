@@ -247,6 +247,9 @@ class LogingDaily : public IoTItem {
             SerialPrint("i", F("LogingDaily"), F("User clean chart history"));
         }
     }
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void *getAPI_LogingDaily(String subtype, String param) {

@@ -75,6 +75,9 @@ class TM16XX : public IoTItem {
         delete _display;
         delete _module;
     };
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void *getAPI_TM16XX(String subtype, String param) {

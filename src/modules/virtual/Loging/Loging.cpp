@@ -339,6 +339,9 @@ class Loging : public IoTItem {
         SerialPrint("i", "Loging", "setValue:" + String(value.valD));
         regEvent(value.valS, "Loging", false, genEvent);
     }
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void *getAPI_Loging(String subtype, String param) {
@@ -392,6 +395,9 @@ class Date : public IoTItem {
             }
         }
     }
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void *getAPI_Date(String param) { return new Date(param); }

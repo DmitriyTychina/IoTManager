@@ -112,6 +112,9 @@ public:
         // regEvent(value.valD, "Sds011_25"); //обязательный вызов хотяб один
     }
     ~Sds011_25(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 //////////////////////////////////// for PM 10//=
@@ -187,6 +190,9 @@ public:
         // regEvent(value.valD, "Sds011_10"); //обязательный вызов хотяб один
     }
     ~Sds011_10(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 //после замены названия сенсора, на функцию можно не обращать внимания

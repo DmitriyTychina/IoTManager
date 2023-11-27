@@ -30,6 +30,9 @@ class Bmp280t : public IoTItem {
     }
 
     ~Bmp280t(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 class Bmp280p : public IoTItem {
@@ -51,6 +54,9 @@ class Bmp280p : public IoTItem {
     }
 
     ~Bmp280p(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void* getAPI_Bmp280(String subtype, String param) {

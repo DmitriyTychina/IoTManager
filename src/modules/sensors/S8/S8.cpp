@@ -84,6 +84,9 @@ class S8co : public IoTItem {
     ~S8co() {
       if (s8Serial) delete s8Serial;
     };
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void* getAPI_S8(String subtype, String param) {

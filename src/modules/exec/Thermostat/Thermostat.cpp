@@ -145,6 +145,9 @@ public:
     }
 
     ~ThermostatGIST(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 class ThermostatPID : public IoTItem
@@ -338,6 +341,9 @@ protected:
         return {};
     }
     ~ThermostatPID(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 class ThermostatETK : public IoTItem
@@ -396,6 +402,9 @@ protected:
     }
 
     ~ThermostatETK(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 class ThermostatETK2 : public IoTItem
@@ -472,6 +481,9 @@ protected:
     }
 
     ~ThermostatETK2(){};
+#if defined(Dev_GetSize) && Dev_GetSize == 1
+    int32_t getSize(){ return sizeof(*this); }
+#endif
 };
 
 void *getAPI_Thermostat(String subtype, String param)
