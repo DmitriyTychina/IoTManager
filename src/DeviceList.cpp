@@ -90,14 +90,15 @@ void udpListningInit() {
 
 void udpBroadcastInit() {
     // будем отправлять каждые 60 секунд презентацию данного устройства
-    ts.add(
-        UDP, 60000, [&](void*) {  // UDPP
+    ts.add(UDP, 60000, [&](void*) {  // UDPP
+            DevMeteringLoop(task_UDP, true);
             if (isNetworkActive()) {
                 SerialPrint("i", F("UDP"), F("Broadcast device presentation"));
                 asyncUdp.broadcastTo(getThisDevice().c_str(), 4210);
                 // asyncUdp.broadcast("test");
                 // asyncUdp.print("Hello Server!");
             }
+            DevMeteringLoop(ts_core_loop, false);
         },
         nullptr, true);
 

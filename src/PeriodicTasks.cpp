@@ -2,8 +2,8 @@
 
 void periodicTasksInit() {
     //задачи редкого выполнения
-    ts.add(
-        PTASK, 1000 * 60, [&](void*) {
+    ts.add(PTASK, 1000 * 60, [&](void*) {
+            DevMeteringLoop(task_PTASK, true);
             // fs
             getFSInfo();
             // heap
@@ -27,6 +27,7 @@ void periodicTasksInit() {
             // reset reason
             jsonWriteStr_(errorsHeapJson, F("rst"), ESP_getResetReason());
             periodicWsSend();
+            DevMeteringLoop(ts_core_loop, false);
         },
         nullptr, true);
     SerialPrint("i", "Task", "Periodic tasks init");

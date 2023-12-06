@@ -73,6 +73,18 @@ WEB_SOCKETS_FRAME_SIZE создан для того что бы не загру�
 // ***** инфа о размере экземпляра IoTItem в RAM при их создании
 #define Dev_GetSize 1
 
+// MFL - metering for loop
+#define DevMFLPeroid 60000000       // период усреднения, мкс, максимум примерно 71 мин
+#define DevMFLMinMax 1              // инфа о мин. и макс. значениях времени loop  (p) за DevMFLPeroid (g) за всё время
+#define DevMFLCntAvg 1              // инфа о кол-ве циклов loop и средних знач. времени за DevMFLPeroid
+#define DevMFLRAM 1                 // инфа о памяти в loop (p) за DevMFLPeroid (g) за всё время - возможно будет видна утечка
+// MTS - metering TS task
+#define DevMTS 1                    // инфа о задачах TS
+
+// в работе
+// #define DevMIoTItems       // инфа о IoTItems
+// OTM - one time metering
+
 #endif // Dev_Utils
 
 // выбор сервера

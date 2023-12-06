@@ -30,74 +30,77 @@ void elementsLoop() {
     handleEvent();
 }
 
-#define SETUPBASE_ERRORMARKER 0
-#define SETUPCONF_ERRORMARKER 1
-#define SETUPSCEN_ERRORMARKER 2
-#define SETUPINET_ERRORMARKER 3
-#define SETUPLAST_ERRORMARKER 4
-#define TICKER_ERRORMARKER 5
-#define HTTP_ERRORMARKER 6
-#define SOCKETS_ERRORMARKER 7
-#define MQTT_ERRORMARKER 8
-#define MODULES_ERRORMARKER 9
+// #define SETUPBASE_ERRORMARKER 0
+// #define SETUPCONF_ERRORMARKER 1
+// #define SETUPSCEN_ERRORMARKER 2
+// #define SETUPINET_ERRORMARKER 3
+// #define SETUPLAST_ERRORMARKER 4
+// #define TICKER_ERRORMARKER 5
+// #define HTTP_ERRORMARKER 6
+// #define SOCKETS_ERRORMARKER 7
+// #define MQTT_ERRORMARKER 8
+// #define MODULES_ERRORMARKER 9
 
-#define COUNTER_ERRORMARKER 4       // количество шагов счетчика
-#define STEPPER_ERRORMARKER 100000  // размер шага счетчика интервала доверия выполнения блока кода мкс
+// #define COUNTER_ERRORMARKER 4       // количество шагов счетчика
+// #define STEPPER_ERRORMARKER 100000  // размер шага счетчика интервала доверия выполнения блока кода мкс
 
-#if defined(esp32_4mb) || defined(esp32_16mb) || defined(esp32cam_4mb)
+// #if defined(esp32_4mb) || defined(esp32_16mb) || defined(esp32cam_4mb)
 
-static int IRAM_ATTR initErrorMarkerId = 0;  // ИД маркера
-static int IRAM_ATTR errorMarkerId = 0;
-static int IRAM_ATTR errorMarkerCounter = 0;
+// static int IRAM_ATTR initErrorMarkerId = 0;  // ИД маркера
+// static int IRAM_ATTR errorMarkerId = 0;
+// static int IRAM_ATTR errorMarkerCounter = 0;
 
-hw_timer_t *My_timer = NULL;
-void IRAM_ATTR onTimer() {
-    if (errorMarkerCounter >= 0) {
-        if (errorMarkerCounter >= COUNTER_ERRORMARKER) {
-            errorMarkerId = initErrorMarkerId;
-            errorMarkerCounter = -1;
-        } else
-            errorMarkerCounter++;
-    }
-}
-#endif
+// hw_timer_t *My_timer = NULL;
+// void IRAM_ATTR onTimer() {
+//     if (errorMarkerCounter >= 0) {
+//         if (errorMarkerCounter >= COUNTER_ERRORMARKER) {
+//             errorMarkerId = initErrorMarkerId;
+//             errorMarkerCounter = -1;
+//         } else
+//             errorMarkerCounter++;
+//     }
+// }
+// #endif
 
-void initErrorMarker(int id) {
-#if defined(esp32_4mb) || defined(esp32_16mb) || defined(esp32cam_4mb)
-    initErrorMarkerId = id;
-    errorMarkerCounter = 0;
-#endif
-}
+// void initErrorMarker(int id) {
+// #if defined(esp32_4mb) || defined(esp32_16mb) || defined(esp32cam_4mb)
+//     initErrorMarkerId = id;
+//     errorMarkerCounter = 0;
+// #endif
+// }
 
-void stopErrorMarker(int id) {
-#if defined(esp32_4mb) || defined(esp32_16mb) || defined(esp32cam_4mb)
-    errorMarkerCounter = -1;
-    if (errorMarkerId)
-        SerialPrint("I", "WARNING!", "A lazy (freezing loop more than " + (String)(COUNTER_ERRORMARKER * STEPPER_ERRORMARKER / 1000) + " ms) section has been found! With ID=" + (String)errorMarkerId);
-    errorMarkerId = 0;
-    initErrorMarkerId = 0;
-#endif
-}
+// void stopErrorMarker(int id) {
+// #if defined(esp32_4mb) || defined(esp32_16mb) || defined(esp32cam_4mb)
+//     errorMarkerCounter = -1;
+//     if (errorMarkerId)
+//         SerialPrint("I", "WARNING!", "A lazy (freezing loop more than " + (String)(COUNTER_ERRORMARKER * STEPPER_ERRORMARKER / 1000) + " ms) section has been found! With ID=" + (String)errorMarkerId);
+//     errorMarkerId = 0;
+//     initErrorMarkerId = 0;
+// #endif
+// }
 
 void setup() {
 #if defined(esp32s2_4mb) || defined(esp32s3_16mb)
     USB.begin();
 #endif
-#if defined(esp32_4mb) || defined(esp32_16mb) || defined(esp32cam_4mb)
-    My_timer = timerBegin(0, 80, true);
-    timerAttachInterrupt(My_timer, &onTimer, true);
-    timerAlarmWrite(My_timer, STEPPER_ERRORMARKER, true);
-    timerAlarmEnable(My_timer);
-    // timerAlarmDisable(My_timer);
-
-    initErrorMarker(SETUPBASE_ERRORMARKER);
-#endif
+// #if defined(esp32_4mb) || defined(esp32_16mb) || defined(esp32cam_4mb)
+//     My_timer = timerBegin(0, 80, true);
+//     timerAttachInterrupt(My_timer, &onTimer, true);
+//     timerAlarmWrite(My_timer, STEPPER_ERRORMARKER, true);
+//     timerAlarmEnable(My_timer);
+//     // timerAlarmDisable(My_timer);
+//     initErrorMarker(SETUPBASE_ERRORMARKER);
+// #endif
 
     Serial.begin(115200);
     Serial.flush();
     Serial.println();
     Serial.println(F("--------------started----------------"));
-
+    
+// #if defined(Dev_Utils) && Dev_Utils == 1
+    // Dev_PreInit();
+// #endif
+    
     // создание экземпляров классов
     // myNotAsyncActions = new NotAsync(do_LAST);
 
@@ -118,9 +121,9 @@ void setup() {
     // синхронизация глобальных переменных с flash
     globalVarsSync();
 
-    stopErrorMarker(SETUPBASE_ERRORMARKER);
+    // stopErrorMarker(SETUPBASE_ERRORMARKER);
 
-    initErrorMarker(SETUPCONF_ERRORMARKER);
+    // initErrorMarker(SETUPCONF_ERRORMARKER);
 
     // настраиваем i2c шину
     int i2c, pinSCL, pinSDA, i2cFreq;
@@ -142,9 +145,9 @@ void setup() {
     // настраиваем микроконтроллер
     configure("/config.json");
 
-    stopErrorMarker(SETUPCONF_ERRORMARKER);
+    // stopErrorMarker(SETUPCONF_ERRORMARKER);
 
-    initErrorMarker(SETUPSCEN_ERRORMARKER);
+    // initErrorMarker(SETUPSCEN_ERRORMARKER);
 
     // подготавливаем сценарии
     iotScen.loadScenario("/scenario.txt");
@@ -152,9 +155,9 @@ void setup() {
     createItemFromNet("onInit", "1", 1);
     elementsLoop();
 
-    stopErrorMarker(SETUPSCEN_ERRORMARKER);
+    // stopErrorMarker(SETUPSCEN_ERRORMARKER);
 
-    initErrorMarker(SETUPINET_ERRORMARKER);
+    // initErrorMarker(SETUPINET_ERRORMARKER);
 
     // подключаемся к роутеру
     routerConnect();
@@ -175,9 +178,9 @@ void setup() {
     standWebSocketsInit();
 #endif
 
-    stopErrorMarker(SETUPINET_ERRORMARKER);
+    // stopErrorMarker(SETUPINET_ERRORMARKER);
 
-    initErrorMarker(SETUPLAST_ERRORMARKER);
+    // initErrorMarker(SETUPLAST_ERRORMARKER);
 
     // NTP
     ntpInit();
@@ -196,8 +199,8 @@ void setup() {
     stInit();
 
     // настраиваем секундные обслуживания системы
-    ts.add(
-        TIMES, 1000, [&](void *) {
+    ts.add(TIMES, 1000, [&](void *) {
+            DevMeteringLoop(task_TIMES, true);
             // сохраняем значения IoTItems в файл каждую секунду, если были изменения (установлены маркеры на сохранение)
             if (needSaveValues) {
                 syncValuesFlashJson();
@@ -210,49 +213,64 @@ void setup() {
 
                 // Serial.printf("[ITEM] size: %d, id: %s, int: %d, intnet: %d\n", sizeof(**it), (*it)->getID(), (*it)->getInterval(), (*it)->getIntFromNet());
             }
+            DevMeteringLoop(ts_core_loop, false);
         },
         nullptr, true);
 
-    // test
-    Serial.println("-------test start--------");
-    Serial.println("--------test end---------");
+    
+    // // test
+    // Serial.println("-------test start--------");
+    // Serial.println("--------test end---------");
 
-    stopErrorMarker(SETUPLAST_ERRORMARKER);
+    // stopErrorMarker(SETUPLAST_ERRORMARKER);
+// #if defined(Dev_Utils) && Dev_Utils == 1
+    // Dev_PostInit();
+// #endif
+    DevMeteringInit();
+    DevMeteringLoop(esp_core_loop, true);
 }
 
 void loop() {
-#ifdef LOOP_DEBUG
-    unsigned long st = millis();
-#endif
+// #ifdef LOOP_DEBUG
+//     unsigned long st = millis();
+// #endif
 
-    initErrorMarker(TICKER_ERRORMARKER);
+    // initErrorMarker(TICKER_ERRORMARKER);
+    DevMeteringLoop(ts_core_loop, true);
     ts.update();
-    stopErrorMarker(TICKER_ERRORMARKER);
+    // stopErrorMarker(TICKER_ERRORMARKER);
 
 #ifdef STANDARD_WEB_SERVER
-    initErrorMarker(HTTP_ERRORMARKER);
+    // initErrorMarker(HTTP_ERRORMARKER);
+    DevMeteringLoop(HTTP_handleClient_loop, true);
     HTTP.handleClient();
-    stopErrorMarker(HTTP_ERRORMARKER);
+    // stopErrorMarker(HTTP_ERRORMARKER);
 #endif
 
 #ifdef STANDARD_WEB_SOCKETS
-    initErrorMarker(SOCKETS_ERRORMARKER);
+    // initErrorMarker(SOCKETS_ERRORMARKER);
+    DevMeteringLoop(standWebSocket_loop, true);
     standWebSocket.loop();
-    stopErrorMarker(SOCKETS_ERRORMARKER);
+    // stopErrorMarker(SOCKETS_ERRORMARKER);
 #endif
 
-    initErrorMarker(MQTT_ERRORMARKER);
+    // initErrorMarker(MQTT_ERRORMARKER);
+    DevMeteringLoop(mqtt_loop, true);
     mqttLoop();
-    stopErrorMarker(MQTT_ERRORMARKER);
+    // stopErrorMarker(MQTT_ERRORMARKER);
 
-    initErrorMarker(MODULES_ERRORMARKER);
+    // initErrorMarker(MODULES_ERRORMARKER);
+    DevMeteringLoop(elements_loop, true);
     elementsLoop();
-    stopErrorMarker(MODULES_ERRORMARKER);
+    // stopErrorMarker(MODULES_ERRORMARKER);
 
     // #ifdef LOOP_DEBUG
     //     loopPeriod = millis() - st;
     //     if (loopPeriod > 2) Serial.println(loopPeriod);
     // #endif
+    DevMeteringLoop(core_metering, true);
+    DevMeteringPrintPeriod();
+    DevMeteringLoop(esp_core_loop, true);
 }
 
 // отправка json

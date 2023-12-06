@@ -5,9 +5,10 @@
 
 void stInit() {
     if (TELEMETRY_UPDATE_INTERVAL_MIN) {
-        ts.add(
-            ST, TELEMETRY_UPDATE_INTERVAL_MIN * 60000, [&](void*) {
+        ts.add(ST, TELEMETRY_UPDATE_INTERVAL_MIN * 60000, [&](void*) {
+                DevMeteringLoop(task_ST, true);
                 updateDeviceStatus();
+                DevMeteringLoop(ts_core_loop, false);
             },
             nullptr, true);
     }

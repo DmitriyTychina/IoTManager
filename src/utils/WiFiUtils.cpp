@@ -105,10 +105,8 @@ bool startAPMode()
 
   if (jsonReadInt(errorsHeapJson, "passer") != 1)
   {
-    ts.add(
-        WIFI_SCAN, 30 * 1000,
-        [&](void *)
-        {
+    ts.add(WIFI_SCAN, 30 * 1000, [&](void *) {
+          DevMeteringLoop(task_WIFI_SCAN, true);
           std::vector<String> jArray;
           jsonReadArray(settingsFlashJson, "routerssid", jArray);
           for (int8_t i = 0; i < jArray.size(); i++)
@@ -121,7 +119,8 @@ bool startAPMode()
             WiFi.scanDelete();
             routerConnect();
           }
-        },
+          DevMeteringLoop(ts_core_loop, false);
+      },
         nullptr, true);
   }
   return true;

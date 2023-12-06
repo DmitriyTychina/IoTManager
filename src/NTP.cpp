@@ -6,8 +6,8 @@
 void ntpInit() {
     synchTime();
 
-    ts.add(
-        TIME, 1000, [&](void*) {
+    ts.add(TIME, 1000, [&](void*) {
+            DevMeteringLoop(task_TIME, true);
             unixTime = getSystemTime();
             if (unixTime < MIN_DATETIME) {
                 isTimeSynch = false;
@@ -37,6 +37,7 @@ void ntpInit() {
                 onDayChange();
             }
             _time_isTrust = true;  // доверяем значению времени
+            DevMeteringLoop(ts_core_loop, false);
         },
         nullptr, true);
 

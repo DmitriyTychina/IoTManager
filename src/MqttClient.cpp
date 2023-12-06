@@ -2,9 +2,8 @@
 
 void mqttInit() {
     mqtt.setCallback(mqttCallback);
-    ts.add(
-        WIFI_MQTT_CONNECTION_CHECK, MQTT_RECONNECT_INTERVAL,
-        [&](void*) {
+    ts.add(WIFI_MQTT_CONNECTION_CHECK, MQTT_RECONNECT_INTERVAL, [&](void*) {
+            DevMeteringLoop(task_WIFI_MQTT_CONN_CHECK, true);
             if (isNetworkActive()) {
                 SerialPrint("i", F("WIFI"), "http://" + jsonReadStr(settingsFlashJson, F("ip")));
                 wifiUptimeCalc();
@@ -26,6 +25,7 @@ void mqttInit() {
                 wifiUptime = 0;
                 startAPMode();
             }
+            DevMeteringLoop(ts_core_loop, false);
         },
         nullptr, true);
 }
