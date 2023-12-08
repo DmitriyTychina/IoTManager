@@ -9,8 +9,11 @@
 void scenario_yield() {
     yield();
 
-    #ifdef STANDARD_WEB_SERVER
+#ifdef STANDARD_WEB_SERVER
+    e_DevUnits tmp = get_DevGlobal_curr_unit();
+    DevMeteringLoop(HTTP_handleClient_loop, false);
     HTTP.handleClient();
+    DevMeteringLoop(tmp, false);
     #endif
 }
 

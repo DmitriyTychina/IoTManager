@@ -3,7 +3,7 @@
 #include "classes/IoTItem.h"
 // define см. в Const.h
 
-enum e_DevUnits {
+enum e_DevUnits : uint8_t {
     ts_core_loop = 0,
 #if defined(DevMTS) && DevMTS == 1
     task_WIFI_SCAN,
@@ -39,11 +39,18 @@ struct s_DevGlobal {
     uint32_t start_curr_unit_us = micros(); // время запуска текущего юнита
     uint32_t metering_start_us = 0;
 #if defined(DevMFLCntAvg) && DevMFLCntAvg == 1
-        uint32_t cnt_loop = 0;          // счетчик циклов loop за период усреднения
+    uint32_t cnt_loop = 0;          // счетчик циклов loop за период усреднения
+    uint32_t g_avg_loop = 0;        // максимальная средняя длительность loop(us/period) за всё время
+#if defined(DevMFLMinMax) && DevMFLMinMax == 1
+    uint32_t marker_loop_us = 0;
+    uint32_t min_loop_us = DevMFLPeroid;        // минимальная длительность loop за период
+    uint32_t max_loop_us = 0;                   // максимальная длительность loop за период
+    uint32_t g_max_loop_us = 0;                 // максимальная длительность loop за все время
+#endif // DevMFLMinMax
 #endif // DevMFLCntAvg
 #if defined(DevMFLRAM) && DevMFLRAM == 1
-        uint32_t RAM = 0;
-        uint32_t g_RAM = 0;
+    uint32_t RAM = 0;
+    uint32_t g_RAM = 0;
 #endif // DevMFLRAM
 };
 
@@ -58,6 +65,7 @@ void DevMeteringInit(uint32_t _FreeHeap = ESP.getFreeHeap());    // помест
 void DevMeteringLoop(e_DevUnits _unit, bool add = false);  // считается время от одного DevMeteringLoop до следуещего DevMeteringLoop
 // void DevMTS(e_DevUnits _unit);
 void DevMeteringPrintPeriod(); // поместить в конец Loop() вывод инфы с периодом DevMFLPeroid
+e_DevUnits get_DevGlobal_curr_unit();
 
 #else // заглушки для ver4stable
 #define Dev_PreInit()

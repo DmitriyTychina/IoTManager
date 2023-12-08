@@ -1,7 +1,21 @@
 #include "utils/DevUtils.h"
 // define см. в Const.h
-
 #if defined(Dev_Utils) && Dev_Utils == 1
+
+#if defined(Dev_custom_yield) && Dev_custom_yield == 1
+extern "C" void yield() {
+    e_DevUnits tmp = get_DevGlobal_curr_unit();
+    if (tmp == esp_core_loop) {
+        delay(0);
+    }
+    else {
+        DevMeteringLoop(esp_core_loop, false);
+        delay(0);
+        DevMeteringLoop(tmp, false);
+    }
+}
+#endif // Dev_custom_yield
+
 s_DevGlobal DevGlobal;
 s_DevUnit DevUnits[MaxDevUnits];
 
@@ -36,8 +50,13 @@ void DevMeteringInit(uint32_t _FreeHeap) {
         DevMeteringSetName(esp_core_loop, "core ESP");
         DevMeteringSetName(core_metering, "core DevMetering");
         DevGlobal.g_RAM = _FreeHeap;
+        DevGlobal.marker_loop_us = micros();
     }
     DevGlobal.metering_start_us = micros();
+#if defined(DevMFLMinMax) && DevMFLMinMax == 1
+    DevGlobal.min_loop_us = DevMFLPeroid;
+    DevGlobal.max_loop_us = 0;
+#endif // DevMFLMinMax
 #if defined(DevMFLRAM) && DevMFLRAM == 1
     // DevGlobal.RAM = ESP.getFreeHeap();
     DevGlobal.RAM = _FreeHeap;
@@ -62,9 +81,9 @@ void DevMeteringLoop(e_DevUnits _unit, bool add) {
         DevUnits[DevGlobal.curr_unit].summ_us += delta_us;
         if (add) DevUnits[_unit].cnt++;
 #if defined(DevMFLMinMax) && DevMFLMinMax == 1
-        if (delta_us < DevUnits[_unit].min_us) DevUnits[_unit].min_us = delta_us;
-        if (delta_us > DevUnits[_unit].max_us) DevUnits[_unit].max_us = delta_us;
-        if (delta_us > DevUnits[_unit].g_max_us) DevUnits[_unit].g_max_us = delta_us;
+        if (delta_us < DevUnits[DevGlobal.curr_unit].min_us) DevUnits[DevGlobal.curr_unit].min_us = delta_us;
+        if (delta_us > DevUnits[DevGlobal.curr_unit].max_us) DevUnits[DevGlobal.curr_unit].max_us = delta_us;
+        if (delta_us > DevUnits[DevGlobal.curr_unit].g_max_us) DevUnits[DevGlobal.curr_unit].g_max_us = delta_us;
 #endif // DevMFLMinMax
     }
     else { // первый запуск
@@ -90,7 +109,7 @@ void DevMeteringPrintUnit(s_DevUnit* _DevMeteringUnit, uint32_t _period) {
     tmp_str += "\tload(" + String((float)_DevMeteringUnit->summ_us * 100 / _period) + "%)";
 #if defined(DevMFLMinMax) && DevMFLMinMax == 1
     tmp_str += "\tmin:p(" + String(_DevMeteringUnit->min_us) + " us)";
-    tmp_str += "max:p(" + String(_DevMeteringUnit->max_us) + " us)";
+    tmp_str += "\tmax:p(" + String(_DevMeteringUnit->max_us) + " us)";
     tmp_str += "g(" + String(_DevMeteringUnit->g_max_us) + " us)";
 #endif // DevMFLMinMax
     // tmp_str += "\tsumm(" + String(_DevMeteringUnit->summ_us) + " us)";
@@ -102,29 +121,38 @@ void DevMeteringPrintUnit(s_DevUnit* _DevMeteringUnit, uint32_t _period) {
 // }
 
 void DevMeteringPrintPeriod() {
-    DevMeteringLoop(core_metering, false);
     uint32_t stop_us = micros();
-    uint32_t delta_period = stop_us - DevGlobal.metering_start_us;
-    uint32_t FreeHeap = ESP.getFreeHeap();
+    uint32_t delta_period = stop_us - DevGlobal.marker_loop_us;
+    DevGlobal.marker_loop_us = stop_us;
+    uint32_t g_delta_period = stop_us - DevGlobal.metering_start_us;
 #if defined(DevMFLCntAvg) && DevMFLCntAvg == 1
     DevGlobal.cnt_loop++;
+#if defined(DevMFLMinMax) && DevMFLMinMax == 1
+    if (delta_period < DevGlobal.min_loop_us) DevGlobal.min_loop_us = delta_period;
+    if (delta_period > DevGlobal.max_loop_us) DevGlobal.max_loop_us = delta_period;
+    if (delta_period > DevGlobal.g_max_loop_us) DevGlobal.g_max_loop_us = delta_period;
+#endif // DevMFLMinMax
 #endif // DevMFLCntAvg
-//     summ_loop_us += delta_loop;
-// #if defined(DevMFLMinMax) && DevMFLMinMax == 1
-//     if (delta_loop < min_loop_us) min_loop_us = delta_loop;
-//     if (delta_loop > max_loop_us) max_loop_us = delta_loop;
-// #endif // DevMFLMinMax
+    if (g_delta_period >= DevMFLPeroid) {
+        uint32_t FreeHeap = ESP.getFreeHeap();
         String tmp_str;
         uint32_t summ_loop_us = 0;
-    if (delta_period >= DevMFLPeroid) {
         // SerialPrint(F("Dev"), F("MaxDevUnits"), String(MaxDevUnits));
         SerialPrint(F("Dev"), F("Metering"), F("****************"));
         tmp_str = "***Period(" + String(DevMFLPeroid) + ")";
-        tmp_str += "\trealPeriod(" + String(delta_period) + ")";
+        tmp_str += "\trealPeriod(" + String(g_delta_period) + ")";
         SerialPrint(F("Dev"), F("Metering"), tmp_str);
 #if defined(DevMFLCntAvg) && DevMFLCntAvg == 1
         tmp_str = "***cnt_loop(" + String(DevGlobal.cnt_loop) + ")";
-        tmp_str += "\tavg_loop(" + String(delta_period / DevGlobal.cnt_loop) + " us)";
+        uint32_t tmp_avg_loop = g_delta_period / DevGlobal.cnt_loop;
+        tmp_str += "\tavg_loop:p(" + String(tmp_avg_loop) + " us)";
+#if defined(DevMFLMinMax) && DevMFLMinMax == 1
+        if (tmp_avg_loop > DevGlobal.g_avg_loop) DevGlobal.g_avg_loop = tmp_avg_loop;
+        tmp_str += "g(" + String(DevGlobal.g_avg_loop) + " us)";
+        tmp_str += "\tloop_min:p(" + String(DevGlobal.min_loop_us) + " us)";
+        tmp_str += "\tloop_max:p(" + String(DevGlobal.max_loop_us) + " us)";
+        tmp_str += "g(" + String(DevGlobal.g_max_loop_us) + " us)";
+#endif // DevMFLMinMax
         SerialPrint(F("Dev"), F("Metering"), tmp_str);
 #endif // DevMFLCntAvg
 #if defined(DevMFLRAM) && DevMFLRAM == 1
@@ -134,7 +162,7 @@ void DevMeteringPrintPeriod() {
         SerialPrint(F("Dev"), F("Metering"), tmp_str);
 #endif // DevMFLRAM
         for (size_t i = 0; i < MaxDevUnits - 1; i++) {
-            DevMeteringPrintUnit(&DevUnits[i], delta_period);
+            DevMeteringPrintUnit(&DevUnits[i], g_delta_period);
             summ_loop_us += DevUnits[i].summ_us;
         }
         
@@ -151,13 +179,12 @@ void DevMeteringPrintPeriod() {
 
 // String devListHeapJson;
 // String thisDeviceJson;
-        DevUnits[core_metering].summ_us = delta_period - summ_loop_us; // считаем что все остальное забрал core_metering
+        DevUnits[core_metering].summ_us = g_delta_period - summ_loop_us; // считаем что все остальное забрал core_metering
         // SerialPrint(F("Dev"), F("Metering"), F("****************"));
-        DevMeteringPrintUnit(&DevUnits[core_metering], delta_period);
-        // SerialPrint(F("Dev"), F("Metering"), "summ_load = " + String((float)summ_loop_us * 100 / delta_period) + "%");
+        DevMeteringPrintUnit(&DevUnits[core_metering], g_delta_period);
         DevMeteringInit(FreeHeap);
     }
-        DevMeteringLoop(esp_core_loop, false);
+    DevMeteringLoop(esp_core_loop, false);
 }
 
 #if defined(Dev_GetSize) && Dev_GetSize == 1
@@ -166,5 +193,9 @@ void DevPrint_ID_sizeRAM(IoTItem* myIoTItem) {
         SerialPrint(F("Dev"), "ID_IoTItem:sizeRAM ", myIoTItem->getID() + ":" + String(myIoTItem->getSize()));
 };
 #endif // defined(Dev_GetSize) && Dev_GetSize == 1
+
+e_DevUnits get_DevGlobal_curr_unit() {
+    return DevGlobal.curr_unit;
+};
 
 #endif // #if defined(Dev_Utils) && Dev_Utils == 1

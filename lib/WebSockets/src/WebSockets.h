@@ -69,13 +69,13 @@
 // moves all Header strings to Flash (~300 Byte)
 //#define WEBSOCKETS_SAVE_RAM
 
-#if defined(ESP8266)
-#define WEBSOCKETS_YIELD() delay(0)
-#define WEBSOCKETS_YIELD_MORE() delay(1)
-#elif defined(ESP32)
+// #if defined(ESP8266)
+// #define WEBSOCKETS_YIELD() delay(0)
+// #define WEBSOCKETS_YIELD_MORE() delay(1)
+// #elif defined(ESP32)
 #define WEBSOCKETS_YIELD() yield()
 #define WEBSOCKETS_YIELD_MORE() delay(1)
-#endif
+// #endif
 
 #elif defined(STM32_DEVICE)
 
