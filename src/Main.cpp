@@ -97,9 +97,7 @@ void setup() {
     Serial.println();
     Serial.println(F("--------------started----------------"));
     
-// #if defined(Dev_Utils) && Dev_Utils == 1
-    // Dev_PreInit();
-// #endif
+    Dev_PreInit();
     
     // создание экземпляров классов
     // myNotAsyncActions = new NotAsync(do_LAST);
@@ -213,7 +211,7 @@ void setup() {
 
                 // Serial.printf("[ITEM] size: %d, id: %s, int: %d, intnet: %d\n", sizeof(**it), (*it)->getID(), (*it)->getInterval(), (*it)->getIntFromNet());
             }
-            DevMeteringLoop(ts_core_loop, false);
+            DevMeteringLoop(ts_core_loop, true);
         },
         nullptr, true);
 
@@ -223,9 +221,7 @@ void setup() {
     // Serial.println("--------test end---------");
 
     // stopErrorMarker(SETUPLAST_ERRORMARKER);
-// #if defined(Dev_Utils) && Dev_Utils == 1
-    // Dev_PostInit();
-// #endif
+    Dev_PostInit();
     DevMeteringInit();
     DevMeteringLoop(esp_core_loop, true);
 }
