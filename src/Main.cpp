@@ -80,6 +80,7 @@ void elementsLoop() {
 // }
 
 void setup() {
+    uint32_t FreeHeapStart = ESP.getFreeHeap();
 #if defined(esp32s2_4mb) || defined(esp32s3_16mb)
     USB.begin();
 #endif
@@ -96,14 +97,18 @@ void setup() {
     Serial.flush();
     Serial.println();
     Serial.println(F("--------------started----------------"));
-    
-    Dev_PreInit();
-    
+
+#if defined(Dev_Utils) && Dev_Utils == 1
+    s_DevUnit DevSetupUnits[MaxDevSetupUnits];
+    Dev_PreInit(DevSetupUnits, FreeHeapStart);
+#endif //Dev_Utils
     // создание экземпляров классов
     // myNotAsyncActions = new NotAsync(do_LAST);
 
     // инициализация файловой системы
+    DevMetering(elm_fileSystemInit, DevSetupUnits, core_metering_setup, true);
     fileSystemInit();
+    DevMetering(elm_PrintInfo, DevSetupUnits, core_metering_setup, true);
     Serial.println(F("------------------------"));
     Serial.println("FIRMWARE NAME     " + String(FIRMWARE_NAME));
     Serial.println("FIRMWARE VERSION  " + String(FIRMWARE_VERSION));
@@ -114,9 +119,11 @@ void setup() {
     Serial.println(F("------------------------"));
 
     // получение chip id
+    DevMetering(elm_setChipId, DevSetupUnits, core_metering_setup, true);
     setChipId();
 
     // синхронизация глобальных переменных с flash
+    DevMetering(elm_globalVarsSync, DevSetupUnits, core_metering_setup, true);
     globalVarsSync();
 
     // stopErrorMarker(SETUPBASE_ERRORMARKER);
@@ -124,6 +131,7 @@ void setup() {
     // initErrorMarker(SETUPCONF_ERRORMARKER);
 
     // настраиваем i2c шину
+    DevMetering(elm_i2cInit, DevSetupUnits, core_metering_setup, true);
     int i2c, pinSCL, pinSDA, i2cFreq;
     jsonRead(settingsFlashJson, "pinSCL", pinSCL, false);
     jsonRead(settingsFlashJson, "pinSDA", pinSDA, false);
@@ -141,6 +149,7 @@ void setup() {
     }
 
     // настраиваем микроконтроллер
+    DevMetering(elm_configure, DevSetupUnits, core_metering_setup, true);
     configure("/config.json");
 
     // stopErrorMarker(SETUPCONF_ERRORMARKER);
@@ -148,9 +157,13 @@ void setup() {
     // initErrorMarker(SETUPSCEN_ERRORMARKER);
 
     // подготавливаем сценарии
+    DevMetering(elm_loadScenario, DevSetupUnits, core_metering_setup, true);
     iotScen.loadScenario("/scenario.txt");
     // создаем событие завершения инициализации основных моментов для возможности выполнения блока кода при загрузке
+    DevMetering(elm_create_onInit, DevSetupUnits, core_metering_setup, true);
     createItemFromNet("onInit", "1", 1);
+
+    DevMetering(elm_elementsLoop, DevSetupUnits, core_metering_setup, true);
     elementsLoop();
 
     // stopErrorMarker(SETUPSCEN_ERRORMARKER);
@@ -158,21 +171,26 @@ void setup() {
     // initErrorMarker(SETUPINET_ERRORMARKER);
 
     // подключаемся к роутеру
+    DevMetering(elm_routerConnect, DevSetupUnits, core_metering_setup, true);
     routerConnect();
 
 // инициализация асинхронного веб сервера и веб сокетов
 #ifdef ASYNC_WEB_SERVER
+    DevMetering(elm_asyncWebServerInit, DevSetupUnits, core_metering_setup, true);
     asyncWebServerInit();
 #endif
 #ifdef ASYNC_WEB_SOCKETS
+    DevMetering(elm_asyncWebSocketsInit, DevSetupUnits, core_metering_setup, true);
     asyncWebSocketsInit();
 #endif
 
 // инициализация стандартного веб сервера и веб сокетов
 #ifdef STANDARD_WEB_SERVER
+    DevMetering(elm_standWebServerInit, DevSetupUnits, core_metering_setup, true);
     standWebServerInit();
 #endif
 #ifdef STANDARD_WEB_SOCKETS
+    DevMetering(elm_standWebSocketsInit, DevSetupUnits, core_metering_setup, true);
     standWebSocketsInit();
 #endif
 
@@ -181,22 +199,32 @@ void setup() {
     // initErrorMarker(SETUPLAST_ERRORMARKER);
 
     // NTP
+    DevMetering(elm_ntpInit, DevSetupUnits, core_metering_setup, true);
     ntpInit();
 
     // инициализация задач переодического выполнения
+    DevMetering(elm_periodicTasksInit, DevSetupUnits, core_metering_setup, true);
     periodicTasksInit();
 
     // запуск работы udp
+    DevMetering(elm_addThisDeviceToList, DevSetupUnits, core_metering_setup, true);
     addThisDeviceToList();
+
+    DevMetering(elm_udpListningInit, DevSetupUnits, core_metering_setup, true);
     udpListningInit();
+
+    DevMetering(elm_udpBroadcastInit, DevSetupUnits, core_metering_setup, true);
     udpBroadcastInit();
 
     // создаем событие завершения конфигурирования для возможности выполнения блока кода при загрузке
+    DevMetering(elm_create_onStart, DevSetupUnits, core_metering_setup, true);
     createItemFromNet("onStart", "1", 1);
 
+    DevMetering(elm_stInit, DevSetupUnits, core_metering_setup, true);
     stInit();
 
     // настраиваем секундные обслуживания системы
+    DevMetering(elm_ts_add_TIMES, DevSetupUnits, core_metering_setup, true);
     ts.add(TIMES, 1000, [&](void *) {
             DevMeteringLoop(task_TIMES, true);
             // сохраняем значения IoTItems в файл каждую секунду, если были изменения (установлены маркеры на сохранение)
@@ -221,9 +249,8 @@ void setup() {
     // Serial.println("--------test end---------");
 
     // stopErrorMarker(SETUPLAST_ERRORMARKER);
-    Dev_PostInit();
-    DevMeteringInit();
-    DevMeteringLoop(esp_core_loop, true);
+    DevMetering(core_metering_setup, DevSetupUnits, core_metering_setup, true);
+    Dev_PostInit(DevSetupUnits);
 }
 
 void loop() {
@@ -264,7 +291,7 @@ void loop() {
     //     loopPeriod = millis() - st;
     //     if (loopPeriod > 2) Serial.println(loopPeriod);
     // #endif
-    DevMeteringLoop(core_metering, true);
+    DevMeteringLoop(core_metering_loop, true);
     DevMeteringPrintPeriod();
     DevMeteringLoop(esp_core_loop, true);
 }
