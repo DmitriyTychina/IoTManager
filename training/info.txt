@@ -6,3 +6,8 @@
 22.12.21 добавил web sockets            = 37.63 kB
 
 20.01.22 стандартный сервер mqtt в работе = 41.00 kb
+
+#1
+RAM:   [=====     ]  47.8% (used 39124 bytes from 81920 bytes)
+Flash: [=====     ]  47.4% (used 495579 bytes from 1044464 bytes)
+
