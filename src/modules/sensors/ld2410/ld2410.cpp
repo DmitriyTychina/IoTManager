@@ -237,7 +237,7 @@ public:
     }
     ~ld2410m()
     {
-        delete ld2410;
+        delete radar;
         radar = nullptr;
     };
 #if defined(Dev_GetSize) && Dev_GetSize == 1
@@ -300,7 +300,7 @@ public:
 
     ~ld2410t()
     {
-        delete ld2410;
+        delete radar;
         radar = nullptr;
     };
 #if defined(Dev_GetSize) && Dev_GetSize == 1
@@ -362,7 +362,7 @@ public:
     }
     ~ld2410d()
     {
-        delete ld2410;
+        delete radar;
         radar = nullptr;
     };
 #if defined(Dev_GetSize) && Dev_GetSize == 1
@@ -427,7 +427,7 @@ public:
     }
     ~ld2410e()
     {
-        delete ld2410;
+        delete radar;
         radar = nullptr;
     };
 #if defined(Dev_GetSize) && Dev_GetSize == 1
