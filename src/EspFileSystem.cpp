@@ -24,6 +24,8 @@ void globalVarsSync()
 
     mqttRootDevice = mqttPrefix + "/" + chipId;
 
+    jsonWriteStr_(settingsFlashJson, "ip", WiFi.localIP().toString());
+
     // это не используется - удалить в последствии
     jsonWriteStr_(settingsFlashJson, "root", mqttRootDevice);
 }
@@ -78,7 +80,8 @@ uint32_t ESP_getChipId(void)
 }
 
 // устарела используем новую функцию ниже
-#ifndef esp32s2_4mb
+#if !defined(esp32s2_4mb) && !defined(esp32c3m_4mb) && !defined(esp32s3_16mb)
+//#ifndef esp32s2_4mb
 uint32_t ESP_getFlashChipId(void)
 {
 #ifdef ESP32

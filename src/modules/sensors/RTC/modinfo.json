@@ -54,37 +54,33 @@
                 "params": [
                     "Формат как у функции date() в PHP"
                 ]
+            },
+            {
+                "name": "setTime",
+                "descr": "Установить время через сценарии в формате сек, мин, час, день, мес, год.",
+                "params": [
+                    "сек", "мин", "час", "день", "мес", "год"
+                ]
+            },
+            {
+                "name": "setUnixTime",
+                "descr": "Установить время через сценарий в формате юникстайм",
+                "params": [
+                    "rtc.setUnixTime('46489234') - параметр в виде строки"
+                ]
+            },
+            {
+                "name": "getTimeFloat",
+                "descr": "Получить числовое значение времени по указанному формату",
+                "params": [
+                    "s - Вернуть секунды, i - Вернуть минуты, H - Вернуть часы в 24-часовом формате, d - Вернуть день месяца, w - Вернуть день недели, m - Вернуть месяц, Y - Вернуть год(4 знака)"
+                ]
             }
         ]
     },
     "defActive": true,
     "usedLibs": {
-        "esp32_4mb": [
-            "https://github.com/tremaru/iarduino_RTC"
-        ],
-        "esp32cam_4mb": [
-            "https://github.com/tremaru/iarduino_RTC"
-        ],
-        "esp8266_4mb": [
-            "https://github.com/tremaru/iarduino_RTC"
-        ],
-        "esp8266_1mb": [
-            "https://github.com/tremaru/iarduino_RTC"
-        ],
-        "esp8266_1mb_ota": [
-            "https://github.com/tremaru/iarduino_RTC"
-        ],
-        "esp8285_1mb": [
-            "https://github.com/tremaru/iarduino_RTC"
-        ],
-        "esp8285_1mb_ota": [
-            "https://github.com/tremaru/iarduino_RTC"
-        ],
-        "esp8266_2mb": [
-            "https://github.com/tremaru/iarduino_RTC"
-        ],
-        "esp8266_2mb_ota": [
-            "https://github.com/tremaru/iarduino_RTC"
-        ]
+        "esp32*": [],
+        "esp82*": []
     }
 }

@@ -104,6 +104,8 @@ void getMqttData() {
     mqttPort = jsonReadInt(settingsFlashJson, F("mqttPort"));
     mqttUser = jsonReadStr(settingsFlashJson, F("mqttUser"));
     mqttPass = jsonReadStr(settingsFlashJson, F("mqttPass"));
+    mqttPrefix = jsonReadStr(settingsFlashJson, F("mqttPrefix"));
+    mqttRootDevice = mqttPrefix + "/" + chipId;
 }
 
 void mqttSubscribe() {
@@ -117,6 +119,15 @@ void mqttSubscribe() {
         mqtt.subscribe((mqttPrefix + "/+/+/event/#").c_str());
         mqtt.subscribe((mqttPrefix + "/+/+/order/#").c_str());
         mqtt.subscribe((mqttPrefix + "/+/+/info").c_str());
+    }
+    for (std::list<IoTItem*>::iterator it = IoTItems.begin(); it != IoTItems.end(); ++it) {
+        if ((*it)->getSubtype() == "ExternalMQTT") {
+            String tmps = (*it)->getMqttExterSub();
+            if (tmps != ""){
+                mqtt.subscribe(tmps.c_str());
+                SerialPrint("i", F("MQTT"), ("subscribed external " + tmps).c_str());
+            }
+        }
     }
 }
 

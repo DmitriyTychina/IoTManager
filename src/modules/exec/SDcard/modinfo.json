@@ -32,10 +32,7 @@
     },
     "defActive": false,
     "usedLibs": {
-        "esp32_4mb": [
-            "espressif/esp32-camera @ ^2.0.0"
-        ],
-        "esp32cam_4mb": [
+        "esp32*": [
             "espressif/esp32-camera @ ^2.0.0"
         ]
     }

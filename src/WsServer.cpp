@@ -118,6 +118,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length)
             if (headerStr == "/oiranecs|") {
                 writeFileUint8tByFrames("scenario.txt", payload, length, headerLenth, 256);
                 clearConfigure();
+                globalVarsSync();   // в том числе подгружаем сохраненные значения элементов с флешки
                 configure("/config.json");
                 iotScen.loadScenario("/scenario.txt");
                 // создаем событие завершения конфигурирования для возможности
@@ -216,6 +217,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length)
             //----------------------------------------------------------------------//
             if (headerStr == "/profile|") {
                 // для версии 451 отдаем myProfile.json
+                sendFileToWsByFrames("/ota.json", "otaupd", "", num, WEB_SOCKETS_FRAME_SIZE);
                 if (FileFS.exists("/myProfile.json")) {
                     sendFileToWsByFrames("/myProfile.json", "prfile", "", num, WEB_SOCKETS_FRAME_SIZE);
                     // для версии 452 и более отдаем flashProfile.json
