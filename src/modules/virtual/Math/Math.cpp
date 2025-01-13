@@ -37,9 +37,16 @@ private:
         int h2 = selectToMarker(endTime, ":").toInt();
         int min2 = selectToMarkerLast(endTime, ":").toInt();
 
+        int sumMin1 = h1 * 60 + min1;
+        int sumMin2 = h2 * 60 + min2;
+
         int nowMinutes = _time_local.hour * 60 + _time_local.minute;
 
-        return nowMinutes >= h1 * 60 + min1 && nowMinutes <= h2 * 60 + min2;
+        if (sumMin1 <= sumMin2) {
+            return nowMinutes >= sumMin1 && nowMinutes <= sumMin2;
+        } else {
+            return nowMinutes >= sumMin1 && nowMinutes <= 24 * 60 || nowMinutes >= 0 && nowMinutes <= sumMin2;
+        }
     }
 
 

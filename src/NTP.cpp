@@ -156,33 +156,30 @@ const String getTodayDateDotFormated() {
 
 // format 22.02.2022
 unsigned long strDateToUnix(String date) {
-    int day = selectToMarker(date, ".").toInt();
-    date = deleteBeforeDelimiter(date, ".");
-    int month = selectToMarker(date, ".").toInt();
-    date = deleteBeforeDelimiter(date, ".");
-    int year = selectToMarker(date, ".").toInt();
-    int secsInOneDay = 86400;
-    int daysInOneYear = 365;
-    int daysInLeepYear = 366;
-    int numberOfLeepYears = 12;
-    int totalNormalYears = year - 1970 - numberOfLeepYears;
+    int day, month, year;
     unsigned int daysInMonth[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-    if (year % 4 == 0) {
-        if (year % 100 != 0 || year % 400 == 0) {
-            daysInMonth[1] = 29;
-        } else {
-            daysInMonth[1] = 28;
-        }
-    } else {
-        daysInMonth[1] = 28;
-    } 
-    int numberOfDaysInPastMonths = 0;
-    for (int i = 0; i <= 11; i++) {
-        if (i <= month - 2) {
-            numberOfDaysInPastMonths = numberOfDaysInPastMonths + daysInMonth[i];
-        }
+
+    day = date.substring(0, date.indexOf(".")).toInt();
+    date = date.substring(date.indexOf(".") + 1);
+    month = date.substring(0, date.indexOf(".")).toInt();
+    date = date.substring(date.indexOf(".") + 1);
+    year = date.toInt();
+
+    unsigned long unixTime = (year - 1970) * 365 * 86400;
+    int numberOfLeepYears = (year - 1968) / 4 - (year - 1900) / 100 + (year - 1600) / 400;
+    unixTime += numberOfLeepYears * 86400;
+
+    if (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)) {
+        daysInMonth[1] = 29;
     }
-    return (day * secsInOneDay) + (numberOfDaysInPastMonths * secsInOneDay) + (totalNormalYears * daysInOneYear * secsInOneDay) + (numberOfLeepYears * daysInLeepYear * secsInOneDay);
+
+    for (int i = 0; i < month - 1; i++) {
+        unixTime += daysInMonth[i] * 86400;
+    }
+
+    unixTime += (day - 1) * 86400;
+
+    return unixTime;
 }
 
 const String getDateTimeDotFormatedFromUnix(unsigned long unixTime) {

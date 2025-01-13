@@ -17,6 +17,7 @@ class AnalogAdc : public IoTItem {
     unsigned int _pin;
     unsigned int _avgSteps, _avgCount;
     unsigned long _avgSumm;
+    float adCresult;
 
    public:
     //=======================================================================================================
@@ -45,6 +46,7 @@ class AnalogAdc : public IoTItem {
     // и выполнить за несколько тактов
     void doByInterval() {
         if (_avgSteps <= 1) value.valD = IoTgpio.analogRead(_pin);
+        value.valD = adCresult;///
         regEvent(value.valD, "AnalogAdc");  //обязательный вызов хотяб один
     }
 
@@ -56,7 +58,8 @@ class AnalogAdc : public IoTItem {
     void loop() {
         if (_avgSteps > 1) {
             if (_avgCount > _avgSteps) {
-                value.valD = _avgSumm / _avgSteps;
+           //     value.valD = _avgSumm / (_avgSteps + 1);
+                adCresult = _avgSumm / (_avgSteps + 1);                
                 _avgSumm = 0;
                 _avgCount = 0;
             }
