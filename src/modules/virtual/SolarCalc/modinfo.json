@@ -1,0 +1,167 @@
+{
+    "menuSection": "virtual_elments",
+    "configItem": [
+        {
+            "global": 0,
+            "name": "Solar Calculator",
+            "type":  "Reading",
+            "subtype": "SolarCalculator",
+            "id": "Sun",
+            "widget": "anydataCorner",
+            "page": "Математика",
+            "descr": "Azimuth",
+            "lat": 47.0159,
+            "lon": 28.8448,
+            "parameter": "azimuth",
+            "round": 1,
+            "int": 60,
+            "ticker": 1,
+            "debug": 0
+ 
+        }
+    ],
+    "about": {
+        "authorName": "Alex",
+        "authorContact": "https://t.me/cmche",
+        "authorGit": "https://github.com/CHE77/IoTManager-Modules",
+        "exampleURL": "https://iotmanager.org/wiki",
+        "specialThanks": "",
+        "moduleName": "SolarCalculator",
+        "moduleVersion": "1.0",
+        "usedRam": {
+            "esp32_4mb": 15,
+            "esp8266_4mb": 15
+        },
+        "title": "Модуль SolarCalc",
+        "moduleDesc": "Модуль для расчета положения Солнца в различных системах координат. Требуют обновленного времени: через интернет, RTC, SoftRTC",
+        "license": "Cooperative Non-Violent Public License (CNPL)",
+        "propInfo": {
+        },
+        "funcInfo": [
+            {
+                "name": "sunrise",
+                "descr": "Расчет времени восхода",
+                "params": [
+							"Sun.sunrise() - на текущую дату",
+							"Sun.sunrise(день, месяц, год) - на заданую дату"
+                ]
+            },
+			{
+                "name": "transit",
+                "descr": "Расчет времени транзита",
+                "params": [
+							"Sun.transit() - на текущую дату",
+							"Sun.transit(день, месяц, год) - на заданую дату"
+                ]
+            },
+			{
+                "name": "sunset",
+                "descr": "Расчет времени захода",
+                "params": [
+							"Sun.sunset() - на текущую дату",
+							"Sun.sunset(день, месяц, год) - на заданую дату"
+                ]
+            },			
+			{
+                "name": "azimuth",
+                "descr": "Расчет азимута",
+                "params": [
+							"Sun.azimuth() - на текущий момент времени",
+							"Sun.azimuth(день, месяц, год, час, минут, секунд) - на заданое веремя",
+							"Sun.azimuth(день, месяц, год, час, минут) - на заданое веремя",
+							"Sun.azimuth(день, месяц, год, час) - на заданое веремя"
+                ]
+            },
+			{
+                "name": "elevation",
+                "descr": "Расчет высоты (над горизонтом)",
+                "params": [
+							"Sun.elevation() - на текущий момент времени",
+							"Sun.elevation(день, месяц, год, час, минут, секунд) - на заданое веремя",
+							"Sun.elevation(день, месяц, год, час, минут) - на заданое веремя",
+							"Sun.elevation(день, месяц, год, час) - на заданое веремя"
+                ]
+            },
+			{
+                "name": "sunArcFromTransit",
+                "descr": "Расчет дуги эклиптики от зенита",
+                "params": [
+							"Sun.sunArcFromTransit() - на текущий момент времени",
+							"Sun.sunArcFromTransit(день, месяц, год, час, минут, секунд) - на заданое веремя",
+							"Sun.sunArcFromTransit(день, месяц, год, час, минут) - на заданое веремя",
+							"Sun.sunArcFromTransit(день, месяц, год, час) - на заданое веремя"
+                ]
+            },
+			{
+                "name": "jd",
+                "descr": "Расчет Юлинаской даты",
+                "params": [
+							"Sun.jd() - на текущий момент времени",
+							"Sun.jd(день, месяц, год, час, минут, секунд) - на заданое веремя",
+							"Sun.jd(день, месяц, год, час, минут) - на заданое веремя",
+							"Sun.jd(день, месяц, год, час) - на заданое веремя"
+                ]
+            },
+			{
+                "name": "GMST",
+                "descr": "Расчет среднего звездного времени на меридиане Гринвича",
+                "params": [
+							"Sun.GMST() - на текущий момент времени",
+							"Sun.GMST(день, месяц, год, час, минут, секунд) - на заданое веремя",
+							"Sun.GMST(день, месяц, год, час, минут) - на заданое веремя",
+							"Sun.GMST(день, месяц, год, час) - на заданое веремя"
+                ]
+            },			
+			{
+                "name": "LST",
+                "descr": "Расчет Местного звездного времени",
+                "params": [
+							"Sun.LST() - на текущий момент времени",
+							"Sun.LST(день, месяц, год, час, минут, секунд) - на заданое веремя",
+							"Sun.LST(день, месяц, год, час, минут) - на заданое веремя",
+							"Sun.LST(день, месяц, год, час) - на заданое веремя"
+                ]
+            },
+			{
+                "name": "ra",
+                "descr": "Расчет Прямого Восхождения",
+                "params": [
+							"Sun.ra() - на текущий момент времени",
+							"Sun.ra(день, месяц, год, час, минут, секунд) - на заданое веремя",
+							"Sun.ra(день, месяц, год, час, минут) - на заданое веремя",
+							"Sun.ra(день, месяц, год, час) - на заданое веремя"
+                ]
+            },
+			{
+                "name": "dec",
+                "descr": "Расчет Склонения",
+                "params": [
+							"Sun.dec() - на текущий момент времени",
+							"Sun.dec(день, месяц, год, час, минут, секунд) - на заданое веремя",
+							"Sun.dec(день, месяц, год, час, минут) - на заданое веремя",
+							"Sun.dec(день, месяц, год, час) - на заданое веремя"
+                ]
+            },
+			{
+                "name": "getHour",
+                "descr": "Получаем час из какого-то элемента и переводим его в UTC",
+                "params": [
+							"Sun.getHour(HH:mm)"
+                ]
+            },	
+			{
+                "name": "getMinute",
+                "descr": "Получаем минуты из какого-то элемента",
+                "params": [
+							"Sun.getMinute(HH:mm)"
+                ]
+            }
+        ]
+    },
+    "defActive": false,
+    "usedLibs": {
+        "esp32*": ["jpb10/SolarCalculator@^2.0.1"],
+        "esp82*": ["jpb10/SolarCalculator@^2.0.1"],
+        "bk72*": ["jpb10/SolarCalculator@^2.0.1"]
+    }
+}
