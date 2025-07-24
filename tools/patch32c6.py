@@ -7,7 +7,7 @@ from sys import platform
 pio_home = env.subst("$PROJECT_CORE_DIR")
 print("PLATFORMIO_DIR" + pio_home)
 
-if platform == "linux" or platform == "linux2":
+if platform == "linux" or platform == "linux2" or platform == "darwin":
     # linux
     #devkitm = '/home/rise/.platformio/platforms/espressif32/boards/esp32-c6-devkitm-1.json'
     #devkitc = '/home/rise/.platformio/platforms/espressif32/boards/esp32-c6-devkitc-1.json'    

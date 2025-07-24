@@ -11,7 +11,7 @@ from sys import platform
 pio_home = env.subst("$PROJECT_CORE_DIR")
 print("PLATFORMIO_DIR" + pio_home)
 
-if platform == "linux" or platform == "linux2":
+if platform == "linux" or platform == "linux2" or platform == "darwin":
     # linux
     #mainPyPath = '/home/rise/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src/WiFiClient.cpp'
     mainPyPath = pio_home + '/packages/framework-arduinoespressif32/libraries/WiFi/src/WiFiClient.cpp'

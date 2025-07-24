@@ -88,7 +88,7 @@ void* getAPI_AhtXX(String subtype, String param) {
     
        if (ahts.find(addr) == ahts.end()) {
             int shtType;
-            jsonRead(param, "type", shtType);
+            jsonRead(param, "shtType", shtType);
 
             ahts[addr] = new AHTxx(hexStringToUint8(addr), (AHTXX_I2C_SENSOR)shtType);
 

@@ -13,6 +13,8 @@
 # python PrepareProject.py --profile <ИмяФайла>
 # python PrepareProject.py -p <ИмяФайла>
 # 
+# Используя параметры -b или --board <board_name> можно уточнить для какой платы нужно подготовить проект
+# 
 # поддерживаемые контроллеры (профили):
 # esp8266_4mb
 # esp8266_16mb
@@ -223,12 +225,12 @@ allAPI_head = ""
 allAPI_exec = ""
 for activModuleName in activeModulesName:
     allAPI_head = allAPI_head + "\nvoid* getAPI_" + activModuleName + "(String subtype, String params);"
-    allAPI_exec = allAPI_exec + "\nif ((tmpAPI = getAPI_" + activModuleName + "(subtype, params)) != nullptr) return tmpAPI;"
+    allAPI_exec = allAPI_exec + "\nif ((tmpAPI = getAPI_" + activModuleName + "(subtype, params)) != nullptr) foundAPI = tmpAPI;"
 apicpp = '#include "ESPConfiguration.h"\n'
 apicpp = apicpp + allAPI_head
-apicpp = apicpp + '\n\nvoid* getAPI(String subtype, String params) {\nvoid* tmpAPI;'
+apicpp = apicpp + '\n\nvoid* getAPI(String subtype, String params) {\nvoid* tmpAPI; void* foundAPI = nullptr;'
 apicpp = apicpp + allAPI_exec
-apicpp = apicpp + '\nreturn nullptr;\n}'
+apicpp = apicpp + '\nreturn foundAPI;\n}'
 with open('src/modules/API.cpp', 'w') as f:
     f.write(apicpp)
 

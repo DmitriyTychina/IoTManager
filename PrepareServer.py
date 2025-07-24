@@ -26,8 +26,8 @@ config.read("platformio.ini")
 deviceName = config["platformio"]["default_envs"]
 
 homeDir = os.path.expanduser('~')
-os.system(homeDir + "\.platformio\penv\Scripts\pio run")
-os.system(homeDir + "\.platformio\penv\Scripts\pio run -t buildfs --disable-auto-clean")
+os.system(homeDir + "/.platformio/penv/Scripts/pio run")
+os.system(homeDir + "/.platformio/penv/Scripts/pio run -t buildfs --disable-auto-clean")
 
 if copyFileIfExist("firmware.bin", deviceName) and copyFileIfExist("littlefs.bin", deviceName):
     copyFileIfExist("partitions.bin", deviceName)

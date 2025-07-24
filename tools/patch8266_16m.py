@@ -9,7 +9,7 @@ from sys import platform
 pio_home = env.subst("$PROJECT_CORE_DIR")
 print("PLATFORMIO_DIR" + pio_home)
 
-if platform == "linux" or platform == "linux2":
+if platform == "linux" or platform == "linux2" or platform == "darwin":
     #mainPyPath = '/home/rise/.platformio/platforms/espressif8266@4.0.1/builder/main.py'
     mainPyPath = pio_home + '/platforms/espressif8266@4.0.1/builder/main.py'
 else:
