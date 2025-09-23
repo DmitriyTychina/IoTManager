@@ -182,7 +182,7 @@ with open("data_svelte/settings.json", "w", encoding='utf-8') as write_file:
 # параллельно собираем необходимые активным модулям библиотеки для включения в компиляцию для текущего типа устройства (esp8266_4m, esp32_4mb, esp8266_1m, esp8266_1m_ota) 
 activeModulesName = []  # список имен активных модулей
 allLibs = ""            # подборка всех библиотек необходимых модулям для дальнейшей записи в конфигурацию platformio
-allDefs = ""            # для каждого модуля создаем глобальный define "-D" + moduleJson['about']['moduleType']
+allDefs = ""            # для каждого модуля создаем глобальный define "-D" + moduleJson['about']['moduleDefines']
 itemsCount = 1
 includeDirs = ""        # подборка путей ко всем модулям для дальнейшей записи в конфигурацию platformio
 itemsJson = json.loads('[{"name": "Выберите элемент", "num": 0}]')
@@ -192,8 +192,8 @@ for section, modules in profJson['modules'].items():
         if module['active']:
             with open(module['path'] + "/modinfo.json", "r", encoding='utf-8') as read_file:
                 moduleJson = json.load(read_file)
-                if 'moduleType' in moduleJson['about']:
-                    allDefs = allDefs + "\n" + "-D" + moduleJson['about']['moduleType']
+                if 'moduleDefines' in moduleJson['about']:
+                    allDefs = allDefs + "\n" + "-D" + moduleJson['about']['moduleDefines']
                 if deviceName in moduleJson['usedLibs']:   # проверяем поддерживает ли модуль текущее устройство
                     if not 'exclude' in moduleJson['usedLibs'][deviceName]: # смотрим не нужно ли исключить данный модуль из указанной платы deviceName
                         activeModulesName.append(moduleJson['about']['moduleName'])     # запоминаем имена для использования на след шагах
