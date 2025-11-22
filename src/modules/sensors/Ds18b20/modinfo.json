@@ -40,7 +40,7 @@
     "defActive": true,
     "usedLibs": {
         "esp32*": [
-            "https://github.com/milesburton/Arduino-Temperature-Control-Library"
+            "milesburton/DallasTemperature @ ^4.0.4"
         ],
         "esp32c6_4mb": [
             "https://github.com/pstolarz/Arduino-Temperature-Control-Library.git#OneWireNg"
@@ -49,7 +49,7 @@
             "https://github.com/pstolarz/Arduino-Temperature-Control-Library.git#OneWireNg"
         ],        
         "esp82*": [
-            "https://github.com/milesburton/Arduino-Temperature-Control-Library"
+            "milesburton/DallasTemperature @ ^4.0.4"
         ]
     }
 }
