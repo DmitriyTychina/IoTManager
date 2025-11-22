@@ -359,8 +359,10 @@ enum SysOp {
     sysop_getUptime,
     sysop_mqttIsConnect,
     sysop_wifiIsConnect,
-    sysop_setInterval,
-    sysop_addPortMap
+#if !defined (LIBRETINY) && defined (esp32_wifirep)
+    sysop_addPortMap, // не должна быть последней в списке
+#endif
+    sysop_setInterval
 };
 
 IoTValue sysExecute(SysOp command, std::vector<IoTValue> &param) {
@@ -458,7 +460,8 @@ IoTValue sysExecute(SysOp command, std::vector<IoTValue> &param) {
             }
             break;
         case sysop_getUptime:
-            value.valS = jsonReadStr(errorsHeapJson, F("upt"));
+            // value.valS = jsonReadStr(errorsHeapJson, F("upt"));
+            value.valS = prettyMillis(millis());
             value.isDecimal = false;
             break;
         case sysop_mqttIsConnect:
@@ -472,11 +475,13 @@ IoTValue sysExecute(SysOp command, std::vector<IoTValue> &param) {
                 
             }
             break;
+#if !defined (LIBRETINY) && defined (esp32_wifirep)
         case sysop_addPortMap:
             if (param.size() == 5) {
                 addPortMap(param[0].valS,  param[1].valS, param[2].valD, param[3].valS, param[4].valD);
             }
-            break;           
+            break;
+#endif
     }
 
     return value;
@@ -537,9 +542,11 @@ class SysCallExprAST : public ExprAST {
             operation = sysop_wifiIsConnect;            
         else if (Callee == F("setInterval"))
             operation = sysop_setInterval;
+#if !defined (LIBRETINY) && defined (esp32_wifirep)
         else if (Callee == F("addPortMap"))
             operation = sysop_addPortMap;              
-        else
+#endif
+            else
             operation = sysop_notfound;
     }
 

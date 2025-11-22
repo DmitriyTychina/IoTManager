@@ -13,3 +13,6 @@ To achieve your goal, you only need three things:
 If remote control and the application are not needed, then the last step can be omitted.
 
 The logic of each device is configured using scripts. They are needed in order to teach the device to carry out your invented algorithms. You can assign any reaction to any action. The temperature has risen - the device will turn off the heater. Humidity has fallen and the level in the tank is more than 10% - the device will start watering, if not, it will send you a telegram notification that there is not enough water. These are just a few examples. Scenarios are created by you, and their flexibility will allow you to fulfill your every desire.
+
+RAM:   [==        ]  16.9% (used 55232 bytes from 327680 bytes)
+Flash: [========  ]  78.5% (used 1029306 bytes from 1310720 bytes)

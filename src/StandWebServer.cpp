@@ -17,6 +17,8 @@ enum UpdateType {
 
 
 void standWebServerInit() {
+    //  Запускаем HTTP сервер
+    HTTP.begin();
     //  Кэшировать файлы для быстрой работы
     // если указана директория то все файлы будут отмечены как Directory Request Handler
     // если указан файл то он будет отмечен как File Request Handler
@@ -67,8 +69,6 @@ void standWebServerInit() {
     //  Добавляем функцию Update для перезаписи прошивки по WiFi при 1М(256K FileFS) и выше
     //  httpUpdater.setup(&HTTP);
 
-    //  Запускаем HTTP сервер
-    HTTP.begin();
 
     // HTTP страницы для работы с FFS
 
@@ -109,6 +109,11 @@ void standWebServerInit() {
     // Default handler for all URIs not defined above
     // Use it to read files from filesystem
     HTTP.onNotFound(handleNotFound);
+}
+
+void standWebServerDeinit() {
+    //  Останавливаем HTTP сервер
+    HTTP.stop();
 }
 
 ////////////////////////////////

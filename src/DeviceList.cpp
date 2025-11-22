@@ -36,7 +36,7 @@ void addThisDeviceToList() {
 #ifdef UDP_ENABLED
 AsyncUDP asyncUdp;
 
-void udpListningInit() {
+void udpListeningInit() {
 #if defined(LIBRETINY)
     if (asyncUdp.listenMulticast(IPAddress(239, 255, 255, 255), 4210 , WiFi.localIP() ))  {
 #else
@@ -93,7 +93,14 @@ void udpListningInit() {
         });
     }
 
-    SerialPrint("i", F("UDP"), F("Udp listning inited"));
+    SerialPrint("i", F("UDP"), F("Udp listening inited"));
+}
+
+void udpListeningDeinit() {
+    asyncUdp.onPacket((AuPacketHandlerFunction)NULL);
+    devListHeapJson = "";
+
+    SerialPrint("i", F("UDP"), F("Udp listening deinit"));
 }
 
 void udpBroadcastInit() {
@@ -110,6 +117,11 @@ void udpBroadcastInit() {
         nullptr, true);
 
     SerialPrint("i", F("UDP"), F("Udp broadcast inited"));
+}
+
+void udpBroadcastDeinit() {
+    ts.remove(UDPt);
+    SerialPrint("i", F("UDP"), F("Udp broadcast deinit"));
 }
 
 void jsonMergeArrays(String& existJson, String& incJson) {

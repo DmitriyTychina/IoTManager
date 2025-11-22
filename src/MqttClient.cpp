@@ -24,8 +24,8 @@ void mqttInit() {
             } else {
                 SerialPrint("E", F("WIFI"), F("✖ Lost WiFi connection"));
                 ts.remove(WIFI_MQTT_CONNECTION_CHECK);
-                wifiUptime = 0;
-                startAPMode();
+                // wifiUptime = 0; // TODO WiFi
+                // startAPMode(); // TODO WiFi
             }
         },
         nullptr, true);

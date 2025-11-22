@@ -113,16 +113,16 @@ WEB_SOCKETS_FRAME_SIZE создан для того что бы не загру�
 #endif
 
 #if defined(ESP32) && !defined(esp32_wifirep)
-#define WIFI_ASYNC
+// #define WIFI_ASYNC
 #endif
 
 // задачи таскера
 enum TimerTask_t {
-    WIFI_SCAN,
+    // WIFI_SCAN,
     WIFI_MQTT_CONNECTION_CHECK,
-#ifdef WIFI_ASYNC    
-    WIFI_CONN,
-#endif    
+// #ifdef WIFI_ASYNC    
+    WIFI_HANDL,
+// #endif    
     TIME,
     // TIME_SYNC, // не используется
     // UPTIME, // не используется

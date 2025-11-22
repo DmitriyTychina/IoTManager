@@ -13,7 +13,9 @@ void SerialPrint(const String& errorLevel, const String& module, const String& m
 
     // if (isNetworkActive()) { // все проверки происходят в sendStringToWs()
     if (jsonReadInt(settingsFlashJson, F("log")) != 0) {
+        if ((errorLevel == "D") || (errorLevel == "d")) { // debug-сообщения только в сериал
         sendStringToWs(F("corelg"), tosend, -1);
+        }
     }
     // }
 

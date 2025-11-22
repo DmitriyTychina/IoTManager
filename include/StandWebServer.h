@@ -3,6 +3,7 @@
 
 #ifdef STANDARD_WEB_SERVER
 extern void standWebServerInit();
+extern void standWebServerDeinit();
 extern bool handleFileRead(String path);
 //extern String getContentType(String filename);
 //#ifdef REST_FILE_OPERATIONS

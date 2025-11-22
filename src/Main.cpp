@@ -88,21 +88,17 @@ void stopErrorMarker(int id) {
 }
 
 void setup() {
-#if defined(esp32s2_4mb) || defined(esp32s3_16mb)
-    USB.begin();
-#endif
+    delay(1000); // Debug
 #if defined(esp32_4mb) || defined(esp32_4mb3f) || defined(esp32_16mb) || defined(esp32cam_4mb)
     My_timer = timerBegin(0, 80, true);
     timerAttachInterrupt(My_timer, &onTimer, true);
     timerAlarmWrite(My_timer, STEPPER_ERRORMARKER, true);
     timerAlarmEnable(My_timer);
     // timerAlarmDisable(My_timer);
-
-    initErrorMarker(SETUPBASE_ERRORMARKER);
 #endif
-
     Serial.begin(115200);
     Serial.flush();
+    initErrorMarker(SETUPBASE_ERRORMARKER);
     //----------- Отладка EXCEPTION (функции с заглушками для отключения) ---------
 #if defined(RESTART_DEBUG_INFO)  
     //Привязка коллбэк функции для вызова при перезагрузке
@@ -117,8 +113,6 @@ void setup() {
     // создание экземпляров классов
     // myNotAsyncActions = new NotAsync(do_LAST);
 
-    // инициализация файловой системы
-    fileSystemInit();
     Serial.println(F("------------------------"));
     Serial.println("FIRMWARE NAME     " + String(FIRMWARE_NAME));
     Serial.println("FIRMWARE VERSION  " + String(FIRMWARE_VERSION));
@@ -128,18 +122,37 @@ void setup() {
     jsonWriteStr_(errorsHeapJson, F("bt"), buildTime);
     Serial.println(F("------------------------"));
 
-    // получение chip id
-    setChipId();
-
     verifyFirmware();
 
+    // delay(1000); // Debug
+    // преинициализация системы WiFi-подключений для быстрого подключения к "сохраненной в памяти ESP" WiFi-сети
+#if defined(sysWiFi_onStartOFF) // TODO CORE modules
+    SysWiFi_preinit( false ); // false если не нужо запускать WiFi при старте (при управлении подключением из сценария)
+#else
+    SysWiFi_preinit( true ); // false если не нужо запускать WiFi при старте (при управлении подключением из сценария)
+#endif
+    // delay(1000); // Debug
+    // нужно минимальное время между SysWiFi_init() и SysWiFi_init()
+    // получение chip id
+    setChipId();
+    // инициализация файловой системы
+    fileSystemInit();
     // синхронизация глобальных переменных с flash
     globalVarsSync();
-
+    // для SysWiFi_init() нужен Serial, setChipId(), FS и globalVarsSync()
     stopErrorMarker(SETUPBASE_ERRORMARKER);
 
-    initErrorMarker(SETUPCONF_ERRORMARKER);
+    initErrorMarker(SETUPINET_ERRORMARKER);
+    // инициализация системы WiFi-подключений 
+    SysWiFi_init();
+    stopErrorMarker(SETUPINET_ERRORMARKER);
 
+#if defined(esp32s2_4mb) || defined(esp32s3_16mb)
+    USB.begin();
+#endif
+
+
+    initErrorMarker(SETUPCONF_ERRORMARKER);
     // настраиваем i2c шину
     int i2c, pinSCL, pinSDA, i2cFreq;
     jsonRead(settingsFlashJson, "pinSCL", pinSCL, false);
@@ -185,44 +198,17 @@ void setup() {
 #endif // RESTART_DEBUG_INFO
     // настраиваем микроконтроллер
     configure("/config.json");
-
     stopErrorMarker(SETUPCONF_ERRORMARKER);
 
     initErrorMarker(SETUPSCEN_ERRORMARKER);
-
     // подготавливаем сценарии
     iotScen.loadScenario("/scenario.txt");
     // создаем событие завершения инициализации основных моментов для возможности выполнения блока кода при загрузке
     createItemFromNet("onInit", "1", 1);
+    elementsLoop();
 //    elementsLoop(); //Для работы MQTT Брокера перенес ниже, иначе брокер падает если вызван до routerConnect();
-
     stopErrorMarker(SETUPSCEN_ERRORMARKER);
 
-    initErrorMarker(SETUPINET_ERRORMARKER);
-
-// подключаемся к роутеру
-#ifndef WIFI_ASYNC
-    routerConnect();
-#else
-    WiFiUtilsItit();
-#endif
-// инициализация асинхронного веб сервера и веб сокетов
-#ifdef ASYNC_WEB_SERVER
-    asyncWebServerInit();
-#endif
-#ifdef ASYNC_WEB_SOCKETS
-    asyncWebSocketsInit();
-#endif
-
-// инициализация стандартного веб сервера и веб сокетов
-#ifdef STANDARD_WEB_SERVER
-    standWebServerInit();
-#endif
-#ifdef STANDARD_WEB_SOCKETS
-    standWebSocketsInit();
-#endif
-
-    stopErrorMarker(SETUPINET_ERRORMARKER);
 
     // bool postMsgTelegram;
     // if (!jsonRead(settingsFlashJson, "debugTraceMsgTlgrm", postMsgTelegram, false)) postMsgTelegram = 1;
@@ -230,24 +216,24 @@ void setup() {
     
     initErrorMarker(SETUPLAST_ERRORMARKER);
 
-    elementsLoop();
     // NTP
     ntpInit();
 
     // инициализация задач переодического выполнения
     periodicTasksInit();
 
-#if !defined(WIFI_ASYNC)
-    // Перенесли после получения IP, так как теперь работа WiFi асинхронная
-    // запуск работы udp
-    addThisDeviceToList();
-    #ifdef UDP_ENABLED
-    udpListningInit();
-    udpBroadcastInit();
-    #endif
-#endif    
+// #if !defined(WIFI_ASYNC)
+//     // Перенесли после получения IP, так как теперь работа WiFi асинхронная
+//     // запуск работы udp
+//     addThisDeviceToList();
+//     #ifdef UDP_ENABLED
+//     udpListningInit();
+//     udpBroadcastInit();
+//     #endif
+// #endif    
     // создаем событие завершения конфигурирования для возможности выполнения блока кода при загрузке
     createItemFromNet("onStart", "1", 1);
+    elementsLoop();
 
     stInit();
 
@@ -276,25 +262,6 @@ void setup() {
         },
         nullptr, true);
 
-    // ловим пинги от WS (2сек) и дисконнектим если их нет 3 раза 3сек*2прохода = 6сек
-    ts.add(
-        PiWS, 3000, [&](void*) {
-            if (isNetworkActive()) {
-                for (size_t i = 0; i < WEBSOCKETS_CLIENT_MAX; i++)
-                {
-                    if (ws_clients[i] == 0) {
-                        disconnectWSClient(i);
-                        ws_clients[i]=-1;
-                    }
-                    if (ws_clients[i] > 0) { 
-                        ws_clients[i]=0;
-                    }
-
-                }
-            }
-        },
-        nullptr, true);
-
     // test
     //Serial.println("-------test start--------");
     //Serial.println("--------test end---------");
@@ -305,20 +272,66 @@ void setup() {
 #endif // RESTART_DEBUG_INFO
 }
 
+// действия после подключения к сети и получения IP (как AP так и STA)
+void InitNetServices() // TODO WiFi добавить MQTT
+{
+// инициализация асинхронного веб сервера и веб сокетов
+#ifdef ASYNC_WEB_SERVER
+    asyncWebServerInit();
+#endif
+#ifdef ASYNC_WEB_SOCKETS
+    asyncWebSocketsInit();
+#endif
+// инициализация стандартного веб сервера и веб сокетов
+#ifdef STANDARD_WEB_SERVER
+    standWebServerInit();
+    // SerialPrint("i", "init", "standWebServer");
+#endif
+#ifdef STANDARD_WEB_SOCKETS
+    standWebSocketsInit();
+    // SerialPrint("i", "init", "standWebSockets");
+#endif
+    // запуск работы udp
+    addThisDeviceToList();
+#ifdef UDP_ENABLED
+    udpListeningInit();
+    udpBroadcastInit();
+#endif
+    // ssidListHeapJsonInit();
+}
+
+// действия после отключения от сети (как AP так и STA)
+void DeinitNetServices() // TODO WiFi добавить MQTT
+{
+#ifdef STANDARD_WEB_SERVER
+    standWebServerDeinit();
+    // SerialPrint("i", "deinit", "standWebServer");
+#endif
+#ifdef STANDARD_WEB_SOCKETS
+    standWebSocketsDeinit();
+    // SerialPrint("i", "deinit", "standWebSockets");
+#endif
+#ifdef UDP_ENABLED
+    udpListeningDeinit();
+    udpBroadcastDeinit();
+#endif
+}
+#include "esp_wifi.h"
+
 void loop() {
-#if defined(WIFI_ASYNC)
-    static bool udpFirstFlag = true;
-    // Перенесли после получения IP, так как теперь работа WiFi асинхронная
-    if (isNetworkActive() && udpFirstFlag) {
-        udpFirstFlag = false;
-        // запуск работы udp
-        addThisDeviceToList();
-        #ifdef UDP_ENABLED
-        udpListningInit();
-        udpBroadcastInit();
-        #endif
-    }
-#endif    
+// #if defined(WIFI_ASYNC)
+//     static bool udpFirstFlag = true;
+//     // Перенесли после получения IP, так как теперь работа WiFi асинхронная
+//     if (isNetworkActive() && udpFirstFlag) {
+//         udpFirstFlag = false;
+//         // запуск работы udp
+//         addThisDeviceToList();
+//         #ifdef UDP_ENABLED
+//         udpListningInit();
+//         udpBroadcastInit();
+//         #endif
+//     }
+// #endif
 
 #ifdef LOOP_DEBUG
     unsigned long st = millis();

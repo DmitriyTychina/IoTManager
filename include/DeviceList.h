@@ -13,8 +13,10 @@ extern AsyncUDP asyncUdp;
 
 extern const String getThisDevice();
 extern void addThisDeviceToList();
-extern void udpListningInit();
+extern void udpListeningInit();
+extern void udpListeningDeinit();
 extern void  udpBroadcastInit();
+extern void udpBroadcastDeinit();
 extern String uint8tToString(uint8_t* data, size_t len);
 extern void udpPacketParse(String& data);
 extern void jsonMergeArrays(String& existJson, String& incJson);

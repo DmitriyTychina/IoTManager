@@ -1,7 +1,7 @@
 {
     "iotmSettings": {
         "name": "IoTmanagerVer4",
-        "apssid": "IoTmanager",
+        "apssid": "",
         "appass": "",
         "wifirep_apchanel": 7,
         "wifirep_apip": "192.168.4.1",
@@ -9,9 +9,9 @@
         "wifirep_netmask": "255.255.255.0",
         "wifirep_gateway": "192.168.4.1",
         "wifirep_dns": "192.168.4.1",
-        "routerssid": "iot",
-        "routerpass": "hostel3333",
-        "timezone": 2,
+        "routerssid": "HONOR 400 Pro",
+        "routerpass": "aammiiggoo",
+        "timezone": 3,
         "ntp": "pool.ntp.org",
         "weblogin": "admin",
         "webpass": "admin",
@@ -32,7 +32,10 @@
     },
     "projectProp": {
         "platformio": {
-            "default_envs": "esp32_4mb3f",
+            "default_envs": "esp8266_4mb",
+            "default_envs1": "esp32s2_4mb",
+            "default_envs2": "esp32c3m_4mb",
+            "default_envs3": "bk7231n",
             "comments_default_envs": "choose from: esp8266_4mb, esp32_4mb, esp32_4mb3f, esp8266_16mb, esp32_16mb, esp32cam_4mb, esp32s2_4mb, esp32s3_16mb, esp32c3m_4mb, esp8266_1mb, esp8266_1mb_ota, esp8266_2mb, esp8266_2mb_ota, esp8285_1mb, esp8285_1mb_ota, esp32c6_4mb, esp32c6_8mb, bk7231n, esp32_wifirep",
             "envs": [
                 {
@@ -166,7 +169,7 @@
             },
             {
                 "path": "src/modules/virtual/Cron",
-                "active": true
+                "active": false
             },
             {
                 "path": "src/modules/virtual/DiscoveryHA",
@@ -182,7 +185,7 @@
             },
             {
                 "path": "src/modules/virtual/Loging",
-                "active": true
+                "active": false
             },
             {
                 "path": "src/modules/virtual/Loging2",
@@ -194,23 +197,23 @@
             },
             {
                 "path": "src/modules/virtual/LogingDaily",
-                "active": true
+                "active": false
             },
             {
                 "path": "src/modules/virtual/LogingHourly",
-                "active": true
+                "active": false
             },
             {
                 "path": "src/modules/virtual/Math",
-                "active": true
+                "active": false
             },
             {
                 "path": "src/modules/virtual/owmWeather",
-                "active": true
+                "active": false
             },
             {
                 "path": "src/modules/virtual/Ping",
-                "active": true
+                "active": false
             },
             {
                 "path": "src/modules/virtual/Timer",
@@ -218,7 +221,7 @@
             },
             {
                 "path": "src/modules/virtual/UpdateServer",
-                "active": true
+                "active": false
             },
             {
                 "path": "src/modules/virtual/Variable",
@@ -248,7 +251,7 @@
             },
             {
                 "path": "src/modules/sensors/AhtXX",
-                "active": true
+                "active": false
             },
             {
                 "path": "src/modules/sensors/AnalogAdc",
@@ -280,19 +283,19 @@
             },
             {
                 "path": "src/modules/sensors/Bme280",
-                "active": true
+                "active": false
             },
             {
                 "path": "src/modules/sensors/Bmp280",
-                "active": true
+                "active": false
             },
             {
                 "path": "src/modules/sensors/Dht1122",
-                "active": true
+                "active": false
             },
             {
                 "path": "src/modules/sensors/Ds18b20",
-                "active": true
+                "active": false
             },
             {
                 "path": "src/modules/sensors/DS2401",
@@ -336,7 +339,7 @@
             },
             {
                 "path": "src/modules/sensors/Impulse",
-                "active": true
+                "active": false
             },
             {
                 "path": "src/modules/sensors/Ina219",
@@ -376,7 +379,7 @@
             },
             {
                 "path": "src/modules/sensors/Ntc",
-                "active": true
+                "active": false
             },
             {
                 "path": "src/modules/sensors/Pcf8591",
@@ -396,7 +399,7 @@
             },
             {
                 "path": "src/modules/sensors/RTC",
-                "active": true
+                "active": false
             },
             {
                 "path": "src/modules/sensors/S8",
@@ -428,13 +431,13 @@
             },
             {
                 "path": "src/modules/sensors/UART",
-                "active": true
+                "active": false
             }
         ],
         "executive_devices": [
             {
                 "path": "src/modules/exec/AnalogBtn",
-                "active": true
+                "active": false
             },
             {
                 "path": "src/modules/exec/BrokerMQTT",
@@ -458,7 +461,7 @@
             },
             {
                 "path": "src/modules/exec/Enconder",
-                "active": true
+                "active": false
             },
             {
                 "path": "src/modules/exec/EspCam",
@@ -494,7 +497,7 @@
             },
             {
                 "path": "src/modules/exec/Multitouch",
-                "active": true
+                "active": false
             },
             {
                 "path": "src/modules/exec/MySensors",
@@ -506,7 +509,7 @@
             },
             {
                 "path": "src/modules/exec/Pwm32",
-                "active": true
+                "active": false
             },
             {
                 "path": "src/modules/exec/Pwm8266",
@@ -538,7 +541,7 @@
             },
             {
                 "path": "src/modules/exec/TelegramLT",
-                "active": true
+                "active": false
             },
             {
                 "path": "src/modules/exec/Telegram_v2",
@@ -546,7 +549,7 @@
             },
             {
                 "path": "src/modules/exec/Thermostat",
-                "active": true
+                "active": false
             },
             {
                 "path": "src/modules/sensors/Ds2423",

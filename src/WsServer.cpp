@@ -2,6 +2,8 @@
 #include "classes/IoTScenario.h"
 extern IoTScenario iotScen;
 
+int selectList_current_num = -1; // -1 первый старт
+
 #ifdef STANDARD_WEB_SOCKETS
 void standWebSocketsInit() {
     standWebSocket.begin();
@@ -11,28 +13,71 @@ void standWebSocketsInit() {
     {
         ws_clients[i] = -1;
     }
+    // при активной странице в браузере пинги идут примерно 1 раз в 2 сек
+    // при отсутствии активности на странице (примерно через 2 мин) пинги идут примерно 1 раз в 60 сек
+    // ловим пинги от WS и дисконнектим если их нет 2 раза 60сек*2прохода = 120сек
+    ts.add(
+        PiWS, 60000, [&](void*) {
+            bool f_stopTS = true;
+            // if (isNetworkActive()) { // не отключим их если пропало соединение с WiFi
+            for (size_t i = 0; i < WEBSOCKETS_CLIENT_MAX; i++)
+            {
+                if (ws_clients[i] == 0) {
+                    disconnectWSClient(i);
+                    ws_clients[i] = -1;
+                }
+                if (ws_clients[i] > 0) { 
+                    ws_clients[i] = 0;
+                    f_stopTS = false;
+                }
+            }
+            if (f_stopTS) // действия если нет активных клиентов
+            {
+                ts.disable(PiWS);
+                s_WiFi_config._scanList.clear();
+                // SerialPrint("D", "WS", "ts.disable(PiWS)");
+            }
+            // }
+        },
+        nullptr, false);
+    ts.disable(PiWS); // запускаем по необходимости
+}
+
+void standWebSocketsDeinit() {
+    standWebSocket.onEvent(NULL);
+    ts.remove(PiWS);
+    standWebSocket.close();
 }
 
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length) {
     switch (type) {
         case WStype_ERROR: {
-            Serial.printf("[%u] Error!\n", num);
+            SerialPrint("E", "WS " + String(num), "Error!");
+            // Serial.printf("[%u] Error!\n", num);
         } break;
 
         case WStype_DISCONNECTED: {
-            Serial.printf("[%u] Disconnected!\n", num);
-            standWebSocket.disconnect(num);
+            SerialPrint("D", "WS " + String(num), "WS client disconnected");
+            // Serial.printf("[%u] Disconnected!\n", num);
+            // if(standWebSocket.clientIsConnected(num))
+            //     SerialPrint("i", "WS " + String(num), "WS client is connected");
+            // else
+            //     SerialPrint("i", "WS " + String(num), "WS client is disconnected");
+            // standWebSocket.disconnect(num); // он уже отключен
         } break;
 
         case WStype_CONNECTED: {
             // IPAddress ip = standWebSocket.remoteIP(num);
             SerialPrint("i", "WS " + String(num), "WS client connected");
-            if (num >= 3) {
+            if (num >= WEBSOCKETS_CLIENT_MAX) {
                 SerialPrint("E", "WS", "Too many clients, connection closed!!!");
                 jsonWriteInt(errorsHeapJson, "wse1", 1);
-                standWebSocket.close();
+                // standWebSocket.close();
+                standWebSocketsDeinit();
                 standWebSocketsInit();
             }
+            ts.enable(PiWS);
+            // SerialPrint("D", "WS", "ts.enable(PiWS)");
             // Serial.printf("[%u] Connected from %d.%d.%d.%d url: %s\n", num, ip[0],
             // ip[1], ip[2], ip[3], payload); standWebSocket.sendTXT(num,
             // "Connected");
@@ -61,7 +106,8 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length)
             //----------------------------------------------------------------------//
             if (headerStr == "/pi|") {
                 standWebSocket.sendTXT(num, "/po|");
-                Serial.printf("Ping client: %u\n", num);
+                // Serial.printf("Ping client: %u\n", num);
+                SerialPrint("D", "WS " + String(num), "Ping client");
                 ws_clients[num]=1;
             }
             // публикация всех виджетов
@@ -113,7 +159,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length)
                 sendFileToWsByFrames("/widgets.json", "widget", "", num, WEB_SOCKETS_FRAME_SIZE);
                 sendFileToWsByFrames("/config.json", "config", "", num, WEB_SOCKETS_FRAME_SIZE);
                 sendFileToWsByFrames("/scenario.txt", "scenar", "", num, WEB_SOCKETS_FRAME_SIZE);
-                sendStringToWs("settin", settingsFlashJson, num);
+                send_settin_ssidli_to_ws(num);
             }
 
             // обработка кнопки сохранить
@@ -142,14 +188,14 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length)
             if (headerStr == "/connection|") {
                 sendFileToWsByFrames("/widgets.json", "widget", "", num, WEB_SOCKETS_FRAME_SIZE);
                 sendFileToWsByFrames("/config.json", "config", "", num, WEB_SOCKETS_FRAME_SIZE);
-                sendStringToWs("settin", settingsFlashJson, num);
-#ifdef WIFI_ASYNC                
-                ssidListHeapJson = "{}";
-                jsonWriteStr_(ssidListHeapJson, "0", "Scanning...");
-#endif
-                sendStringToWs("ssidli", ssidListHeapJson, num);
+                send_settin_ssidli_to_ws(num);
+// #ifdef WIFI_ASYNC                
+//                 ssidListHeapJson = "{}";
+//                 jsonWriteStr_(ssidListHeapJson, "0", "Scanning...") ;
+// #endif
                 sendStringToWs("errors", errorsHeapJson, num);
                 // запуск асинхронного сканирования wifi сетей при переходе на страницу
+                sysWiFi_StartPeriodicalScan(false);
                 // соединений RouterFind(jsonReadStr(settingsFlashJson,
                 // F("routerssid")));
             }
@@ -165,38 +211,26 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length)
                 settingsFlashJson = readFile(F("settings.json"), 4096);
                 settingsFlashJson.replace("\r\n", "");
                 Serial.println(settingsFlashJson);
-                WiFiUtilsItit();
-#endif                
+                SysWiFi_init();
+#endif
             }
 
             // обработка кнопки сохранить настройки mqtt
             if (headerStr == "/mqtt|") {
-                sendStringToWs("settin", settingsFlashJson,
-                               num);         // отправляем в ответ новые полученные настройки
+                send_settin_ssidli_to_ws(num); // отправляем в ответ новые полученные настройки
                 handleMqttStatus(false, 8);  // меняем статус на неопределенный
                 mqttReconnect();             // начинаем переподключение
                 sendStringToWs("errors", errorsHeapJson,
                                num);  // отправляем что статус неопределен
-                sendStringToWs("ssidli", ssidListHeapJson, num);
+                // sendStringToWs("ssidli", ssidListHeapJson, num);
             }
 
-            // запуск асинхронного сканирования wifi сетей при нажатии выпадающего
-            // списка
+            // запуск асинхронного сканирования wifi сетей при нажатии выпадающего списка
             if (headerStr == "/scan|") {
-#ifndef WIFI_ASYNC
-                std::vector<String> jArray;
-                jsonReadArray(settingsFlashJson, "routerssid", jArray);
-                RouterFind(jArray);
-                sendStringToWs("ssidli", ssidListHeapJson, num);
-#else
-                //String ssidScan = "{Scaning...}";
-                //ssidListHeapJson = "{}";
-                //jsonWriteStr_(ssidListHeapJson, "0", "Scanning...");
-                //Serial.println("Async scan:" + String(ssidListHeapJson));
-                sendStringToWs("ssidli", ssidListHeapJson, num);
-                if (ssidListHeapJson == "{\"0\":\"Scanning...\"}")
-                    ScanAsync();
-#endif
+                sysWiFi_StartPeriodicalScan(false);
+                String json; // TODO WiFi
+                writeUint8tToString(payload, length, headerLenth, json); // TODO WiFi
+                SerialPrint("D", "payload", json); // TODO WiFi
 
             }
 
@@ -206,7 +240,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length)
 
             // отвечаем данными на запрос страницы list
             if (headerStr == "/list|") {
-                sendStringToWs("settin", settingsFlashJson, num);
+                send_settin_ssidli_to_ws(num);
                 // отправим список устройств в зависимости от того что выбрал user
                 // sendDeviceList(num);
             }
@@ -230,7 +264,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length)
             // отвечаем данными на запрос страницы
             if (headerStr == "/system|") {
                 sendStringToWs("errors", errorsHeapJson, num);
-                sendStringToWs("settin", settingsFlashJson, num);
+                send_settin_ssidli_to_ws(num);
             }
 
             if (headerStr == "/localt|") {
@@ -282,7 +316,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length)
             //----------------------------------------------------------------------//
             if (headerStr == "/dev|") {
                 sendStringToWs("errors", errorsHeapJson, num);
-                sendStringToWs("settin", settingsFlashJson, num);
+                send_settin_ssidli_to_ws(num);
                 sendFileToWsByFrames("/config.json", "config", "", num, WEB_SOCKETS_FRAME_SIZE);
                 sendFileToWsByFrames("/items.json", "itemsj", "", num, WEB_SOCKETS_FRAME_SIZE);
                 // sendFileToWsByFrames("/layout.json", "layout", "", num,
@@ -387,11 +421,13 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length)
         } break;
 
         case WStype_PING: {
-            Serial.printf("[%u] ping: %u\n", num, length);
+            // Serial.printf("[%u] ping: %u\n", num, length);
+            SerialPrint("D", "WS " + String(num), "Ping: " + String(length));
         } break;
 
         case WStype_PONG: {
-            Serial.printf("[%u] pong: %u\n", num, length);
+            // Serial.printf("[%u] pong: %u\n", num, length);
+            SerialPrint("D", "WS " + String(num), "Pong: " + String(length));
         } break;
 
         default: {
@@ -420,11 +456,17 @@ void publishJsonWs(const String& topic, String& json) {
 
 // данные которые мы отправляем в сокеты переодически
 void periodicWsSend() {
-    sendStringToWs("ssidli", ssidListHeapJson, -1);
-    sendStringToWs("errors", errorsHeapJson, -1);
-    // отправляем переодичестки только в авто режиме
-    if (jsonReadInt(settingsFlashJson, F("udps")) != 0) {
-        sendStringToWs("devlis", devListHeapJson, -1);
+    SerialPrint("D", "WS", "isNetworkActive: " + String(isNetworkActive()));
+    SerialPrint("D", "WS", "getNumAPClients: " + String(getNumAPClients()));
+    SerialPrint("D", "WS", "getNumWSClients: " + String(getNumWSClients()));
+    if (s_WiFi_config.isNetServicesInitet) {
+        // sendStringToWs("ssidli", ssidListHeapJson, -1);
+        send_settin_ssidli_to_ws(-1);
+        sendStringToWs("errors", errorsHeapJson, -1);
+        // отправляем переодичестки только в авто режиме
+        if (jsonReadInt(settingsFlashJson, F("udps")) != 0) {
+            sendStringToWs("devlis", devListHeapJson, -1);
+        }
     }
 }
 
@@ -458,7 +500,7 @@ void sendFileToWsByFrames(const String& filename, const String& header, const St
         return;
     }
 
-    size_t totalSize = file.size();
+    // size_t totalSize = file.size();
     // Serial.println("Send file '" + String(filename) + "', file size: " +
     // String(totalSize));
 
@@ -567,7 +609,7 @@ void sendStringToWs(const String& header, String& payload, int client_id) {
 void disconnectWSClient(uint8_t client_id)
 {
     standWebSocket.disconnect(client_id);
-    Serial.printf("[WS] Client %u -disconnected\n", client_id);
+    SerialPrint("i", "WS","Client disconnected: " + String(client_id));
 }
 
 void sendDeviceList(uint8_t num)
@@ -587,3 +629,63 @@ int getNumWSClients() { return ws.count(); }
 #elif defined (STANDARD_WEB_SOCKETS)
 int getNumWSClients() { return standWebSocket.connectedClients(false); }
 #endif
+
+void send_settin_ssidli_to_ws(int num) {
+    String json_settin = settingsFlashJson;
+    ssidListHeapJson = "{}";
+    String routerssid_for_ws = "";
+    String routerpass_for_ws = "";
+    int cnt = 0;
+    bool ssidList_is_empty = s_WiFi_config._ssidList.empty();
+
+    if (ssidList_is_empty && selectList_current_num == -1) {
+        jsonWriteStr_(ssidListHeapJson, String(cnt++), ssidList_phrase_first);
+        selectList_current_num = 0;
+    }
+    if (!ssidList_is_empty) {
+        for (int8_t k = 0; k < s_WiFi_config._ssidList.size(); k++) {
+            jsonWriteStr_(ssidListHeapJson, String(cnt++), "[" + String(k) + "]" + s_WiFi_config._ssidList[k]);
+        }
+    }
+    if (!s_WiFi_config._scanList.empty()) {
+        for (int8_t k = 0; k < s_WiFi_config._scanList.size(); k++) {
+            jsonWriteStr_(ssidListHeapJson, String(cnt++), s_WiFi_config._scanList[k]);
+        }
+    }
+    if (!ssidList_is_empty)
+        jsonWriteStr_(ssidListHeapJson, String(cnt++), ssidList_phrase_last);
+
+    if (ssidList_is_empty) {
+        routerssid_for_ws = "[" + String(selectList_current_num) + "]" + jsonReadStr(ssidListHeapJson, String(selectList_current_num));
+        routerpass_for_ws = "";
+    } else {
+        if (selectList_current_num == -1) {
+            routerssid_for_ws = "[" + String(s_WiFi_config._indexCurrentSSID) + "]" + s_WiFi_config._ssidList[s_WiFi_config._indexCurrentSSID];
+            routerpass_for_ws = s_WiFi_config._passwordList[s_WiFi_config._indexCurrentSSID];
+
+        } else {
+            if (selectList_current_num < s_WiFi_config._ssidList.size()) {
+                routerssid_for_ws = "[" + String(selectList_current_num) + "]" + jsonReadStr(ssidListHeapJson, String(selectList_current_num));
+                routerpass_for_ws = s_WiFi_config._passwordList[selectList_current_num];
+            } else {
+                routerssid_for_ws = jsonReadStr(ssidListHeapJson, String(selectList_current_num));
+                routerpass_for_ws = "";
+            }
+        }
+    }
+    // selectList_current_num = 0;
+    // SerialPrint("D", "routerssid_for_ws", routerssid_for_ws);
+    // SerialPrint("D", "routerpass_for_ws", routerpass_for_ws);
+    // SerialPrint("D", "_indexCurrentSSID", String(s_WiFi_config._indexCurrentSSID));
+    // SerialPrint("D", "selectList_current_num", String(selectList_current_num));
+    // SerialPrint("D", "_ssidList.size()", String(s_WiFi_config._ssidList.size()));
+
+    jsonWriteStr_(json_settin, "routerssid", routerssid_for_ws);
+    jsonWriteStr_(json_settin, "routerpass", routerpass_for_ws);
+    sendStringToWs("settin", json_settin, num);
+    sendStringToWs("ssidli", ssidListHeapJson, num);
+
+    // SerialPrint("D", "json_settin", json_settin);
+    // SerialPrint("D", "ssidListHeapJson", ssidListHeapJson);
+
+}
