@@ -1,4 +1,5 @@
 #include "MqttClient.h"
+#include "classes/IoTDiscovery.h"
 
 void mqttInit() {
     mqtt.setCallback(mqttCallback);
@@ -59,10 +60,24 @@ boolean mqttConnect() {
     if (!mqtt.connected()) {
         bool connected = false;
         if (mqttUser != "" && mqttPass != "") {
-            connected = mqtt.connect(chipId.c_str(), mqttUser.c_str(), mqttPass.c_str());
+            if (HOMEdDiscovery)
+            {
+                connected = mqtt.connect(chipId.c_str(), mqttUser.c_str(), mqttPass.c_str(), (HOMEdDiscovery->HOMEdTopic + "/device/custom/" + nameId).c_str(), 1, true, "{\"status\":\"offline\"}");
+            }
+            else
+            {
+                connected = mqtt.connect(chipId.c_str(), mqttUser.c_str(), mqttPass.c_str(), (mqttRootDevice + "/state").c_str(), 1, true, "{\"status\":\"offline\"}");
+            }
             SerialPrint("i", F("MQTT"), F("Go to connection with login and password"));
         } else if (mqttUser == "" && mqttPass == "") {
-            connected = mqtt.connect(chipId.c_str());
+            if (HOMEdDiscovery)
+            {
+                connected = mqtt.connect(chipId.c_str(), (HOMEdDiscovery->HOMEdTopic + "/device/custom/" + nameId).c_str(), 1, true, "{\"status\":\"offline\"}");
+            }
+            else
+            {
+                connected = mqtt.connect(chipId.c_str(), (mqttRootDevice + "/state").c_str(), 1, true, "{\"status\":\"offline\"}");
+            }
             SerialPrint("i", F("MQTT"), F("Go to connection without login and password"));
         } else {
             SerialPrint("E", F("MQTT"), F("✖ Login or password missed"));
@@ -105,6 +120,9 @@ void getMqttData() {
     mqttUser = jsonReadStr(settingsFlashJson, F("mqttUser"));
     mqttPass = jsonReadStr(settingsFlashJson, F("mqttPass"));
     mqttPrefix = jsonReadStr(settingsFlashJson, F("mqttPrefix"));
+    if (jsonReadInt(settingsFlashJson, F("HOMEd_names"))){
+    nameId = jsonReadStr(settingsFlashJson, F("name"));}
+    else{nameId = getChipId();}
     mqttRootDevice = mqttPrefix + "/" + chipId;
 }
 
@@ -129,17 +147,33 @@ void mqttSubscribe() {
             }
         }
     }
+    if(HOMEdDiscovery)
+        HOMEdDiscovery->mqttSubscribeDiscovery();
+    if(HADiscovery)
+        HADiscovery->mqttSubscribeDiscovery();
+        // оттправляем все статусы
+    if(HOMEdDiscovery || HADiscovery)
+    {
+        for (std::list<IoTItem *>::iterator it = IoTItems.begin(); it != IoTItems.end(); ++it)
+        {
+            if ((*it)->iAmLocal)
+            {
+                publishStatusMqtt((*it)->getID(), (*it)->getValue());
+                (*it)->onMqttWsAppConnectEvent();
+            }
+        }
+    }
 }
 
 void mqttSubscribeExternal(String topic, bool usePrefix) {
 
-   // SerialPrint("i", F("MQTT"), mqttRootDevice);
-   String _sb_topic = topic;
-   if (usePrefix)
-   {
-    _sb_topic = mqttPrefix + "/" + topic;
-   }
-   mqtt.subscribe(_sb_topic.c_str());
+    // SerialPrint("i", F("MQTT"), mqttRootDevice);
+    String _sb_topic = topic;
+    if (usePrefix)
+    {
+        _sb_topic = mqttPrefix + "/" + topic;
+    }
+    mqtt.subscribe(_sb_topic.c_str());
 
     SerialPrint("i", F("MQTT"), ("subscribed external " + _sb_topic).c_str());
 }
@@ -253,6 +287,10 @@ boolean publishChartMqtt(const String& topic, const String& data) {
 }
 
 boolean publishStatusMqtt(const String& topic, const String& data) {
+    if (HOMEdDiscovery)
+    {
+        HOMEdDiscovery->publishStatusHOMEd(topic, data);
+    }
     String path = mqttRootDevice + "/" + topic + "/status";
     String json = "{}";
     jsonWriteStr(json, "status", data);
@@ -305,14 +343,17 @@ bool publishChartFileToMqtt(String path, String id, int maxCount) {
     return true;
 }
 
-void handleMqttStatus(bool send) {
-    String stateStr = getStateStr(mqtt.state());
-    // Serial.println(stateStr);
-    jsonWriteStr_(errorsHeapJson, F("mqtt"), stateStr);
-    if (!send) sendStringToWs("errors", errorsHeapJson, -1);
-}
+// void handleMqttStatus(bool send) {
+//     String stateStr = getStateStr(mqtt.state());
+//     // Serial.println(stateStr);
+//     jsonWriteStr_(errorsHeapJson, F("mqtt"), stateStr);
+//     if (!send) sendStringToWs("errors", errorsHeapJson, -1);
+// }
 
 void handleMqttStatus(bool send, int state) {
+    if (state == -1) {
+            state = mqtt.state();
+    }
     String stateStr = getStateStr(state);
     // Serial.println(stateStr);
     jsonWriteStr_(errorsHeapJson, F("mqtt"), stateStr);
@@ -322,47 +363,47 @@ void handleMqttStatus(bool send, int state) {
 const String getStateStr(int e) {
     switch (e) {
         case -4:  // Нет ответа от сервера
-            return F("e1");
-            break;
+        return F("e1");
+        break;
         case -3:  // Соединение было разорвано
-            return F("e2");
-            break;
+        return F("e2");
+        break;
         case -2:  // Ошибка соединения. Обычно возникает когда неверно указано название сервера MQTT
-            return F("e3");
-            break;
+        return F("e3");
+        break;
         case -1:  // Клиент был отключен
-            return F("e4");
-            break;
+        return F("e4");
+        break;
         case 0:  // подключено
-            return F("e5");
-            break;
+        return F("e5");
+        break;
         case 1:  // Ошибка версии
-            return F("e6");
-            break;
+        return F("e6");
+        break;
         case 2:  // Отклонен идентификатор
-            return F("e7");
-            break;
+        return F("e7");
+        break;
         case 3:  // Не могу установить соединение
-            return F("e8");
-            break;
+        return F("e8");
+        break;
         case 4:  // Неправильное имя пользователя/пароль
-            return F("e9");
-            break;
+        return F("e9");
+        break;
         case 5:  // Не авторизован для подключения
-            return F("e10");
-            break;
+        return F("e10");
+        break;
         case 6:  // Название сервера пустое
-            return F("e11");
-            break;
+        return F("e11");
+        break;
         case 7:  // Имя пользователя или пароль пустые
-            return F("e12");
-            break;
+        return F("e12");
+        break;
         case 8:  // Подключение в процессе
-            return F("e13");
-            break;
-        default:
-            return F("unk");
-            break;
+        return F("e13");
+        break;
+    default:
+        return F("unk");
+        break;
     }
 }
 

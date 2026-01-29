@@ -9,11 +9,11 @@ IoTUart::IoTUart(const String& parameters) : IoTItem(parameters) {
     jsonRead(parameters,  "speed", _speed);
     jsonRead(parameters,  "line", _line);
 
-#ifdef ESP8266
+#if defined (ESP8266)
     _myUART = new SoftwareSerial(_rx, _tx);
     _myUART->begin(_speed);
 #endif
-#ifdef ESP32
+#if defined (ESP32)
     if (_line >= 0) {
         _myUART = new HardwareSerial(_line);
         ((HardwareSerial*)_myUART)->begin(_speed, SERIAL_8N1, _rx, _tx);
@@ -21,6 +21,10 @@ IoTUart::IoTUart(const String& parameters) : IoTItem(parameters) {
         _myUART = new SoftwareSerial(_rx, _tx);
         ((SoftwareSerial*)_myUART)->begin(_speed);
     }
+#endif
+#if defined (LIBRETINY) 
+    _myUART = new SerialClass(_rx, _tx);
+    _myUART->begin((unsigned long)_speed);
 #endif
 }
 

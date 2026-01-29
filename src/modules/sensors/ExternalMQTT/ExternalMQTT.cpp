@@ -75,7 +75,8 @@ public:
                 for (JsonPair kv : jsonObject)
                 {
                     String key = kv.key().c_str();
-                    String val = kv.value();
+                    String val = kv.value().as<String>();
+                    val.trim();
                     if (_debug)
                     {
                         SerialPrint("i", "ExternalMQTT", "Received MAC: " + dev + " key=" + key + " val=" + val);

@@ -7,12 +7,13 @@ namespace _Broker
 {
 #define DEF_PORT 1883
 
+bool _global_debug = false;
     // MqttBroker broker(1883);
 
     class myPicoMQTT : public PicoMQTT::Server
     {
     private:
-        bool _debug;
+        //bool _debug;
         String _user;
         String _pass;
 
@@ -27,15 +28,15 @@ namespace _Broker
             _pass = pass;
         }
 
-        void setDebug(bool debug)
+/*         void setDebug(bool debug)
         {
             _debug = debug;
         }
-
+ */
     protected:
         void on_connected(const char *client_id)
         {
-            if (_debug)
+            if (_Broker::_global_debug)
             {
                 Serial.print("[BrokerMQTT], Client connected: ");
                 Serial.println(client_id);
@@ -43,7 +44,7 @@ namespace _Broker
         }
         void on_disconnected(const char *client_id)
         {
-            if (_debug)
+            if (_Broker::_global_debug)
 
             {
                 // SerialPrint("i", "BrokerMQTT", "Client disconnected: " + client_id);
@@ -53,7 +54,7 @@ namespace _Broker
         }
         void on_subscribe(const char *client_id, const char *topic)
         {
-            if (_debug)
+            if (_Broker::_global_debug)
 
             {
                 // SerialPrint("i", "BrokerMQTT", "Client " + client_id + ", subscribe: " + topic);
@@ -65,7 +66,7 @@ namespace _Broker
         }
         void on_unsubscribe(const char *client_id, const char *topic)
         {
-            if (_debug)
+            if (_Broker::_global_debug)
 
             {
                 // SerialPrint("i", "BrokerMQTT", "Client " + client_id + ", unsubscribe: " + topic);
@@ -120,6 +121,8 @@ namespace _Broker
                 clientMqtt->loop();
             if (picoMqtt)
                 picoMqtt->loop();
+            if (!clientMqtt && !picoMqtt)
+                vTaskDelete(NULL);    
             // picoMqtt.loop();
             // vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(5));
         }
@@ -152,19 +155,6 @@ namespace _Broker
             jsonRead(parameters, "srvUser", _srvUser);
             jsonRead(parameters, "srvPass", _srvPass);
             jsonRead(parameters, "srvPort", _srvPort);
-
-            if (_brige)
-            {
-                clientMqtt = new PicoMQTT::Client(_server.c_str(), _srvPort, nullptr, _srvUser.c_str(), _srvPass.c_str());
-                if (_debug)
-                {
-                    SerialPrint("i", F("BrigeMQTT"), "Bridge mode : ON");
-                    SerialPrint("i", F("BrigeMQTT"), "Bridge server: " + _server);
-                    SerialPrint("i", F("BrigeMQTT"), "Bridge port: " + String(_srvPort));
-                    SerialPrint("i", F("BrigeMQTT"), "Bridge user: " + _srvUser);
-                    SerialPrint("i", F("BrigeMQTT"), "Bridge pass: " + _srvPass);
-                }
-            }
         }
 
         void doByInterval()
@@ -176,13 +166,33 @@ namespace _Broker
                     _port = DEF_PORT;
                 picoMqtt = new myPicoMQTT(_port);
                 picoMqtt->begin();
-                picoMqtt->setDebug(_debug);
+                //picoMqtt->setDebug(_debug);
+                _global_debug = _debug;
                 picoMqtt->setAuth(_user, _pass);
+                if (_brige)
+                {
+                    clientMqtt = new PicoMQTT::Client(_server.c_str(), _srvPort, chipId.c_str(), _srvUser.c_str(), _srvPass.c_str());
+                    clientMqtt->begin();
+                    if (_debug)
+                    {
+                        SerialPrint("i", F("BrigeMQTT"), "Bridge mode : ON");
+                        SerialPrint("i", F("BrigeMQTT"), "Bridge server: " + _server);
+                        SerialPrint("i", F("BrigeMQTT"), "Bridge port: " + String(_srvPort));
+                        SerialPrint("i", F("BrigeMQTT"), "Bridge user: " + _srvUser);
+                        SerialPrint("i", F("BrigeMQTT"), "Bridge pass: " + _srvPass);
+                    }
+                }
                 if (_brige && picoMqtt && clientMqtt)
                 {
                     picoMqtt->subscribe("#", [](const char *topic, const char *message)
                                         { clientMqtt->publish(topic, message);
-                                         SerialPrint("i", F("BrigeMQTT"), "client publish, topic: " + String(topic) + " msg: " + String(message) ); });
+                                    if (_Broker::_global_debug)
+                                        SerialPrint("i", F("BrigeMQTT"), "Client publish, topic: " + String(topic) + " msg: " + String(message) ); });
+
+                    clientMqtt->subscribe("#", [](const char *topic, const char *message)
+                                          { picoMqtt->publish(topic, message); 
+                                      if (_Broker::_global_debug)
+                                        SerialPrint("i", F("BrigeMQTT"), "Server publish, topic: " + String(topic) + " msg: " + String(message) ); });
                 }
                 // picoMqtt.begin();
                 xTaskCreatePinnedToCore(
@@ -205,9 +215,11 @@ namespace _Broker
 
         ~BrokerMQTT()
         {
-            vTaskDelete(brokerTask);
-            delete picoMqtt;
-            delete clientMqtt;
+            //vTaskDelete(brokerTask);
+            if (picoMqtt)
+                delete picoMqtt;
+            if (clientMqtt)    
+                delete clientMqtt;
         }
     };
 }

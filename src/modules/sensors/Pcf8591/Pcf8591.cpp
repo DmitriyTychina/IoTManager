@@ -5,10 +5,13 @@
 #include <Adafruit_PCF8591.h>
 
 // Make sure that this is set to the value in volts of VCC
-#define ADC_REFERENCE_VOLTAGE 3.3
+//#define ADC_REFERENCE_VOLTAGE 3.3
+// Make sure that this is set to the value in volts of VCC
+//#define ADC_REFERENCE_VOLTAGE 5.0
 
 class Pcf8591 : public IoTItem {
     int _pin;
+    float _adc_ref;
     bool _isRaw;
     bool _isInited = false;
     Adafruit_PCF8591 pcf = Adafruit_PCF8591();
@@ -18,6 +21,9 @@ class Pcf8591 : public IoTItem {
         String tmp;
         jsonRead(parameters, "pin", tmp);
         _pin = tmp.toInt();
+
+        jsonRead(parameters, "adc_ref", tmp);
+        _adc_ref = tmp.toFloat();
 
         jsonRead(parameters, "mode", tmp);
         _isRaw = tmp == "raw";
@@ -48,7 +54,8 @@ class Pcf8591 : public IoTItem {
             if (_isRaw)
                value.valD = pcf.analogRead(_pin);  // Чтение АЦП нулевого канала (Вольты)
             else
-                value.valD = (int_to_volts(pcf.analogRead(_pin), 8, ADC_REFERENCE_VOLTAGE));
+               // value.valD = (int_to_volts(pcf.analogRead(_pin), 8, ADC_REFERENCE_VOLTAGE));
+                value.valD = (int_to_volts(pcf.analogRead(_pin), 8, _adc_ref));
             regEvent(value.valD, "PCF8591");
        }
 

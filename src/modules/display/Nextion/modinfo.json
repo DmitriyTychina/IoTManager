@@ -17,7 +17,8 @@
       "rx": 16,
       "line": 2,
       "speed": 9600,
-      "uploadTelegram": 1
+      "uploadTelegram": 1,
+      "oldProt_v11": 0
     }
   ],
   "about": {
@@ -28,8 +29,8 @@
     "moduleName": "Nextion",
     "moduleVersion": "2.0",
     "usedRam": {
-      "esp32_4mb": 15,
-      "esp8266_4mb": 15
+      "esp32_4mb": 152,
+      "esp8266_4mb": 152
     },
     "title": "Nextion",
     "moduleDesc": "загрузка прошивки в дисплей Nextion. Команда для запуска обновления дисплея: Nextion.Update(); ",
@@ -41,6 +42,7 @@
       "host": "Сервер обновления. Можно использовать LiveServer из VisualCode, указывать ip адрес",
       "url": "файл прошивки экрана, указывать с расширением, например nextion.tft или iotm/test.tft",
       "uploadTelegram": "1 - разрешает прошивать экран через модуль Telegram_v2",
+      "oldProt_v11": "0 - По умолчанию используется более быстрый протокол версии 1.2 (не официальный), 1 - Использовать старый протокол версии 1.1 для прошивки экрана.",
       "btn-uploadServer": "Кнопка загрузки прошивки с сервера LiveServer или другого по ip"
     },
     "funcInfo": [

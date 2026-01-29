@@ -140,6 +140,8 @@ class DwinI : public IoTUart {
     void onModuleOrder(String &key, String &value) {
         if (key == "uploadUI") {
             //SerialPrint("i", F("DwinI"), "Устанавливаем UI: " + value);
+            if (value != "") uartPrintHex(value.c_str());
+
             
         }
     }

@@ -4,7 +4,8 @@
 *****************************************глобальные объекты классов***************************************************
 **********************************************************************************************************************/
 
-TickerScheduler ts(END + 1);
+// TickerScheduler ts(END + 1); // зачем на 1 больше?
+TickerScheduler ts(END);
 WiFiClient espClient;
 PubSubClient mqtt(espClient);
 
@@ -20,6 +21,9 @@ ESP8266WebServer HTTP(80);
 #ifdef ESP32
 WebServer HTTP(80);
 #endif
+#ifdef LIBRETINY
+WebServer HTTP(80);
+#endif
 #endif
 
 #ifdef STANDARD_WEB_SOCKETS
@@ -30,11 +34,15 @@ WebSocketsServer standWebSocket = WebSocketsServer(81);
 ***********************************************глобальные переменные**************************************************
 **********************************************************************************************************************/
 IoTGpio IoTgpio(0);
+#ifdef mod_RtcDriver
 IoTItem* rtcItem = nullptr;
+#endif
 //IoTItem* camItem = nullptr;
 IoTItem* tlgrmItem = nullptr;
 IoTBench* benchTaskItem = nullptr;
 IoTBench* benchLoadItem = nullptr;
+IoTDiscovery* HOMEdDiscovery = nullptr;
+IoTDiscovery* HADiscovery = nullptr;
 String settingsFlashJson = "{}";  // переменная в которой хранятся все настройки, находится в оперативной памяти и синхронизированна с flash памятью
 String valuesFlashJson = "{}";    // переменная в которой хранятся все значения элементов, которые необходимо сохранить на flash. Находится в оперативной памяти и синхронизированна с flash памятью
 String errorsHeapJson = "{}";     // переменная в которой хранятся все ошибки, находится в оперативной памяти только
@@ -57,6 +65,7 @@ int mqttPort = 0;
 String mqttPrefix = "";
 String mqttUser = "";
 String mqttPass = "";
+String nameId = "";
 
 unsigned long mqttUptime = 0;
 unsigned long flashWriteNumber = 0;
@@ -78,7 +87,7 @@ String prevDate = "";
 bool firstTimeInit = true;
 
 // unsigned long loopPeriod;
-
+int8_t ws_clients[WEBSOCKETS_CLIENT_MAX];
 bool isTimeSynch = false;
 Time_t _time_local;
 Time_t _time_utc;

@@ -48,7 +48,7 @@
             "Beta": "Beta термистора"
         }
     },
-    "defActive": false,
+    "defActive": true,
     "usedLibs": {
         "esp32*": [],
         "esp82*": []

@@ -22,66 +22,24 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  */
+/*
+#ifdef CORE_DEBUG_LEVEL
+#undef CORE_DEBUG_LEVEL
+#endif
 
-#define DEBUG_SERIAL_ENABLE
+#define CORE_DEBUG_LEVEL 3
+#define LOG_LOCAL_LEVEL ESP_LOG_DEBUG
+*/
+
 #include "ESPNexUpload.h"
 
-#ifdef DEBUG_SERIAL_ENABLE
-#define dbSerialPrint(a) Serial.print(a)
-#define dbSerialPrintHex(a) Serial.print(a, HEX)
-#define dbSerialPrintln(a) Serial.println(a)
-#define dbSerialBegin(a) Serial.begin(a)
-#else
-#define dbSerialPrint(a) \
-	do                   \
-	{                    \
-	} while (0)
-#define dbSerialPrintHex(a) \
-	do                      \
-	{                       \
-	} while (0)
-#define dbSerialPrintln(a) \
-	do                     \
-	{                      \
-	} while (0)
-#define dbSerialBegin(a) \
-	do                   \
-	{                    \
-	} while (0)
-#endif
+static const char *TAG = "nextion upload";
 
-ESPNexUpload::ESPNexUpload(uint32_t upload_baudrate, int line, int rx, int tx)
+ESPNexUpload::ESPNexUpload(uart_port_t uart_num, uint32_t baud_rate, gpio_num_t tx_io_num, gpio_num_t rx_io_num)
 {
-	_upload_baudrate = upload_baudrate;
-	_rx = rx;
-	_tx = tx;
-	_line = line;
-
-#if defined ESP8266
-	nexSerial = new SoftwareSerial(_rx, _tx);
-#else
-	if (line >= 0) {
-        nexSerial = new HardwareSerial(line);
- //       ((HardwareSerial*)nexSerial)->begin(_upload_baudrate, SERIAL_8N1, _rx, _tx);
-    } else {
-        nexSerial = new SoftwareSerial(_rx, _tx);
- //       ((SoftwareSerial*)nexSerial)->begin(_upload_baudrate);
-    }
-#endif
-
-}
-
-void ESPNexUpload::nexSerialBegin(uint32_t _speed, int _line, int _rx, int _tx)
-{
-#if defined ESP8266
-	nexSerial->begin(_speed);
-#else
-	if (_line >= 0) {
-        ((HardwareSerial*)nexSerial)->begin(_speed, SERIAL_8N1, _rx, _tx);
-    } else {
-        ((SoftwareSerial*)nexSerial)->begin(_speed);
-    }
-#endif	
+	_upload_uart_lock = xSemaphoreCreateMutex();
+	_uart_diver_installed = false;
+	setBaudrate(uart_num, baud_rate, tx_io_num, rx_io_num);
 }
 
 bool ESPNexUpload::connect()
@@ -90,13 +48,11 @@ bool ESPNexUpload::connect()
 	yield();
 #endif
 
-	dbSerialBegin(115200);
-	_printInfoLine(F("serial tests & connect"));
+	ESP_LOGI(TAG, "serial tests & connect");
 
 	if (_getBaudrate() == 0)
 	{
-		statusMessage = F("get baudrate error");
-		_printInfoLine(statusMessage);
+		ESP_LOGE(TAG, "get baudrate error");
 		return false;
 	}
 
@@ -104,31 +60,31 @@ bool ESPNexUpload::connect()
 
 	if (!_echoTest("mystop_yesABC"))
 	{
-		statusMessage = F("echo test failed");
-		_printInfoLine(statusMessage);
+		ESP_LOGE(TAG, "echo test failed");
 		return false;
 	}
 
 	if (!_handlingSleepAndDim())
 	{
-		statusMessage = F("handling sleep and dim settings failed");
-		_printInfoLine(statusMessage);
+		ESP_LOGE(TAG, "handling sleep and dim settings failed");
 		return false;
 	}
 
 	if (!_setPrepareForFirmwareUpdate(_upload_baudrate))
 	{
-		statusMessage = F("modifybaudrate error");
-		_printInfoLine(statusMessage);
+		ESP_LOGE(TAG, "modifybaudrate error");
 		return false;
 	}
 
 	return true;
 }
 
-bool ESPNexUpload::prepareUpload(uint32_t file_size)
+bool ESPNexUpload::prepareUpload(uint32_t file_size, bool oldProt)
 {
+	_oldProtv11 = oldProt;
 	_undownloadByte = file_size;
+	ESP_LOGD(TAG, "prepareUpload: %" PRIu32, file_size);
+	vTaskDelay(5 / portTICK_PERIOD_MS);
 	return this->connect();
 }
 
@@ -142,74 +98,73 @@ uint16_t ESPNexUpload::_getBaudrate(void)
 		if (_searchBaudrate(baudrate_array[i]))
 		{
 			_baudrate = baudrate_array[i];
-			_printInfoLine(F("baudrate determined"));
+			ESP_LOGI(TAG, "baudrate determined: %i", _baudrate);
 			break;
 		}
-		delay(1500); // wait for 1500 ms
+		vTaskDelay(1500 / portTICK_PERIOD_MS); // wait for 1500 ms
 	}
 	return _baudrate;
 }
 
-bool ESPNexUpload::_searchBaudrate(uint32_t baudrate)
+bool ESPNexUpload::_searchBaudrate(int baudrate)
 {
 
 #if defined ESP8266
 	yield();
 #endif
 
-	String response = String("");
-	_printInfoLine();
-	dbSerialPrint(F("init nextion serial interface on baudrate: "));
-	dbSerialPrintln(baudrate);
+	std::string response = "";
+	ESP_LOGD(TAG, "init nextion serial interface on baudrate: %i", baudrate);
 
-	nexSerialBegin(baudrate, _line, _rx, _tx);
-	_printInfoLine(F("ESP baudrate established, try to connect to display"));
+	setBaudrate(_upload_uart_num,
+				baudrate,
+				_upload_tx_io_num,
+				_upload_rx_io_num);
+
+	ESP_LOGD(TAG, "ESP baudrate established, try to connect to display");
 	const char _nextion_FF_FF[3] = {0xFF, 0xFF, 0x00};
 
-	this->sendCommand("DRAKJHSUYDGBNCJHGJKSHBDN");
-	this->sendCommand("", true, true); // 0x00 0xFF 0xFF 0xFF
-
+	this->sendCommand("DRAKJHSUYDGBNCJHGJKSHBDN", true, true); // 0x00 0xFF 0xFF 0xFF
 	this->recvRetString(response);
 	if (response[0] != 0x1A)
 	{
-		_printInfoLine(F("first indication that baudrate is wrong"));
+		ESP_LOGW(TAG, "first indication that baudrate is wrong");
 	}
 	else
 	{
-		_printInfoLine(F("first respone from display, first indication that baudrate is correct"));
+		ESP_LOGI(TAG, "first respone from display, first indication that baudrate is correct");
 	}
 
 	this->sendCommand("connect"); // first connect attempt
-
 	this->recvRetString(response);
-	if (response.indexOf(F("comok")) == -1)
+	if (response.find("comok") == -1)
 	{
-		_printInfoLine(F("display doesn't accept the first connect request"));
+		ESP_LOGW(TAG, "display doesn't accept the first connect request");
 	}
 	else
 	{
-		_printInfoLine(F("display accept the first connect request"));
+		ESP_LOGI(TAG, "display accept the first connect request");
 	}
 
-	response = String("");
-	delay(110); // based on serial analyser from Nextion editor V0.58 to Nextion display NX4024T032_011R
+	vTaskDelay(110 / portTICK_PERIOD_MS); // based on serial analyser from Nextion editor V0.58 to Nextion display NX4024T032_011R
 	this->sendCommand(_nextion_FF_FF, false);
 
 	this->sendCommand("connect"); // second attempt
 	this->recvRetString(response);
-	if (response.indexOf(F("comok")) == -1 && response[0] != 0x1A)
+
+	if (response.find("comok") == -1 && response[0] != 0x1A)
 	{
-		_printInfoLine(F("display doesn't accept the second connect request"));
-		_printInfoLine(F("conclusion, wrong baudrate"));
-		return 0;
+		ESP_LOGW(TAG, "display doesn't accept the second connect request");
+		ESP_LOGW(TAG, "conclusion, wrong baudrate");
+		return false;
 	}
 	else
 	{
-		_printInfoLine(F("display accept the second connect request"));
-		_printInfoLine(F("conclusion, correct baudrate"));
+		ESP_LOGI(TAG, "display accept the second connect request");
+		ESP_LOGI(TAG, "conclusion, correct baudrate");
 	}
 
-	return 1;
+	return true;
 }
 
 void ESPNexUpload::sendCommand(const char *cmd, bool tail, bool null_head)
@@ -221,25 +176,25 @@ void ESPNexUpload::sendCommand(const char *cmd, bool tail, bool null_head)
 
 	if (null_head)
 	{
-		((HardwareSerial*)nexSerial)->write(0x00);
+		uartWrite(0x00);
 	}
 
-	while (nexSerial->available())
+	while (uartAvailable())
 	{
-		nexSerial->read();
+		uartRead();
 	}
 
-	nexSerial->print(cmd);
+	uartWriteBuf(cmd, strlen(cmd));
+
 	if (tail)
 	{
-		nexSerial->write(0xFF);
-		nexSerial->write(0xFF);
-		nexSerial->write(0xFF);
+		uartWrite(0xFF);
+		uartWrite(0xFF);
+		uartWrite(0xFF);
 	}
-	_printSerialData(true, cmd);
 }
 
-uint16_t ESPNexUpload::recvRetString(String &response, uint32_t timeout, bool recv_flag)
+uint16_t ESPNexUpload::recvRetString(std::string &response, uint32_t timeout, bool recv_flag)
 {
 
 #if defined ESP8266
@@ -252,18 +207,19 @@ uint16_t ESPNexUpload::recvRetString(String &response, uint32_t timeout, bool re
 	long start;
 	bool exit_flag = false;
 	bool ff_flag = false;
-	if (timeout != 500)
-		_printInfoLine("timeout setting serial read: " + String(timeout));
+	response = "";
+	// if (timeout != 500)
+	ESP_LOGD(TAG, "timeout setting serial read: %" PRIu32, timeout);
 
-	start = millis();
+	start = (unsigned long)(esp_timer_get_time() / 1000ULL);
 
-	while (millis() - start <= timeout)
+	while ((unsigned long)(esp_timer_get_time() / 1000ULL) - start <= timeout)
 	{
 
-		while (nexSerial->available())
+		while (uartAvailable())
 		{
 
-			c = nexSerial->read();
+			c = uartRead();
 			if (c == 0)
 			{
 				continue;
@@ -284,7 +240,11 @@ uint16_t ESPNexUpload::recvRetString(String &response, uint32_t timeout, bool re
 
 			if (recv_flag)
 			{
-				if (response.indexOf(0x05) != -1)
+				if (response.find(0x05) != -1 && response.length() == 1)
+				{
+					exit_flag = true;
+				}
+				else if (response.find(0x08) != -1 && response.length() == 5)
 				{
 					exit_flag = true;
 				}
@@ -295,16 +255,12 @@ uint16_t ESPNexUpload::recvRetString(String &response, uint32_t timeout, bool re
 			break;
 		}
 	}
-	_printSerialData(false, response);
-
-	// if the exit flag and the ff flag are both not found, than there is a timeout
-	// if(!exit_flag && !ff_flag)
-	// _printInfoLine(F("recvRetString: timeout"));
 
 	if (ff_flag)
-		response = response.substring(0, response.length() - 3); // Remove last 3 0xFF
+		response = response.substr(0, response.length() - 3); // Remove last 3 0xFF
 
 	ret = response.length();
+
 	return ret;
 }
 
@@ -315,18 +271,19 @@ bool ESPNexUpload::_setPrepareForFirmwareUpdate(uint32_t upload_baudrate)
 	yield();
 #endif
 
-	String response = String("");
-	String cmd = String("");
+	std::string response = "";
+	std::string cmd = "";
 
-	cmd = F("00");
+	cmd = "00";
 	this->sendCommand(cmd.c_str());
-	delay(0.1);
-
+	vTaskDelay(10 / portTICK_PERIOD_MS);
 	this->recvRetString(response, 800, true); // normal response time is 400ms
-
-	String filesize_str = String(_undownloadByte, 10);
-	String baudrate_str = String(upload_baudrate);
-	cmd = "whmi-wri " + filesize_str + "," + baudrate_str + ",0";
+	ESP_LOGD(TAG, "response (00): %s", response.c_str());
+	if (_oldProtv11)
+		cmd = "whmi-wri " + std::to_string(_undownloadByte) + "," + std::to_string(upload_baudrate) + ",0";
+	else
+		cmd = "whmi-wris " + std::to_string(_undownloadByte) + "," + std::to_string(upload_baudrate) + ",1";
+	ESP_LOGI(TAG, "cmd: %s", cmd.c_str());
 
 	this->sendCommand(cmd.c_str());
 
@@ -334,136 +291,246 @@ bool ESPNexUpload::_setPrepareForFirmwareUpdate(uint32_t upload_baudrate)
 	// because switching to another baudrate (nexSerialBegin command) has an higher prio.
 	// The ESP will first jump to the new 'upload_baudrate' and than process the serial 'transmit buffer'
 	// The flush command forced the ESP to wait until the 'transmit buffer' is empty
-	nexSerial->flush();
-
-	nexSerialBegin(upload_baudrate, _line, _rx, _tx);
-	_printInfoLine(F("changing upload baudrate..."));
-	_printInfoLine(String(upload_baudrate));
+	// nexSerial.flush();
+	uartFlushTxOnly();
 
 	this->recvRetString(response, 800, true); // normal response time is 400ms
 
+	ESP_LOGD(TAG, "response (01): %s", response.c_str());
+
 	// The Nextion display will, if it's ready to accept data, send a 0x05 byte.
-	if (response.indexOf(0x05) != -1)
+	if (response.find(0x05) != -1)
 	{
-		_printInfoLine(F("preparation for firmware update done"));
-		return 1;
+		ESP_LOGI(TAG, "preparation for firmware update done");
+		return true;
 	}
 	else
 	{
-		_printInfoLine(F("preparation for firmware update failed"));
-		return 0;
+		ESP_LOGE(TAG, "preparation for firmware update failed");
+		return false;
 	}
 }
 
-void ESPNexUpload::setUpdateProgressCallback(THandlerFunction value)
-{
-	_updateProgressCallback = value;
-}
-
-bool ESPNexUpload::upload(const uint8_t *file_buf, size_t buf_size)
+// НЕ ПРОВЕРЯЛОСЬ !!!!!!!!!!!!!!!!!!
+bool ESPNexUpload::upload(const uint8_t *file_buf, size_t file_size)
 {
 
 #if defined ESP8266
 	yield();
 #endif
 
-	uint8_t c;
+	// uint8_t c;
 	uint8_t timeout = 0;
-	String string = String("");
+	std::string response = "";
+	uint8_t sent_bulk_counter = 0;
+	// uint8_t buff[4096] = {0};
+	uint32_t offset = 0;
+	int remainingBlocks = ceil(file_size / 4096);
+	int blockSize = 4096;
 
-	for (uint16_t i = 0; i < buf_size; i++)
+	while (remainingBlocks > 0)
 	{
-
-		// Users must split the .tft file contents into 4096 byte sized packets with the final partial packet size equal to the last remaining bytes (<4096 bytes).
-		if (_sent_packets == 4096)
+		if (remainingBlocks == 1)
 		{
-
-			// wait for the Nextion to return its 0x05 byte confirming reception and readiness to receive the next packets
-			this->recvRetString(string, 500, true);
-			if (string.indexOf(0x05) != -1)
-			{
-
-				// reset sent packets counter
-				_sent_packets = 0;
-
-				// reset receive String
-				string = "";
-			}
-			else
-			{
-				if (timeout >= 8)
-				{
-					statusMessage = F("serial connection lost");
-					_printInfoLine(statusMessage);
-					return false;
-				}
-
-				timeout++;
-			}
-
-			// delay current byte
-			i--;
+			blockSize = file_size - offset;
 		}
+		uartWriteBuf((char *)file_buf[offset], blockSize);
+		// wait for the Nextion to return its 0x05 byte confirming reception and readiness to receive the next packets
+		this->recvRetString(response, 2000, true);
+
+		ESP_LOGE(TAG, "response [%s]",
+				 format_hex_pretty(reinterpret_cast<const uint8_t *>(response.data()), response.size()).c_str());
+
+		if (response[0] == 0x08 && response.size() == 5)
+		{ // handle partial upload request
+			remainingBlocks -= 1;
+			_sent_packets_total += blockSize;
+			sent_bulk_counter++;
+			if (sent_bulk_counter % 10 == 0)
+			{
+				ESP_LOGI(TAG, "bulk: %i, total bytes %" PRIu32 ", response: %s", sent_bulk_counter, _sent_packets_total, response.c_str());
+			}
+
+			// ESP_LOGE(TAG, "response [%s]",
+			//		 format_hex_pretty(reinterpret_cast<const uint8_t *>(response.data()), response.size()).c_str());
+
+			for (int j = 0; j < 4; ++j)
+			{
+				offset += static_cast<uint8_t>(response[j + 1]) << (8 * j);
+				ESP_LOGI(TAG, "Offset : %" PRIu32, offset);
+			}
+			if (offset)
+				remainingBlocks = ceil((file_size - offset) / blockSize);
+		}
+		else if (response[0] == 0x05)
+		{
+			remainingBlocks -= 1;
+			_sent_packets_total += blockSize;
+			sent_bulk_counter++;
+			if (sent_bulk_counter % 10 == 0)
+			{
+				ESP_LOGI(TAG, "bulk: %i, total bytes %" PRIu32 ", response: %s", sent_bulk_counter, _sent_packets_total, response.c_str());
+			}
+
+			// ESP_LOGE(TAG, "response [%s]",
+			//		 format_hex_pretty(reinterpret_cast<const uint8_t *>(response.data()), response.size()).c_str());
+			offset += 4096;
+		}
+
 		else
 		{
-
-			// read buffer
-			c = file_buf[i];
-
-			// write byte to nextion over serial
-			nexSerial->write(c);
-
-			// update sent packets counter
-			_sent_packets++;
+			if (timeout >= 2)
+			{
+				ESP_LOGE(TAG, "upload failed, no valid response from display, total bytes send : %" PRIu32, _sent_packets_total);
+				sent_bulk_counter = 0;
+				return false;
+			}
+			timeout++;
 		}
 	}
-
+	ESP_LOGI(TAG, "upload send last bytes %" PRIu32 ", response: %s", _sent_packets_total, response.c_str());
+	// ESP_LOGI(TAG,"upload finished, total bytes send : %"PRIu32, _sent_packets_total);
+	sent_bulk_counter = 0;
 	return true;
 }
 
 bool ESPNexUpload::upload(Stream &myFile)
 {
+
 #if defined ESP8266
 	yield();
 #endif
-
-	// create buffer for read
-	uint8_t buff[4096] = {0};
-
-	// read all data from server
-	while (_undownloadByte > 0 || _undownloadByte == -1)
+	// uint8_t c;
+	uint8_t timeout = 0;
+	std::string response = "";
+	uint8_t sent_bulk_counter = 0;
+	uint8_t file_buf[4096] = {0};
+	uint32_t offset = 0;
+	uint32_t _seekByte = 0;
+	uint32_t _packets_total_byte = 0;
+	// get available data size
+	size_t file_size = _undownloadByte; // myFile.available();
+	if (file_size)
 	{
-
-		// get available data size
-		size_t size = myFile.available();
-
-		if (size)
+		int remainingBlocks = ceil(file_size / 4096.);
+		int blockSize = 4096;
+		ESP_LOGI(TAG, "Remaining Blocks ALL: %" PRIu32, remainingBlocks);
+		while (remainingBlocks > 0)
 		{
-			// read up to 2048 byte into the buffer
-			int c = myFile.readBytes(buff, ((size > sizeof(buff)) ? sizeof(buff) : size));
-
-			// Write the buffered bytes to the nextion. If this fails, return false.
-			if (!this->upload(buff, c))
+			// myFile.available();
+			//  read up to 4096 byte into the buffer
+			if (_seekByte > 0)
 			{
-				return false;
+				if (file_size > _seekByte)
+				{
+					blockSize = myFile.readBytes(file_buf, _seekByte);
+					// file_size = myFile.available();
+					file_size -= _seekByte;
+					ESP_LOGI(TAG, "Seek file: %" PRIu32 ", left bytes %" PRIu32, _seekByte, file_size);
+				}
+				else
+				{
+					ESP_LOGE(TAG, "File failed seek");
+					return false;
+				}
+				blockSize = myFile.readBytes(file_buf, ((file_size > sizeof(file_buf)) ? sizeof(file_buf) : file_size));
+				file_size -= blockSize; // осталось байт
 			}
 			else
 			{
-				if (_updateProgressCallback)
+				blockSize = myFile.readBytes(file_buf, ((file_size > sizeof(file_buf)) ? sizeof(file_buf) : file_size));
+				file_size -= blockSize; // осталось байт
+			}
+			uartWriteBuf((char *)file_buf, blockSize);
+			// wait for the Nextion to return its 0x05 byte confirming reception and readiness to receive the next packets
+			if (response[0] == 0x08 || timeout >= 4)
+				this->recvRetString(response, 2000, true);
+			else
+				this->recvRetString(response, 500, true);
+
+			ESP_LOGE(TAG, "upload response byte [%s]",
+					 format_hex_pretty(reinterpret_cast<const uint8_t *>(response.data()), response.size()).c_str());
+			ESP_LOG_BUFFER_HEX(TAG, response.data(), response.size());
+			if (response[0] == 0x08 && response.size() == 5)
+			{ // handle partial upload request
+				remainingBlocks -= 1;
+				_sent_packets_total += blockSize; // отправлено байт
+				_packets_total_byte += blockSize; // всего байт отправлено или пропущено
+				sent_bulk_counter++;
+				if (sent_bulk_counter % 10 == 0)
 				{
-					_updateProgressCallback();
+					//		ESP_LOGI(TAG, "bulk: %i, total bytes %" PRIu32 ", response: %s", sent_bulk_counter, _sent_packets_total, response.c_str());
+				}
+				ESP_LOGE(TAG, "upload response [%s]",
+						 format_hex_pretty(reinterpret_cast<const uint8_t *>(response.data()), response.size()).c_str());
+				for (int j = 0; j < 4; ++j)
+				{
+					offset += static_cast<uint8_t>(response[j + 1]) << (8 * j);
+				}
+				ESP_LOGI(TAG, "Offset : %" PRIu32, offset);
+				if (offset)
+				{
+					remainingBlocks = ceil((file_size - offset) / blockSize);
+					_seekByte = offset - _packets_total_byte;
+					_packets_total_byte += _seekByte;
+					ESP_LOGI(TAG, "Seek Byte : %" PRIu32, _seekByte);
+					ESP_LOGI(TAG, "Remaining Blocks : %" PRIu32, remainingBlocks);
 				}
 			}
-
-			if (_undownloadByte > 0)
+			else if ((response[0] == 0x08 || response[0] == 0x05) && response.size() == 1)
 			{
-				_undownloadByte -= c;
-			}
-		}
-		delay(1);
-	}
+				remainingBlocks -= 1;
+				_sent_packets_total += blockSize;
+				_packets_total_byte += blockSize;
+				file_size -= blockSize;
+				sent_bulk_counter++;
+				if (sent_bulk_counter % 10 == 0)
+				{
+					//		ESP_LOGI(TAG, "bulk: %i, total bytes %" PRIu32 ", response: %s", sent_bulk_counter, _sent_packets_total, response.c_str());
+				}
 
-	return true;
+				ESP_LOGE(TAG, "upload response [%s]",
+						 format_hex_pretty(reinterpret_cast<const uint8_t *>(response.data()), response.size()).c_str());
+				offset += 4096;
+			}
+
+			else
+			{
+				ESP_LOGE(TAG, "Fail response [%s]",
+						 format_hex_pretty(reinterpret_cast<const uint8_t *>(response.data()), response.size()).c_str());
+				if (timeout >= 9)
+				{
+					ESP_LOGE(TAG, "upload failed, no valid response from display, total bytes send : %" PRIu32, _sent_packets_total);
+					sent_bulk_counter = 0;
+					return false;
+				}
+				timeout++;
+			}
+			ESP_LOGI(TAG, "bulk: %i, total bytes %" PRIu32 ", response: %s", sent_bulk_counter, _sent_packets_total, response.c_str());
+		}
+		this->recvRetString(response, 3000, true);
+		if (response[0] == 0x88)
+		{
+			ESP_LOGI(TAG, "upload finished (Response 0x88), total bytes send : %" PRIu32, _sent_packets_total);
+			this->end();
+		}
+		else
+		{
+			ESP_LOGE(TAG, "upload response [%s]",
+					 format_hex_pretty(reinterpret_cast<const uint8_t *>(response.data()), response.size()).c_str());
+			ESP_LOGI(TAG, "upload finished (TimeOut 0x88), total bytes send : %" PRIu32, _sent_packets_total);
+			this->end();
+		}
+		// ESP_LOGI(TAG, "upload send last bytes %" PRIu32 ", response: %s", _sent_packets_total, response.c_str());
+		//  ESP_LOGI(TAG,"upload finished, total bytes send : %"PRIu32, _sent_packets_total);
+		sent_bulk_counter = 0;
+		return true;
+	}
+	else
+	{
+		ESP_LOGE(TAG, "File failed available");
+		return false;
+	}
 }
 
 void ESPNexUpload::softReset(void)
@@ -475,139 +542,129 @@ void ESPNexUpload::softReset(void)
 void ESPNexUpload::end()
 {
 
+	if (_upload_uart_num == NULL)
+	{
+		return;
+	}
+
 	// wait for the nextion to finish internal processes
-	delay(1600);
+	// vTaskDelay(1600 / portTICK_PERIOD_MS);
 
 	// soft reset the nextion
 	this->softReset();
 
 	// end Serial connection
-	((HardwareSerial*)nexSerial)->end();
+	// uart_mutex_lock();
+	// ESP_ERROR_CHECK(uart_driver_delete(_upload_uart_num));
+	// uart_mutex_unlock();
 
 	// reset sent packets counter
-	_sent_packets = 0;
+	//_sent_packets = 0;
+	_sent_packets_total = 0;
 
-	statusMessage = F("upload ok");
-	_printInfoLine(statusMessage + F("\r\n"));
+	ESP_LOGI(TAG, "serial connection closed");
 }
 
 void ESPNexUpload::_setRunningMode(void)
 {
-	String cmd = String("");
-	delay(100);
-	cmd = F("runmod=2");
-	this->sendCommand(cmd.c_str());
-	delay(60);
+	vTaskDelay(100 / portTICK_PERIOD_MS);
+	this->sendCommand("runmod=2");
+	vTaskDelay(60 / portTICK_PERIOD_MS);
 }
 
-bool ESPNexUpload::_echoTest(String input)
+bool ESPNexUpload::_echoTest(std::string input)
 {
-	String cmd = String("");
-	String response = String("");
 
-	cmd = "print \"" + input + "\"";
+	std::string response = "";
+	std::string cmd = "print \"" + input + "\"";
+
 	this->sendCommand(cmd.c_str());
-
 	uint32_t duration_ms = calculateTransmissionTimeMs(cmd) * 2 + 10; // times 2  (send + receive) and 10 ms extra
 	this->recvRetString(response, duration_ms);
 
-	return (response.indexOf(input) != -1);
+	return (response.find(input) != -1);
 }
 
 bool ESPNexUpload::_handlingSleepAndDim(void)
 {
-	String cmd = String("");
-	String response = String("");
+
+	std::string response = "";
 	bool set_sleep = false;
 	bool set_dim = false;
 
-	cmd = F("get sleep");
-	this->sendCommand(cmd.c_str());
-
+	this->sendCommand("get sleep");
 	this->recvRetString(response);
 
 	if (response[0] != 0x71)
 	{
-		statusMessage = F("unknown response from 'get sleep' request");
-		_printInfoLine(statusMessage);
+		ESP_LOGE(TAG, "unknown response from 'get sleep' request");
 		return false;
 	}
 
 	if (response[1] != 0x00)
 	{
-		_printInfoLine(F("sleep enabled"));
+		ESP_LOGD(TAG, "sleep enabled");
 		set_sleep = true;
 	}
 	else
 	{
-		_printInfoLine(F("sleep disabled"));
+		ESP_LOGD(TAG, "sleep disabled");
 	}
 
-	response = String("");
-	cmd = F("get dim");
-	this->sendCommand(cmd.c_str());
-
+	this->sendCommand("get dim");
 	this->recvRetString(response);
 
 	if (response[0] != 0x71)
 	{
-		statusMessage = F("unknown response from 'get dim' request");
-		_printInfoLine(statusMessage);
+		ESP_LOGE(TAG, "unknown response from 'get dim' request");
 		return false;
 	}
 
 	if (response[1] == 0x00)
 	{
-		_printInfoLine(F("dim is 0%, backlight from display is turned off"));
+		ESP_LOGD(TAG, "dim is 0%%, backlight from display is turned off");
 		set_dim = true;
 	}
 	else
 	{
-		_printInfoLine();
-		dbSerialPrint(F("dim "));
-		dbSerialPrint((uint8_t)response[1]);
-		dbSerialPrintln(F("%"));
+		ESP_LOGD(TAG, "dim %i%%", (uint8_t)response[1]);
 	}
 
 	if (!_echoTest("ABC"))
 	{
-		statusMessage = F("echo test in 'handling sleep and dim' failed");
-		_printInfoLine(statusMessage);
+		ESP_LOGE(TAG, "echo test in 'handling sleep and dim' failed");
 		return false;
 	}
 
 	if (set_sleep)
 	{
-		cmd = F("sleep=0");
-		this->sendCommand(cmd.c_str());
+		this->sendCommand("sleep=0");
 		// Unfortunately the display doesn't send any respone on the wake up request (sleep=0)
 		// Let the ESP wait for one second, this is based on serial analyser from Nextion editor V0.58 to Nextion display NX4024T032_011R
 		// This gives the Nextion display some time to wake up
-		delay(1000);
+		vTaskDelay(1000 / portTICK_PERIOD_MS);
 	}
 
 	if (set_dim)
 	{
-		cmd = F("dim=100");
-		this->sendCommand(cmd.c_str());
-		delay(15);
+		this->sendCommand("dim=100");
+		vTaskDelay(15 / portTICK_PERIOD_MS);
 	}
 
 	return true;
 }
 
-void ESPNexUpload::_printSerialData(bool esp_request, String input)
+void ESPNexUpload::_printSerialData(bool esp_request, std::string input)
 {
-
 	char c;
 	if (esp_request)
-		dbSerialPrint(F("ESP     request: "));
+		ESP_LOGI(TAG, "ESP     request: ");
 	else
-		dbSerialPrint(F("Nextion respone: "));
+		ESP_LOGI(TAG, "Nextion respone: ");
 
 	if (input.length() == 0)
 	{
-		dbSerialPrintln(F("none"));
+		ESP_LOGW(TAG, "none");
 		return;
 	}
 
@@ -616,18 +673,15 @@ void ESPNexUpload::_printSerialData(bool esp_request, String input)
 
 		c = input[i];
 		if ((uint8_t)c >= 0x20 && (uint8_t)c <= 0x7E)
-			dbSerialPrint(c);
+			printf("%c", c);
 		else
 		{
-			dbSerialPrint(F("0x"));
-			dbSerialPrintHex(c);
-			dbSerialPrint(F(" "));
+			printf("0x\\%02hhx", c);
 		}
 	}
-	dbSerialPrintln();
 }
 
-uint32_t ESPNexUpload::calculateTransmissionTimeMs(String message)
+uint32_t ESPNexUpload::calculateTransmissionTimeMs(std::string message)
 {
 	// In general, 1 second (s) = 1000 (10^-3) millisecond (ms) or
 	//             1 second (s) = 1000 000 (10^-6) microsecond (us).
@@ -645,13 +699,165 @@ uint32_t ESPNexUpload::calculateTransmissionTimeMs(String message)
 	uint32_t duration_message_us = nr_of_bytes * duration_one_byte_us;
 	uint32_t return_value_ms = duration_message_us / 1000;
 
-	_printInfoLine("calculated transmission time: " + String(return_value_ms) + " ms");
+	ESP_LOGD(TAG, "calculated transmission time: %" PRIu32 " ms", return_value_ms);
 	return return_value_ms;
 }
 
-void ESPNexUpload::_printInfoLine(String line)
+uint32_t ESPNexUpload::uartAvailable()
 {
-	dbSerialPrint(F("Status     info: "));
-	if (line.length() != 0)
-		dbSerialPrintln(line);
+	if (_upload_uart_num == NULL)
+	{
+		return 0;
+	}
+
+	uart_mutex_lock();
+	size_t available;
+	uart_get_buffered_data_len(_upload_uart_num, &available);
+	if (_upload_uart_has_peek)
+		available++;
+	uart_mutex_unlock();
+	return available;
+}
+
+uint8_t ESPNexUpload::uartRead()
+{
+	if (_upload_uart_num == NULL)
+	{
+		return 0;
+	}
+	uint8_t c = 0;
+
+	uart_mutex_lock();
+	if (_upload_uart_has_peek)
+	{
+		_upload_uart_has_peek = false;
+		c = _upload_uart_peek_byte;
+	}
+	else
+	{
+
+		int len = uart_read_bytes(_upload_uart_num, &c, 1, 20 / portTICK_RATE_MS);
+		if (len == 0)
+		{
+			c = 0;
+		}
+	}
+	uart_mutex_unlock();
+	return c;
+}
+
+void ESPNexUpload::uartWrite(uint8_t c)
+{
+	if (_upload_uart_num == NULL)
+	{
+		return;
+	}
+	uart_mutex_lock();
+	uart_write_bytes(_upload_uart_num, &c, 1);
+	uart_mutex_unlock();
+}
+
+void ESPNexUpload::uartWriteBuf(const char *data, size_t len)
+{
+	if (_upload_uart_num == NULL || data == NULL || !len)
+	{
+		return;
+	}
+
+	uart_mutex_lock();
+	uart_write_bytes(_upload_uart_num, data, len);
+	uart_mutex_unlock();
+}
+
+void ESPNexUpload::uartFlushTxOnly()
+{
+
+	bool txOnly = true;
+	if (_upload_uart_num == NULL)
+	{
+		return;
+	}
+
+	uart_mutex_lock();
+	ESP_ERROR_CHECK(uart_wait_tx_done(_upload_uart_num, portMAX_DELAY));
+
+	if (!txOnly)
+	{
+		ESP_ERROR_CHECK(uart_flush_input(_upload_uart_num));
+	}
+	uart_mutex_unlock();
+}
+
+void ESPNexUpload::setBaudrate(uart_port_t uart_num, uint32_t baud_rate, gpio_num_t tx_io_num, gpio_num_t rx_io_num)
+{
+
+	ESP_LOGD(TAG, "installing driver on uart %d with baud rate %d", uart_num, baud_rate);
+
+	_upload_uart_num = uart_num;
+	_upload_baudrate = baud_rate;
+	_upload_tx_io_num = tx_io_num;
+	_upload_rx_io_num = rx_io_num;
+
+	const uart_config_t uart_config = {
+		.baud_rate = (int)baud_rate,
+		.data_bits = UART_DATA_8_BITS,
+		.parity = UART_PARITY_DISABLE,
+		.stop_bits = UART_STOP_BITS_1,
+		.flow_ctrl = UART_HW_FLOWCTRL_DISABLE};
+
+	// Do not change the UART initialization order.
+	// This order was gotten from: https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/uart.html
+
+	ESP_ERROR_CHECK(uart_param_config(uart_num, &uart_config));
+	if (_uart_diver_installed == true)
+	{
+		ESP_LOGD(TAG, "baud rate changed");
+		return;
+	}
+
+	ESP_ERROR_CHECK(uart_set_pin(uart_num, tx_io_num, rx_io_num, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
+	/*
+		ESP_ERROR_CHECK(uart_driver_install(uart_num,
+											CONFIG_NEX_UART_RECV_BUFFER_SIZE, // Receive buffer size.
+											0,								  // Transmit buffer size.
+											10,								  // Queue size.
+											NULL,							  // Queue pointer.
+											0));							  // Allocation flags.
+		*/
+	ESP_LOGD(TAG, "driver installed");
+	_uart_diver_installed = true;
+}
+
+std::string ESPNexUpload::str_snprintf(const char *fmt, size_t len, ...)
+{
+	std::string str;
+	va_list args;
+
+	str.resize(len);
+	va_start(args, len);
+	size_t out_length = vsnprintf(&str[0], len + 1, fmt, args);
+	va_end(args);
+
+	if (out_length < len)
+		str.resize(out_length);
+
+	return str;
+}
+char ESPNexUpload::format_hex_pretty_char(uint8_t v) { return v >= 10 ? 'A' + (v - 10) : '0' + v; }
+std::string ESPNexUpload::format_hex_pretty(const uint8_t *data, size_t length)
+{
+	if (length == 0)
+		return "";
+	std::string ret;
+	ret.resize(3 * length - 1);
+	for (size_t i = 0; i < length; i++)
+	{
+		ret[3 * i] = format_hex_pretty_char((data[i] & 0xF0) >> 4);
+		ret[3 * i + 1] = format_hex_pretty_char(data[i] & 0x0F);
+		if (i != length - 1)
+			ret[3 * i + 2] = '.';
+	}
+	if (length > 4)
+		return ret + " (" + str_snprintf("%u", 32, length) + ")";
+	return ret;
 }

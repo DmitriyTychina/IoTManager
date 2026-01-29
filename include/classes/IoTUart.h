@@ -28,6 +28,8 @@ class IoTUart : public IoTItem {
     protected:
 #ifdef ESP8266
         SoftwareSerial* _myUART;
+#elif LIBRETINY
+        SerialClass* _myUART;
 #else
         Stream* _myUART;
 #endif

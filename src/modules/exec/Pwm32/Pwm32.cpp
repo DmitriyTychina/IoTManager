@@ -8,15 +8,15 @@
 extern IoTGpio IoTgpio;
 
 class Pwm32 : public IoTItem {
-   private:
+private:
     int _pin;
-    int _freq; 
+    int _freq;
     int _apin, _oldValue;
     bool _freezVal = true;
-    int _ledChannel; 
+    int _ledChannel;
     int _resolution;
 
-   public:
+public:
     Pwm32(String parameters): IoTItem(parameters) {
         _interval = _interval / 1000;   // корректируем величину интервала int, теперь он в миллисекундах   
 
@@ -24,10 +24,14 @@ class Pwm32 : public IoTItem {
         jsonRead(parameters, "freq", _freq);
         jsonRead(parameters, "ledChannel", _ledChannel);
         jsonRead(parameters, "PWM_resolution", _resolution);
-        
+
         pinMode(_pin, OUTPUT);
+#if defined(esp32c6_4mb) || defined(esp32c6_8mb)
+        ledcAttachChannel(_pin, _freq, _resolution, _ledChannel);
+#else
         ledcSetup(_ledChannel, _freq, _resolution);
         ledcAttachPin(_pin, _ledChannel);
+#endif
         ledcWrite(_ledChannel, value.valD);
 
         _resolution = pow(2, _resolution);  // переводим биты в значение
@@ -53,7 +57,7 @@ class Pwm32 : public IoTItem {
             }
         }
     }
- 
+
     void setValue(const IoTValue& Value, bool genEvent = true) {
         value = Value;
         ledcWrite(_ledChannel, value.valD);

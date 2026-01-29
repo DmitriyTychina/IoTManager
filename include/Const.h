@@ -2,7 +2,8 @@
 #include "BuildTime.h"
 
 // Версия прошивки
-#define FIRMWARE_VERSION 457
+
+#define FIRMWARE_VERSION 462
 
 #ifdef esp8266_1mb_ota
 #define FIRMWARE_NAME "esp8266_1mb_ota"
@@ -32,6 +33,10 @@
 #define FIRMWARE_NAME "esp32_4mb"
 #endif
 
+#ifdef esp32_4mb3f
+#define FIRMWARE_NAME "esp32_4mb3f"
+#endif
+
 #ifdef esp32cam_4mb
 #define FIRMWARE_NAME "esp32cam_4mb"
 #endif
@@ -52,6 +57,21 @@
 #define FIRMWARE_NAME "esp32s3_16mb"
 #endif
 
+#ifdef bk7231n
+#define FIRMWARE_NAME "bk7231n"
+#endif
+
+#ifdef esp32c6_4mb
+#define FIRMWARE_NAME "esp32c6_4mb"
+#endif
+
+#ifdef esp32c6_8mb
+#define FIRMWARE_NAME "esp32c6_8mb"
+#endif
+
+#ifdef esp32_wifirep
+#define FIRMWARE_NAME "esp32_wifirep"
+#endif
 // Размер буфера json
 #define JSON_BUFFER_SIZE 4096  // держим 2 кб не меняем
 
@@ -72,8 +92,9 @@ WEB_SOCKETS_FRAME_SIZE создан для того что бы не загру�
 #define STANDARD_WEB_SERVER
 #define STANDARD_WEB_SOCKETS
 
+//#ifndef LIBRETINY
 #define UDP_ENABLED
-
+//#endif
 // #define REST_FILE_OPERATIONS
 
 #define MQTT_RECONNECT_INTERVAL 20000
@@ -87,26 +108,38 @@ WEB_SOCKETS_FRAME_SIZE создан для того что бы не загру�
 #define MIN_DATETIME 1575158400
 #define LEAP_YEAR(Y) (((1970 + Y) > 0) && !((1970 + Y) % 4) && (((1970 + Y) % 100) || !((1970 + Y) % 400)))
 
+#ifdef LIBRETINY
+//#define WIFI_ASYNC
+#endif
+
+#if defined(ESP32) && !defined(esp32_wifirep)
+#define WIFI_ASYNC
+#endif
+
 // задачи таскера
 enum TimerTask_t {
     WIFI_SCAN,
     WIFI_MQTT_CONNECTION_CHECK,
+#ifdef WIFI_ASYNC    
+    WIFI_CONN,
+#endif    
     TIME,
-    TIME_SYNC,
-    UPTIME,
-    UDP,    // UDPP
+    // TIME_SYNC, // не используется
+    // UPTIME, // не используется
+    UDPt,    // UDPP
     TIMES,  // периодические секундные проверки
     PTASK,
     ST,
+    PiWS,
     END
 };
 
-// задачи которые надо протащить через loop
-enum NotAsyncActions {
-    do_ZERO,
-    do_MQTTPARAMSCHANGED,
-    do_LAST,
-};
+// задачи которые надо протащить через loop // не используется
+// enum NotAsyncActions {
+//     do_ZERO,
+//     do_MQTTPARAMSCHANGED,
+//     do_LAST,
+// };
 
 // состояния обновления
 enum UpdateStates { UPDATE_COMPLETED, UPDATE_FAILED, PATH_ERROR };
@@ -114,7 +147,7 @@ enum UpdateStates { UPDATE_COMPLETED, UPDATE_FAILED, PATH_ERROR };
 enum distination {
     TO_MQTT,
     TO_WS,
-    TO_MQTT_WS,
+    TO_MQTT_WS
 };
 
-#define WS_BROADCAST -1
+// #define WS_BROADCAST -1 // не используется

@@ -1,13 +1,15 @@
 #pragma once
 #include "Global.h"
 
-#ifdef ESP8266
+#if defined (ESP8266) || defined(LIBRETINY)
 // эта библиотека встроена в ядро
 #include "ESPAsyncUDP.h"
-#else
+#elif defined(ESP32)
 #include "AsyncUDP.h"
 #endif
+#ifndef LIBRETINY
 extern AsyncUDP asyncUdp;
+#endif
 
 extern const String getThisDevice();
 extern void addThisDeviceToList();

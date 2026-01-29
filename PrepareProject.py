@@ -13,6 +13,8 @@
 # python PrepareProject.py --profile <ИмяФайла>
 # python PrepareProject.py -p <ИмяФайла>
 # 
+# Используя параметры -b или --board <board_name> можно уточнить для какой платы нужно подготовить проект
+# 
 # поддерживаемые контроллеры (профили):
 # esp8266_4mb
 # esp8266_16mb
@@ -41,7 +43,22 @@ def printHelp():
         PrepareProject.py
         -p --profile <file.json_in_root_folder>
         -u --update
-        -h --help''')
+        -h --help
+        -b --board <board_name>''')
+    with open('myProfile.json', "r", encoding='utf-8') as read_file:
+        profJson = json.load(read_file)  
+    print ('')
+    print ('Choose a board from the list:')
+    # print(profJson['projectProp']['platformio']['comments_default_envs'])
+    print ('        ', end='')
+    cnt = 0
+    for envs in profJson['projectProp']['platformio']['envs']:
+        if cnt == 5:
+            cnt = 0
+            print('')
+            print('        ', end='')
+        print(envs['name'] + ', ', end='')
+        cnt = cnt + 1
 
 
 def updateModulesInProfile(profJson):
@@ -68,10 +85,11 @@ def updateModulesInProfile(profJson):
 
 update = False              # признак необходимости обновить список модулей
 profile = 'myProfile.json'  # имя профиля. Будет заменено из консоли, если указано при старте
-            
+selectDevice = ''           # имя платы для которой хотим собрать, если её указали к командной строке -b <board>
+
 argv = sys.argv[1:]
 try:
-    opts, args = getopt.getopt(argv, 'hp:u', ['help', 'profile=', 'update'])
+    opts, args = getopt.getopt(argv, 'hp:ub:', ['help', 'profile=', 'update', 'board='])
 except getopt.GetoptError:
     print('Ошибка обработки параметров!')
     printHelp()
@@ -82,10 +100,14 @@ for opt, arg in opts:
         printHelp()
         sys.exit()
     elif opt in ("-p", "--profile"):
+        print('Загрузка профиля из файла:' + arg)
         profile = arg
     elif opt in ("-u", "--update"):
+        print('Создание новой конфигурации по исходным файлам!')
         update = True
-        
+    elif opt in ("-b", "--board"):
+        print('Создание профиля для платы:' + arg)
+        selectDevice = arg
 
 if Path(profile).is_file():
     # подтягиваем уже существующий профиль
@@ -121,9 +143,17 @@ else:
     with open(profile, "w", encoding='utf-8') as write_file:
         json.dump(profJson, write_file, ensure_ascii=False, indent=4, sort_keys=False)
 
-
-# определяем какое устройство используется в профиле
-deviceName = profJson['projectProp']['platformio']['default_envs']  
+deviceName = ''
+if selectDevice == '':
+    # определяем какое устройство используется в профиле
+    deviceName = profJson['projectProp']['platformio']['default_envs']  
+else:
+    for envs in profJson['projectProp']['platformio']['envs']:
+        if envs['name'] == selectDevice:
+            deviceName = selectDevice
+    if deviceName == '':
+        deviceName = profJson['projectProp']['platformio']['default_envs'] 
+        print(f"\x1b[1;31;31m Board ", selectDevice, " not found in ",profile,"!!! Use ",deviceName,"  \x1b[0m")
 
 # заполняем папку /data файлами прошивки в зависимости от устройства
 if deviceName == 'esp8266_1mb_ota' or deviceName == 'esp8285_1mb_ota' or deviceName == 'esp8266_2mb_ota': 
@@ -134,7 +164,8 @@ else:
 deviceType = 'esp32*'
 if not 'esp32' in deviceName:
     deviceType = 'esp82*'
-
+if 'bk72' in deviceName:
+    deviceType = 'bk72*'
 # генерируем файлы проекта на основе подготовленного профиля
 # заполняем конфигурационный файл прошивки параметрами из профиля
 with open("data_svelte/settings.json", "r", encoding='utf-8') as read_file:
@@ -151,7 +182,8 @@ with open("data_svelte/settings.json", "w", encoding='utf-8') as write_file:
 # параллельно собираем необходимые активным модулям библиотеки для включения в компиляцию для текущего типа устройства (esp8266_4m, esp32_4mb, esp8266_1m, esp8266_1m_ota) 
 activeModulesName = []  # список имен активных модулей
 allLibs = ""            # подборка всех библиотек необходимых модулям для дальнейшей записи в конфигурацию platformio
-itemsCount = 1;
+allDefs = "\n"            # для каждого модуля создаем глобальный define
+itemsCount = 1
 includeDirs = ""        # подборка путей ко всем модулям для дальнейшей записи в конфигурацию platformio
 itemsJson = json.loads('[{"name": "Выберите элемент", "num": 0}]')
 for section, modules in profJson['modules'].items():
@@ -160,6 +192,8 @@ for section, modules in profJson['modules'].items():
         if module['active']:
             with open(module['path'] + "/modinfo.json", "r", encoding='utf-8') as read_file:
                 moduleJson = json.load(read_file)
+                if 'moduleDefines' in moduleJson['about']:
+                    allDefs = allDefs + "\n".join("-D" + d for d in moduleJson['about']['moduleDefines'])
                 if deviceName in moduleJson['usedLibs']:   # проверяем поддерживает ли модуль текущее устройство
                     if not 'exclude' in moduleJson['usedLibs'][deviceName]: # смотрим не нужно ли исключить данный модуль из указанной платы deviceName
                         activeModulesName.append(moduleJson['about']['moduleName'])     # запоминаем имена для использования на след шагах
@@ -170,6 +204,7 @@ for section, modules in profJson['modules'].items():
                             configItemsJson['num'] = itemsCount
                             configItemsJson['name'] = str(itemsCount) + ". " + configItemsJson['name']
                             itemsCount = itemsCount + 1
+                            configItemsJson['moduleName'] = moduleJson['about']['moduleName']
                             itemsJson.append(configItemsJson)    
                 else: # В первую очередь ищем по имени deviceName, чтобы для данной платы можно было уточнить либы. Если не нашли плату по имени в usedLibs пробуем найти её по типу deviceType
                     if deviceType in moduleJson['usedLibs']:   # проверяем поддерживает ли модуль текущее устройство
@@ -179,9 +214,10 @@ for section, modules in profJson['modules'].items():
                             allLibs = allLibs + "\n" + libPath       
                         for configItemsJson in moduleJson['configItem']:
                             configItemsJson['num'] = itemsCount
-                            configItemsJson['name'] = str(itemsCount) + ". " + configItemsJson['name']
-                            itemsCount = itemsCount + 1
-                            itemsJson.append(configItemsJson)    
+                            configItemsJson['name'] = str(itemsCount) + ". " + configItemsJson['name'] 
+                            itemsCount = itemsCount + 1 
+                            itemsJson.append(configItemsJson)
+                            configItemsJson['moduleName'] = moduleJson['about']['moduleName']     
 
 with open("data_svelte/items.json", "w", encoding='utf-8') as write_file:
     json.dump(itemsJson, write_file, ensure_ascii=False, indent=4, sort_keys=False)
@@ -192,12 +228,12 @@ allAPI_head = ""
 allAPI_exec = ""
 for activModuleName in activeModulesName:
     allAPI_head = allAPI_head + "\nvoid* getAPI_" + activModuleName + "(String subtype, String params);"
-    allAPI_exec = allAPI_exec + "\nif ((tmpAPI = getAPI_" + activModuleName + "(subtype, params)) != nullptr) return tmpAPI;"
+    allAPI_exec = allAPI_exec + "\nif ((tmpAPI = getAPI_" + activModuleName + "(subtype, params)) != nullptr) foundAPI = tmpAPI;"
 apicpp = '#include "ESPConfiguration.h"\n'
 apicpp = apicpp + allAPI_head
-apicpp = apicpp + '\n\nvoid* getAPI(String subtype, String params) {\nvoid* tmpAPI;'
+apicpp = apicpp + '\n\nvoid* getAPI(String subtype, String params) {\nvoid* tmpAPI; void* foundAPI = nullptr;'
 apicpp = apicpp + allAPI_exec
-apicpp = apicpp + '\nreturn nullptr;\n}'
+apicpp = apicpp + '\nreturn foundAPI;\n}'
 with open('src/modules/API.cpp', 'w') as f:
     f.write(apicpp)
 
@@ -217,7 +253,10 @@ config.clear()
 config.read("platformio.ini")
 config["env:" + deviceName + "_fromitems"]["lib_deps"] = allLibs
 config["env:" + deviceName + "_fromitems"]["build_src_filter"] = includeDirs
+config["env:" + deviceName + "_fromitems"]["build_flags"] = allDefs
 config["platformio"]["default_envs"] = deviceName
+if "${env:" + deviceName + "_fromitems.build_flags}" not in config["env:" + deviceName]["build_flags"]:
+    config["env:" + deviceName]["build_flags"] += "\n${env:" + deviceName + "_fromitems.build_flags}"
 # config["platformio"]["data_dir"] = profJson['projectProp']['platformio']['data_dir']
 with open("platformio.ini", 'w') as configFile:
     config.write(configFile)

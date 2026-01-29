@@ -129,9 +129,10 @@
             }
         ]
     },
-    "defActive": true,
+    "defActive": false,
     "usedLibs": {
         "esp32*": [],
-        "esp82*": []
+        "esp82*": [],
+        "bk72*": []
     }
 }

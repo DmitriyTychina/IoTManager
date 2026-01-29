@@ -15,6 +15,18 @@ extern FS* filesystem;
 #endif
 #endif
 
+#if defined(LIBRETINY)
+#include <FS.h>
+
+#include "LittleFS.h"
+
+#define FileFS LittleFS
+#define FS_NAME "LittleFS_LT"
+#define FILE_READ "r"
+#define FILE_WRITE "w"
+#define FILE_APPEND "a"
+#endif
+
 #ifdef ESP8266
 #if USE_LITTLEFS
 #include "LittleFS.h"
@@ -39,6 +51,7 @@ extern void globalVarsSync();
 // extern String getParamsJson();
 
 extern void syncSettingsFlashJson();
+void resetSettingsFlashByPanic();
 extern void syncValuesFlashJson();
 
 extern const String getChipId();

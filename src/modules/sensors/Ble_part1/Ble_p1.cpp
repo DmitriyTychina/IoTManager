@@ -178,7 +178,11 @@ void scanEndedCB(NimBLEScanResults results)
   // pBLEScan->clearResults();
 }
 
-class BleScan : public IoTItem, BLEAdvertisedDeviceCallbacks
+//#if defined (esp32c6_4mb) || defined (esp32c6_8mb)
+//class BleScan : public IoTItem, NimBLEScanCallbacks
+//#else
+class BleScan : public IoTItem, NimBLEScanCallbacks//BLEAdvertisedDeviceCallbacks //NimBLEScanCallbacks
+//#endif
 {
 private:
   // описание параметров передаваемых из настроек датчика из веба
@@ -201,24 +205,33 @@ public:
     return spr;
   }
 
-  void onResult(BLEAdvertisedDevice *advertisedDevice)
+  void onResult(const NimBLEAdvertisedDevice *advertisedDevice) override
   {
     JsonObject BLEdata = doc.to<JsonObject>();
     String mac_adress_ = advertisedDevice->getAddress().toString().c_str();
     mac_adress_.toUpperCase();
     BLEdata["id"] = (char *)mac_adress_.c_str();
-
+    //SerialPrint("i", F("BLE"), "FOUND "+ mac_adress_);
     if (advertisedDevice->haveName())
     {
       BLEdata["name"] = (char *)advertisedDevice->getName().c_str();
     }
     if (advertisedDevice->haveManufacturerData())
     {
+#if defined (esp32c6_4mb) || defined (esp32c6_8mb)  
       char *manufacturerdata = BLEUtils::buildHexData(NULL, (uint8_t *)advertisedDevice->getManufacturerData().data(), advertisedDevice->getManufacturerData().length());
+#else
+      std::string manufacturerdata = NimBLEUtils::dataToHexString((uint8_t *)advertisedDevice->getManufacturerData().data(), advertisedDevice->getManufacturerData().length());
+#endif       
+
       BLEdata["manufacturerdata"] = manufacturerdata;
+      #if defined (esp32c6_4mb) || defined (esp32c6_8mb) 
       free(manufacturerdata);
+      #endif 
     }
-    if (advertisedDevice->haveRSSI())
+//#if !defined (esp32c6_4mb) && !defined (esp32c6_8mb) //&& !defined (esp32_4mb3f)
+//    if (advertisedDevice->haveRSSI())
+//#endif    
       BLEdata["rssi"] = (int)advertisedDevice->getRSSI();
     if (advertisedDevice->haveTXPower())
       BLEdata["txpower"] = (int8_t)advertisedDevice->getTXPower();
@@ -291,12 +304,17 @@ public:
   BleScan(String parameters) : IoTItem(parameters)
   {
     _scanDuration = jsonReadInt(parameters, "scanDuration");
+    _scanDuration = _scanDuration * 1000;
     _filter = jsonReadStr(parameters, "filter");
     jsonRead(parameters, "debug", _debug);
 
     BLEDevice::init("");
     pBLEScan = BLEDevice::getScan(); // create new scan
-    pBLEScan->setAdvertisedDeviceCallbacks(this);
+//#if defined (esp32c6_4mb) || defined (esp32c6_8mb) //|| defined (esp32_4mb3f)
+    pBLEScan->setScanCallbacks(this);
+//#else
+//    pBLEScan->setAdvertisedDeviceCallbacks(this);
+//#endif
     pBLEScan->setActiveScan(false); // active scan uses more power, but get results faster
     pBLEScan->setInterval(100);
     pBLEScan->setWindow(99);    // less or equal setInterval value
@@ -311,7 +329,11 @@ public:
       if (_scanDuration > 0)
       {
         SerialPrint("i", F("BLE"), "Start Scanning...");
-        pBLEScan->start(_scanDuration, scanEndedCB, false);
+//#if defined (esp32c6_4mb) || defined (esp32c6_8mb) //|| defined (esp32_4mb3f)
+        pBLEScan->start(_scanDuration, false);
+//#else        
+//        pBLEScan->start(_scanDuration, scanEndedCB, false);
+//#endif
       }
     }
   }

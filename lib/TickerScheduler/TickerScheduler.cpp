@@ -105,7 +105,7 @@ void TickerScheduler::update()
     {
 		if (this->items[i].is_used)
 		{
-			#ifdef ARDUINO_ARCH_AVR
+			#if defined ARDUINO_ARCH_AVR || defined LIBRETINY
 			this->items[i].t.Tick();
 			#endif
 

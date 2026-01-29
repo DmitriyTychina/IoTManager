@@ -59,9 +59,29 @@ String ESP_getResetReason(void) {
     return ESP.getResetReason();
 }
 #endif
-#if defined(esp32s2_4mb) || defined(esp32s3_16mb) || defined(esp32c3m_4mb)
+#ifdef LIBRETINY
 String ESP_getResetReason(void) {
-    return ESP32GetResetReason(0);  // CPU 0
+    return ESP.getResetReason();
+}
+#endif
+#if defined(esp32s2_4mb) || defined(esp32s3_16mb) || defined(esp32c3m_4mb) || defined(esp32c6_4mb) || defined(esp32c6_8mb) 
+String ESP_getResetReason(void) {
+ //   return ESP32GetResetReason(0);  // CPU 0
+        esp_reset_reason_t esp_reason = esp_reset_reason();
+  switch (esp_reason) {
+    case ESP_RST_UNKNOWN:   return "UNKNOWN";
+    case ESP_RST_POWERON:   return "POWER ON";
+    case ESP_RST_EXT:       return "EXTERNAL PIN";
+    case ESP_RST_SW:        return "SOFTWARE RESET";
+    case ESP_RST_PANIC:     return "EXCEPTION / PANIC";
+    case ESP_RST_INT_WDT:   return "INTERRUPT WATCHDOG";
+    case ESP_RST_TASK_WDT:  return "TASK WATCHDOG";
+    case ESP_RST_WDT:       return "WATCHDOGS";
+    case ESP_RST_DEEPSLEEP: return "EXITING DEEP SLLEP MODE";
+    case ESP_RST_BROWNOUT:  return "BROWNOUT";
+    case ESP_RST_SDIO:      return "SDIO";
+    default :               return "NO MEAN";
+  };
 }
 String ESP32GetResetReason(uint32_t cpu_no) {
     // tools\sdk\include\esp32\rom\rtc.h
@@ -82,8 +102,8 @@ String ESP32GetResetReason(uint32_t cpu_no) {
             return F("Timer Group1 Watchdog reset digital core");  // 8
         case RTCWDT_SYS_RESET:
             return F("RTC Watchdog Reset digital core");  // 9
-        case INTRUSION_RESET:
-            return F("Instrusion tested to reset CPU");  // 10
+//        case INTRUSION_RESET:
+//            return F("Instrusion tested to reset CPU");  // 10
         case TG0WDT_CPU_RESET:
             return F("Time Group reset CPU");  // 11
         case RTC_SW_CPU_RESET:
@@ -101,9 +121,24 @@ String ESP32GetResetReason(uint32_t cpu_no) {
     }
 }
 #endif
-#if defined(esp32_4mb) || defined(esp32_16mb) || defined(esp32cam_4mb)
+#if defined(esp32_4mb) || defined(esp32_4mb3f) || defined(esp32_16mb) || defined(esp32cam_4mb)
 String ESP_getResetReason(void) {
-    return ESP32GetResetReason(0);  // CPU 0
+  //  return ESP32GetResetReason(0);  // CPU 0
+    esp_reset_reason_t esp_reason = esp_reset_reason();
+  switch (esp_reason) {
+    case ESP_RST_UNKNOWN:   return "UNKNOWN";
+    case ESP_RST_POWERON:   return "POWER ON";
+    case ESP_RST_EXT:       return "EXTERNAL PIN";
+    case ESP_RST_SW:        return "SOFTWARE RESET";
+    case ESP_RST_PANIC:     return "EXCEPTION / PANIC";
+    case ESP_RST_INT_WDT:   return "INTERRUPT WATCHDOG";
+    case ESP_RST_TASK_WDT:  return "TASK WATCHDOG";
+    case ESP_RST_WDT:       return "WATCHDOGS";
+    case ESP_RST_DEEPSLEEP: return "EXITING DEEP SLLEP MODE";
+    case ESP_RST_BROWNOUT:  return "BROWNOUT";
+    case ESP_RST_SDIO:      return "SDIO";
+    default :               return "NO MEAN";
+  };
 }
 String ESP32GetResetReason(uint32_t cpu_no) {
     // tools\sdk\include\esp32\rom\rtc.h

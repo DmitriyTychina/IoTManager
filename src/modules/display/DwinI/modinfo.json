@@ -40,36 +40,12 @@
             "btn-uploadUI": "Формирует автоматически графический интерфейс на базе конфигурации и выгружает в экран. Занимает продолжительное время! (в разработке)"
         }
     },
-    "defActive": true,
+    "defActive": false,
     "usedLibs": {
-        "esp32_4mb": [
+        "esp32*": [
             "plerup/EspSoftwareSerial"
         ],
-        "esp32_4mb3f": [
-            "plerup/EspSoftwareSerial"
-        ],
-        "esp32cam_4mb": [
-            "plerup/EspSoftwareSerial"
-        ],
-        "esp8266_4mb": [
-            "plerup/EspSoftwareSerial"
-        ],
-        "esp8266_1mb": [
-            "plerup/EspSoftwareSerial"
-        ],
-        "esp8266_1mb_ota": [
-            "plerup/EspSoftwareSerial"
-        ],
-        "esp8266_2mb": [
-            "plerup/EspSoftwareSerial"
-        ],
-        "esp8266_2mb_ota": [
-            "plerup/EspSoftwareSerial"
-        ],
-        "esp8285_1mb": [
-            "plerup/EspSoftwareSerial"
-        ],
-        "esp8285_1mb_ota": [
+        "esp82*": [
             "plerup/EspSoftwareSerial"
         ]
     }

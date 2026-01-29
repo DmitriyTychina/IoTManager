@@ -138,12 +138,19 @@ public:
 
     ~BL0937wh(){};
 };
-
+#if defined LIBRETINY
+void /* ICACHE_RAM_ATTR */ bl0937_cf1_interrupt()
+#else
 void ICACHE_RAM_ATTR bl0937_cf1_interrupt()
+#endif
 {
     bl0937->cf1_interrupt();
 }
+#if defined LIBRETINY
+void /* ICACHE_RAM_ATTR */ bl0937_cf_interrupt()
+#else
 void ICACHE_RAM_ATTR bl0937_cf_interrupt()
+#endif
 {
     bl0937->cf_interrupt();
 }

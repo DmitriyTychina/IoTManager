@@ -13,19 +13,33 @@
 #include "Wire.h"
 #include <WEMOS_SHT3X.h>
 
-SHT3X sht30(0x45);
+SHT3X sht30(0x44);
 
 class Sht30t : public IoTItem {
+
+    private:
+    uint8_t _addr = 0;
+
    public:
-    Sht30t(String parameters): IoTItem(parameters) { }
+    Sht30t(String parameters): IoTItem(parameters) {
+    {
+        String sAddr;
+        jsonRead(parameters, "addr", sAddr);
+        if (sAddr == "")
+            scanI2C();
+        else
+            _addr = hexStringToUint8(sAddr);
+    }
+
+     }
     
     void doByInterval() {
         if(sht30.get()==0){
         value.valD = sht30.cTemp;
 
-        SerialPrint("E", "Sensor Sht30t", "OK");
+        SerialPrint("i", "Sensor Sht30t", "OK");
 
-        if (value.valD < -46.85F) regEvent(value.valD, "Sht30t");     // TODO: найти способ понимания ошибки получения данных
+        if (value.valD > -46.85F) regEvent(value.valD, "Sht30t");     // TODO: найти способ понимания ошибки получения данных
             else SerialPrint("E", "Sensor Sht30t", "Error", _id);  
         }
     }
@@ -33,14 +47,27 @@ class Sht30t : public IoTItem {
 };
 
 class Sht30h : public IoTItem {
+
+    private:
+    uint8_t _addr = 0;
+
    public:
-    Sht30h(String parameters): IoTItem(parameters) { }
+    Sht30h(String parameters): IoTItem(parameters) {
+            {
+        String sAddr;
+        jsonRead(parameters, "addr", sAddr);
+        if (sAddr == "")
+            scanI2C();
+        else
+            _addr = hexStringToUint8(sAddr);
+    }
+     }
     
     void doByInterval() {
         if(sht30.get()==0){
         value.valD = sht30.humidity;
 
-        SerialPrint("E", "Sensor Sht30h", "OK");
+        SerialPrint("i", "Sensor Sht30h", "OK");
         if (value.valD != -6) regEvent(value.valD, "Sht30h");    // TODO: найти способ понимания ошибки получения данных
             else SerialPrint("E", "Sensor Sht30h", "Error", _id);
         }   

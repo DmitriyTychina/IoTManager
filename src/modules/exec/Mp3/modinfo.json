@@ -87,10 +87,16 @@
             }
         ]
     },
-    "defActive": true,
+    "defActive": false,
     "usedLibs": {
         "esp32*": [
             "dfrobot/DFRobotDFPlayerMini @ ^1.0.5"
+        ],
+        "esp32c6_4mb": [
+            "exclude"
+        ],
+        "esp32c6_8mb": [
+            "exclude"
         ],
         "esp82*": [
             "dfrobot/DFRobotDFPlayerMini @ ^1.0.5"

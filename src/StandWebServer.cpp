@@ -9,6 +9,12 @@ static const char FS_INIT_ERROR[] PROGMEM = "FS INIT ERROR";
 static const char FILE_NOT_FOUND[] PROGMEM = "FileNotFound";
 // static bool fsOK;
 // const char* fsName = "LittleFS";
+// Типы обновлений
+enum UpdateType {
+    FIRMWARE,
+    FILESYSTEM
+  };
+
 
 void standWebServerInit() {
     //  Кэшировать файлы для быстрой работы
@@ -88,6 +94,17 @@ void standWebServerInit() {
     // - first callback is called after the request has ended with all parsed arguments
     // - second callback handles file upload at that location
     HTTP.on("/edit", HTTP_POST, replyOK, handleFileUpload);
+    // отображение страницы с полем ввода для сервера обновления
+    HTTP.on("/localota", HTTP_GET, handleLocalOTA);
+    // непосредственно ОТА обновление со стороннего сервера 
+    HTTP.on("/localota_handler", HTTP_GET, handleLocalOTA_Handler);
+
+    // Обработка обновления от WS drag&drop
+    HTTP.on("/update", HTTP_POST, []() {
+        HTTP.send(200); // Для CORS
+      }, handleUpdateOTA);
+    
+      HTTP.on("/update", HTTP_OPTIONS, handleCors);
 
     // Default handler for all URIs not defined above
     // Use it to read files from filesystem
@@ -154,6 +171,75 @@ void handleStatus() {
     json += "\"}";
 
     HTTP.send(200, "application/json", json);
+}
+
+void handleLocalOTA() {
+  String page = "<form action='/localota' method='POST'><label for='server'>Server Address:</label><input type='text' name='server' value='http://192.168.1.2:5500'><input type='submit' value='Update'></form>";
+  HTTP.send(200, "text/html", page);}
+
+
+void handleCors() {
+    HTTP.sendHeader("Access-Control-Allow-Origin", "*");
+    HTTP.send(200);
+  }
+  
+  void handleUpdateOTA() {
+    UpdateType typeOTAfile = FIRMWARE;
+    HTTPUpload& upload = HTTP.upload();
+    if (upload.filename != "firmware.bin"  && upload.filename != "littlefs.bin")
+    {
+        SerialPrint("E", F("OTA"), "Неверное имя файла: " + upload.filename);
+        return;
+    }
+    if (upload.filename == "firmware.bin")
+    {
+        typeOTAfile = FIRMWARE;
+    } else     if (upload.filename == "littlefs.bin")
+    {
+        typeOTAfile = FILESYSTEM;
+    }
+    #ifdef ESP8266
+    size_t size = upload.totalSize;
+    int updatePartition = (typeOTAfile == FIRMWARE)? U_FLASH : U_FS; //U_FS
+    //#endif
+    #else //ESP32
+    size_t size = UPDATE_SIZE_UNKNOWN;
+    int updatePartition = (typeOTAfile == FIRMWARE)? U_FLASH : U_SPIFFS; //U_FS
+    #endif
+    if (upload.status == UPLOAD_FILE_START) {
+      //Serial.print("Начало загрузки: ");
+      //Serial.println(upload.filename);
+      SerialPrint("i", F("OTA"), "Начало загрузки файла: " + upload.filename);
+      if (!Update.begin(size, updatePartition)) { // UPDATE_SIZE_UNKNOWN 0xFFFFFFFF
+        Update.end();
+        SerialPrint("E", F("OTA"), "Ошибка: Недостаточно памяти");
+        HTTP.send(500, "text/plain", "Ошибка: Недостаточно памяти");
+        return;
+      }
+    }
+    else if (upload.status == UPLOAD_FILE_WRITE) {
+      if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
+        Update.end();
+        SerialPrint("E", F("OTA"), "Ошибка записи данных");
+        HTTP.send(500, "text/plain", "Ошибка записи данных");
+        return;
+      }
+    }
+    else if (upload.status == UPLOAD_FILE_END) {
+      if (Update.end(true)) { // true - перезагрузка после обновления
+        SerialPrint("i", F("OTA"), "Обновление завершено");
+        HTTP.send(200, "text/plain", "Обновление успешно");
+        ESP.restart();
+      } else {
+        Update.end();
+        SerialPrint("E", F("OTA"), "Ошибка завершения обновления");
+        HTTP.send(500, "text/plain", "Ошибка завершения обновления");
+      }
+    }
+  }
+void handleLocalOTA_Handler() {
+    String serverValue = HTTP.arg("server");
+    upgrade_firmware(3,serverValue);
 }
 
 #ifdef ESP32
@@ -231,7 +317,12 @@ bool handleFileRead(String path) {
    return the path of the closest parent still existing
 */
 String lastExistingParent(String path) {
-    while (!path.isEmpty() && !FileFS.exists(path)) {
+ #ifndef LIBRETINY      
+    while (!path.isEmpty() && !FileFS.exists(path)) 
+ #else
+     while (!path.length()==0 && !FileFS.exists(path)) 
+ #endif      
+    {
         if (path.lastIndexOf('/') > 0) {
             path = path.substring(0, path.lastIndexOf('/'));
         } else {
@@ -278,7 +369,7 @@ void handleFileUpload() {
     }
 }
 
-#ifdef ESP8266
+#if defined ESP8266 
 void deleteRecursive(String path) {
     File file = FileFS.open(path, "r");
     bool isDir = file.isDirectory();
@@ -299,14 +390,14 @@ void deleteRecursive(String path) {
 }
 #endif
 
-#ifdef ESP32
+#if defined ESP32 || defined LIBRETINY
 struct treename {
     uint8_t type;
     char *name;
 };
 
 void deleteRecursive(String path) {
-    fs::File dir = FileFS.open(path);
+    fs::File dir = FileFS.open(path.c_str());
 
     if (!dir.isDirectory()) {
         Serial.printf("%s is a file\n", path);
@@ -321,7 +412,11 @@ void deleteRecursive(String path) {
 
     while (entry = dir.openNextFile()) {
         if (entry.isDirectory()) {
+#if defined ESP32
             deleteRecursive(entry.path());
+#elif defined LIBRETINY
+            deleteRecursive(entry.fullName());
+#endif
         } else {
             String tmpname = path + "/" + strdup(entry.name());  // buffer file name
             entry.close();
@@ -342,10 +437,15 @@ void deleteRecursive(String path) {
 */
 void handleFileDelete() {
     String path = HTTP.arg(0);
+    #ifndef LIBRETINY
     if (path.isEmpty() || path == "/") {
         return replyBadRequest("BAD PATH");
     }
-
+    #else
+    if (path.length()==0 || path == "/") {
+        return replyBadRequest("BAD PATH");
+    }
+    #endif
     //    DBG_OUTPUT_PORT.println(String("handleFileDelete: ") + path);
     if (!FileFS.exists(path)) {
         return replyNotFound(FPSTR(FILE_NOT_FOUND));
@@ -368,10 +468,15 @@ void handleFileDelete() {
 */
 void handleFileCreate() {
     String path = HTTP.arg("path");
+    #ifndef LIBRETINY
     if (path.isEmpty()) {
         return replyBadRequest(F("PATH ARG MISSING"));
     }
-
+    #else
+    if (path.length()==0) {
+        return replyBadRequest(F("PATH ARG MISSING"));
+    }
+    #endif
 #ifdef USE_SPIFFS
     if (checkForUnsupportedPath(path).length() > 0) {
         return replyServerError(F("INVALID FILENAME"));
@@ -386,7 +491,11 @@ void handleFileCreate() {
     }
 
     String src = HTTP.arg("src");
+    #ifndef LIBRETINY
     if (src.isEmpty()) {
+    #else
+    if (src.length()==0) {
+    #endif    
         // No source specified: creation
         //        DBG_OUTPUT_PORT.println(String("handleFileCreate: ") + path);
         if (path.endsWith("/")) {
@@ -404,6 +513,9 @@ void handleFileCreate() {
 #endif
 #ifdef ESP32
                 file.write(0);
+#endif
+#ifdef LIBRETINY
+                file.write((uint8_t)0);
 #endif
                 file.close();
             } else {
@@ -509,7 +621,7 @@ void handleFileList() {
 }
 #endif
 
-#ifdef ESP32
+#if defined ESP32 
 void handleFileList() {
     if (!HTTP.hasArg("dir")) {
         HTTP.send(500, "text/plain", "BAD ARGS");
@@ -517,15 +629,29 @@ void handleFileList() {
     }
 
     String path = HTTP.arg("dir");
-    //  DBG_OUTPUT_PORT.println("handleFileList: " + path);
-
+    if (path != "/" && !FileFS.exists(path)) {
+        return replyBadRequest("BAD PATH");
+    }
+    //path = "/build/";
+    Serial.println("handleFileList: " + path);
+#if defined LIBRETINY
+    File root = FileFS.open(path.c_str());
+    //Dir root = FileFS.openDir(path);
+    Serial.println("handleFileList FIRST OPEN  Name: " + String(root.name()));
+#else
     File root = FileFS.open(path);
+#endif    
     path = String();
 
     String output = "[";
     if (root.isDirectory()) {
+        Serial.println("handleFileList IS DIR: " + String(root.name()));
+       //root.close();
         File file = root.openNextFile();
+        Serial.println("handleFileList openNextFile: " + String(file.name()));
+
         while (file) {
+                  
             if (output != "[") {
                 output += ',';
             }
@@ -549,6 +675,67 @@ void handleFileList() {
 }
 #endif
 
+#if defined LIBRETINY
+void handleFileList() {
+    if (!HTTP.hasArg("dir")) {
+        HTTP.send(500, "text/plain", "BAD ARGS");
+        return;
+    }
+    String path = HTTP.arg("dir");
+    if (path != "/" && !FileFS.exists(path)) {
+        return replyBadRequest("BAD PATH");
+    }
+FileFS.open(path.c_str());
+    lfs_dir_t dir;
+    struct lfs_info info;
+    int err = lfs_dir_open(FileFS.getFS(), &dir, path.c_str());
+    if (err) {
+        HTTP.send(500, "text/plain", "FAIL OPEN DIR");
+        return;
+    }
+    String output = "[";
+    while (true) {
+        int res = lfs_dir_read(FileFS.getFS(), &dir, &info);
+        if (res < 0) {
+            lfs_dir_close(FileFS.getFS(), &dir);
+            return ;
+        }
+        
+        if (!res) {
+            break;
+        }
+        
+        Serial.printf("%s %d", info.name, info.type);
+
+        if (output != "[") {
+            output += ',';
+        }
+            output += "{\"type\":\"";
+            //         output += (file.isDirectory()) ? "dir" : "file";
+        if (info.type == LFS_TYPE_DIR) {
+            output += "dir";
+        } else {
+            output += F("file\",\"size\":\"");
+            output += info.size;
+        }
+
+        output += "\",\"name\":\"";
+        output += String(info.name);
+        output += "\"}";
+        //file = root.openNextFile();
+
+    }
+
+    err = lfs_dir_close(FileFS.getFS(), &dir);
+    if (err) {
+        HTTP.send(500, "text/plain", "FAIL CLOSE DIR");
+        return;
+    }
+
+    output += "]";
+    HTTP.send(200, "text/json", output);
+}
+#endif
 /*
    The "Not Found" handler catches all URI not explicitly declared in code
    First try to find and return the requested file from the filesystem,
@@ -559,6 +746,9 @@ void handleNotFound() {
     String uri = ESP8266WebServer::urlDecode(HTTP.uri());  // required to read paths with blanks
 #endif
 #ifdef ESP32
+    String uri = WebServer::urlDecode(HTTP.uri());  // required to read paths with blanks
+#endif
+#ifdef LIBRETINY
     String uri = WebServer::urlDecode(HTTP.uri());  // required to read paths with blanks
 #endif
     if (handleFileRead(uri)) {

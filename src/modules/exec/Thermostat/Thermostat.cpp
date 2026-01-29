@@ -1,5 +1,6 @@
 #include "Global.h"
 #include "classes/IoTItem.h"
+#include "GyverPID.h"
 
 extern IoTGpio IoTgpio;
 
@@ -15,6 +16,7 @@ private:
     float sp, pv, pv2;
     String interim;
     int enable = 1;
+    int _direction = 0;
 
 public:
     ThermostatGIST(String parameters) : IoTItem(parameters)
@@ -24,6 +26,7 @@ public:
         jsonRead(parameters, "term_rezerv_id", _term_rezerv_id);
         jsonRead(parameters, "gist", _gist);
         jsonRead(parameters, "rele", _rele);
+        jsonRead(parameters, "direction", _direction);
     }
 
     void doByInterval()
@@ -55,13 +58,31 @@ public:
                 {
                     tmp = findIoTItem(_rele);
                     if (tmp)
-                        tmp->setValue("0", true);
+                    {
+                        if (_direction)
+                        {
+                            tmp->setValue("0", true);
+                        }
+                        else
+                        {
+                            tmp->setValue("1", true);
+                        }
+                    }
                 }
                 if (pv <= sp - _gist && enable)
                 {
                     tmp = findIoTItem(_rele);
                     if (tmp)
-                        tmp->setValue("1", true);
+                    {
+                        if (_direction)
+                        {
+                            tmp->setValue("1", true);
+                        }
+                        else
+                        {
+                            tmp->setValue("0", true);
+                        }
+                    }
                 }
             }
             else
@@ -86,13 +107,31 @@ public:
                         {
                             tmp = findIoTItem(_rele);
                             if (tmp)
-                                tmp->setValue("0", true);
+                            {
+                                if (_direction)
+                                {
+                                    tmp->setValue("0", true);
+                                }
+                                else
+                                {
+                                    tmp->setValue("1", true);
+                                }
+                            }
                         }
                         if (pv2 <= sp - _gist && enable)
                         {
                             tmp = findIoTItem(_rele);
                             if (tmp)
-                                tmp->setValue("1", true);
+                            {
+                                if (_direction)
+                                {
+                                    tmp->setValue("1", true);
+                                }
+                                else
+                                {
+                                    tmp->setValue("0", true);
+                                }
+                            }
                         }
                     }
                     else
@@ -144,23 +183,40 @@ public:
         return {};
     }
 
-    ~ThermostatGIST(){};
+    ~ThermostatGIST() {};
 };
+
+GyverPID *regulator = nullptr;
+GyverPID *instanceregulator(float _KP, float _KI, float _KD, int interval, boolean setDirection, int setLimitsMIN, int setLimitsMAX)
+{
+    if (!regulator)
+    {                                                      // Если библиотека ранее инициализировалась, то просто вернем указатель
+                                                           // Инициализируем библиотеку
+        regulator = new GyverPID(_KP, _KI, _KD, interval); // коэф. П, коэф. И, коэф. Д, период дискретизации dt (с)
+        regulator->setDirection(setDirection);             // направление регулирования (NORMAL/REVERSE). ПО УМОЛЧАНИЮ СТОИТ NORMAL
+        regulator->setLimits(setLimitsMIN, setLimitsMAX);  // пределы. ПО УМОЛЧАНИЮ СТОЯТ 0 И 100
+        SerialPrint("i", F("ThermostatPID"), " _KP:" + String(_KP) + " _KI:" + String(_KI) + " _KD:" + String(_KD) + " interval:" + String(interval) + " _setLimitsMIN:" + String(setLimitsMIN) + " _setLimitsMAX:" + String(setLimitsMAX) + " Direction:" + String(setDirection));
+        // GyverPID regulator(_KP, _KI, _KD, interval);
+    }
+    return regulator;
+}
 
 class ThermostatPID : public IoTItem
 {
 private:
-    String _set_id;         // заданная температура
-    String _term_id;        // термометр
-    String _term_rezerv_id; // резервный термометр
-    float _int, _KP, _KI, _KD, sp, pv,
+    String _set_id;  // заданная температура
+    String _term_id; // термометр
+    boolean _setDirection;
+
+    float _int, _KP, _KI, _KD,
+        sp, pv,
         pv_last = 0, // предыдущая температура
         ierr = 0,    // интегральная погрешность
         dt = 0;      // время между измерениями
     String _rele;    // реле
     String interim;
     int enable = 1;
-    long interval;
+    int interval, _setLimitsMIN, _setLimitsMAX;
     IoTItem *tmp;
     int releState = 0;
 
@@ -169,20 +225,29 @@ public:
     {
         jsonRead(parameters, "set_id", _set_id);
         jsonRead(parameters, "term_id", _term_id);
-        jsonRead(parameters, "term_rezerv_id", _term_rezerv_id);
         jsonRead(parameters, "int", _int);
         jsonRead(parameters, "KP", _KP);
         jsonRead(parameters, "KI", _KI);
         jsonRead(parameters, "KD", _KD);
         jsonRead(parameters, F("int"), interval);
-        interval = interval * 1000; // интервал проверки  в сек
         jsonRead(parameters, "rele", _rele);
+
+        // GyverPID
+        jsonRead(parameters, "setDirection", _setDirection);
+        jsonRead(parameters, "setLimitsMIN", _setLimitsMIN);
+        jsonRead(parameters, "setLimitsMAX", _setLimitsMAX);
+
+        // в процессе работы можно менять коэффициенты
+        // instanceregulator(_KP, _KI, _KD, interval)->Kp = _KP;
+        // instanceregulator(_KP, _KI, _KD, interval)->Ki = _KI;
+        // instanceregulator(_KP, _KI, _KD, interval)->Kd = _KD;
     }
 
 protected:
     //===============================================================
     // Вычисляем температуру контура отпления, коэффициенты ПИД регулятора
     //===============================================================
+    /*
     float pid(float sp, float pv, float pv_last, float &ierr, float dt)
     {
         float Kc = _KP;   // K / %Heater 5
@@ -217,11 +282,10 @@ protected:
             // выход регулятора, он же уставка для ID-1 (температура теплоносителя контура СО котла)
             op = constrain(op, oplo, ophi);
         }
-
         ierr = I;
         return op;
     }
-
+*/
     void
     doByInterval()
     {
@@ -239,32 +303,24 @@ protected:
             interim = tmp->getValue();
             pv = ::atof(interim.c_str());
         }
-        if (pv < -40 && pv > 120 && !pv) // Решаем что ошибка датчика
+        if (enable)
         {
-            if (_term_rezerv_id != "")
-            {
-                tmp = findIoTItem(_term_rezerv_id); // используем резервный
-                if (tmp)
-                {
-                    interim = tmp->getValue();
-                    pv = ::atof(interim.c_str());
-                    if (pv < -40 && pv > 120 && !pv)
-                        pv = 0;
-                }
-                else
-                    pv = 0;
-            }
-            else
-                pv = 0;
-        }
-        if (sp && pv)
-        {
-            //            value.valD = pid(sp, pv, pv_last, ierr, _int);
-            //            value.valS = (String)(int)value.valD;
-            regEvent(pid(sp, pv, pv_last, ierr, _int), "ThermostatPID", false, true);
+            // regEvent(pid(sp, pv, pv_last, ierr, _int), "ThermostatPID", false, true);
+            // instanceregulator(_KP, _KI, _KD, interval,_setDirection,_setLimitsMIN,_setLimitsMAX)->setDirection(_setDirection);             // направление регулирования (NORMAL/REVERSE). ПО УМОЛЧАНИЮ СТОИТ NORMAL
+            // instanceregulator(_KP, _KI, _KD, interval,_setDirection,_setLimitsMIN,_setLimitsMAX)->setLimits(_setLimitsMIN, _setLimitsMAX); // пределы. ПО УМОЛЧАНИЮ СТОЯТ 0 И 100
+            // instanceregulator(_KP, _KI, _KD, interval)->setMode(1);
+            instanceregulator(_KP, _KI, _KD, interval, _setDirection, _setLimitsMIN, _setLimitsMAX)->setpoint = sp;
+            instanceregulator(_KP, _KI, _KD, interval, _setDirection, _setLimitsMIN, _setLimitsMAX)->input = pv;
+            value.valD = instanceregulator(_KP, _KI, _KD, interval, _setDirection, _setLimitsMIN, _setLimitsMAX)->getResult();
+            SerialPrint("i", F("ThermostatPID"), " _KP:" + String(_KP) + " _KI:" + String(_KI) + " _KD:" + String(_KD) + " interval:" + String(interval) + " _setLimitsMIN:" + String(_setLimitsMIN) + " _setLimitsMAX:" + String(_setLimitsMAX) + " Direction:" + String(_setDirection));
+            SerialPrint("i", F("ThermostatPID"), "setpoint: " + String(sp) + " input: " + String(pv));
+            regEvent(value.valD, "ThermostatPID", false, true);
         }
         else
-            regEvent(0, "ThermostatPID", false, true);
+        {
+            value.valD = 0;
+            regEvent(value.valD, "ThermostatPID", false, true);
+        }
         pv_last = pv;
     }
 
@@ -280,14 +336,14 @@ protected:
             currentMillis = millis();
             difference = currentMillis - prevMillis;
 
-            if (_rele != "" && enable && value.valD * interval / 100000 > difference / 1000 && releState == 0)
+            if (_rele != "" && enable && value.valD * interval / 100 > difference / 1000 && releState == 0)
             {
                 releState = 1;
                 tmp = findIoTItem(_rele);
                 if (tmp)
                     tmp->setValue("1", true);
             }
-            if (_rele != "" && enable && value.valD * interval / 100000 < difference / 1000 && releState == 1)
+            if (_rele != "" && enable && value.valD * interval / 100 < difference / 1000 && releState == 1)
             {
                 releState = 0;
                 tmp = findIoTItem(_rele);
@@ -295,7 +351,7 @@ protected:
                     tmp->setValue("0", true);
             }
 
-            if (difference >= interval)
+            if (difference >= interval * 1000)
             {
                 prevMillis = millis();
                 this->doByInterval();
@@ -311,6 +367,32 @@ protected:
                 if (param.size())
                 {
                     enable = param[0].valD;
+                    if (enable == 0)
+                    {
+                        delete regulator;
+                        regulator = nullptr;
+                        //    instanceregulator(_KP, _KI, _KD, interval, _setDirection, _setLimitsMIN, _setLimitsMAX);
+                    }
+                }
+            }
+            if (command == "setLimitsMIN")
+            {
+                if (param.size())
+                {
+                    _setLimitsMIN = param[0].valD;
+                    //    delete regulator;
+                    //    regulator = nullptr;
+                    //    instanceregulator(_KP, _KI, _KD, interval, _setDirection, _setLimitsMIN, _setLimitsMAX);
+                }
+            }
+            if (command == "setLimitsMAX")
+            {
+                if (param.size())
+                {
+                    _setLimitsMAX = param[0].valD;
+                    //    delete regulator;
+                    //    regulator = nullptr;
+                    //    instanceregulator(_KP, _KI, _KD, interval, _setDirection, _setLimitsMIN, _setLimitsMAX);
                 }
             }
             if (command == "KP")
@@ -318,6 +400,9 @@ protected:
                 if (param.size())
                 {
                     _KP = param[0].valD;
+                    delete regulator;
+                    regulator = nullptr;
+                    instanceregulator(_KP, _KI, _KD, interval, _setDirection, _setLimitsMIN, _setLimitsMAX);
                 }
             }
             if (command == "KI")
@@ -325,6 +410,9 @@ protected:
                 if (param.size())
                 {
                     _KI = param[0].valD;
+                    delete regulator;
+                    regulator = nullptr;
+                    instanceregulator(_KP, _KI, _KD, interval, _setDirection, _setLimitsMIN, _setLimitsMAX);
                 }
             }
             if (command == "KD")
@@ -332,12 +420,30 @@ protected:
                 if (param.size())
                 {
                     _KD = param[0].valD;
+                    delete regulator;
+                    regulator = nullptr;
+                    instanceregulator(_KP, _KI, _KD, interval, _setDirection, _setLimitsMIN, _setLimitsMAX);
+                }
+            }
+
+            if (command == "setDirection")
+            {
+                if (param.size())
+                {
+                    _setDirection = param[0].valD;
+                    delete regulator;
+                    regulator = nullptr;
+                    instanceregulator(_KP, _KI, _KD, interval, _setDirection, _setLimitsMIN, _setLimitsMAX);
                 }
             }
         }
         return {};
     }
-    ~ThermostatPID(){};
+    ~ThermostatPID()
+    {
+        delete regulator;
+        regulator = nullptr;
+    };
 };
 
 class ThermostatETK : public IoTItem
@@ -395,7 +501,7 @@ protected:
         }
     }
 
-    ~ThermostatETK(){};
+    ~ThermostatETK() {};
 };
 
 class ThermostatETK2 : public IoTItem
@@ -471,7 +577,7 @@ protected:
         }
     }
 
-    ~ThermostatETK2(){};
+    ~ThermostatETK2() {};
 };
 
 void *getAPI_Thermostat(String subtype, String param)

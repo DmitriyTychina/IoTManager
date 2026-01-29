@@ -16,8 +16,9 @@
       "set_id": "",
       "term_id": "",
       "term_rezerv_id": "",
-      "gist": 0.3,
-      "rele": ""
+      "gist": 0.1,
+      "rele": "",
+      "direction": 0
     },
     {
       "global": 0,
@@ -31,14 +32,16 @@
       "descr": "термостат",
       "int": 60,
       "round": 1,
-      "map": "1,100,1,100",
+      "map": "1024,1024,1,100",
       "set_id": "",
       "term_id": "",
-      "term_rezerv_id": "",      
       "rele": "",
-      "KP": 5.0,
-      "KI": 50,
-      "KD": 1.0
+      "setDirection": 0,
+      "setLimitsMIN": 0,
+      "setLimitsMAX": 100,
+      "KP": 10,
+      "KI": 0.02,
+      "KD": 8
     },
     {
       "global": 0,
@@ -75,11 +78,11 @@
   ],
   "about": {
     "authorName": "AVAKS",
-    "authorContact": "https://t.me/@avaks_dev",
+    "authorContact": "https://t.me/@avaks",
     "authorGit": "https://github.com/avaksru",
     "specialThanks": "@Serghei63 за работу PID с обычным реле, Serg  помощь в тестировании и устранении ошибок",
     "moduleName": "Thermostat",
-    "moduleVersion": "1",
+    "moduleVersion": "3",
     "usedRam": {
       "esp32_4mb": 15,
       "esp8266_4mb": 15
@@ -129,10 +132,24 @@
         "params": [
           "thermostat.KD(1) - задает значение коэффициента"
         ]
+      },
+      {
+        "name": "setLimitsMIN / setLimitsMAX",
+        "descr": " лимит выходной величины (например для ШИМ ставим 0-255).",
+        "params": [
+          "thermostat.setLimitsMIN(1) - задает минимальное значение PID"
+        ]
+      },
+      {
+        "name": "setDirection",
+        "descr": "направление регулирования: NORMAL (0) или REVERSE (1).",
+        "params": [
+          "thermostat.setDirection(1) - задает реверсное регулирование"
+        ]
       }
     ]
   },
-  "defActive": false,
+  "defActive": true,
   "usedLibs": {
     "esp32*": [],
     "esp82*": []

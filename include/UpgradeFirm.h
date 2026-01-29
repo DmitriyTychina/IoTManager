@@ -3,7 +3,7 @@
 // #include "Upgrade.h"
 #ifdef ESP8266
 // #include "ESP8266.h"
-#else
+#elif ESP32
 #include <HTTPUpdate.h>
 #endif
 
@@ -22,7 +22,7 @@ extern bool upgradeFS(String path);
 extern bool upgradeBuild(String path);
 extern void restartEsp();
 
-extern const String getBinPath(String file);
+extern const String getBinPath();
 extern void putUserDataToRam();
 extern void saveUserDataToFlash();
 extern void saveUpdeteStatus(String key, int val);

@@ -42,8 +42,7 @@ public:
                 HTTPClient http;
 
 #if defined ESP8266
-                WiFiClient client;
-                if (!http.begin(client, _host, 80, _url))
+                if (!http.begin(_host, 80, _url))
                 {
                     //  Serial.println("connection failed");
                     SerialPrint("I", F("NextionUpdate"), "connection failed  ");
@@ -119,13 +118,7 @@ public:
         int contentLength = http.getSize();
         SerialPrint("I", F("NextionUpdate"), "File received. Update Nextion...   ");
         bool result;
-        #ifdef ESP8266
-        ESPNexUpload nextion(115200, -1, _NEXT_RX, _NEXT_TX);
-        #elif defined(esp32c3m_4mb) || defined(esp32s2_4mb)
-        ESPNexUpload nextion(115200, 1, _NEXT_RX, _NEXT_TX);
-        #else
-        ESPNexUpload nextion(115200, 2, _NEXT_RX, _NEXT_TX);
-        #endif
+        ESPNexUpload nextion(115200, _NEXT_RX, _NEXT_TX);
         nextion.setUpdateProgressCallback([]()
                                           { SerialPrint("I", F("NextionUpdate"), "...   "); });
 

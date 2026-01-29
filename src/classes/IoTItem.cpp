@@ -178,7 +178,7 @@ void IoTItem::checkIntFromNet() {
     if (_intFromNet >= 0) {
         // если время жизни истекло, то удаляем элемент чуть позже на следующем такте loop
         // если это было уведомление не об ошибке или начале работы, то сообщаем, что сетевое событие давно не приходило
-        if (_intFromNet == 0 && _id.indexOf("onError") == -1 && _id.indexOf("onStart") == -1 && _id.indexOf("onInit") == -1) {
+        if (_intFromNet == 0 && _id.indexOf("onError") == -1 && _id.indexOf("onStart") == -1 && _id.indexOf("onInit") == -1 && _id.indexOf("onWifi") == -1) {
             SerialPrint("E", _id, "The new data did not come from the network. The level of trust is low.", _id);
         }
         _intFromNet--;
@@ -238,9 +238,12 @@ IoTGpio* IoTItem::getGpioDriver() {
     return nullptr;
 }
 
+#ifdef mod_RtcDriver
 IoTItem* IoTItem::getRtcDriver() {
     return nullptr;
 }
+#endif
+
 /*
 IoTItem* IoTItem::getCAMDriver() {
     return nullptr;
@@ -258,10 +261,20 @@ IoTBench *IoTItem::getBenchmarkLoad()
 {
     return nullptr;
 }
+IoTDiscovery *IoTItem::getHOMEdDiscovery()
+{
+    return nullptr;
+}
+IoTDiscovery *IoTItem::getHADiscovery()
+{
+    return nullptr;
+}
+#ifdef mod_RtcDriver
 unsigned long IoTItem::getRtcUnixTime()
 {
     return 0;
 }
+#endif
 
 // сетевое общение====================================================================================================================================
 
@@ -281,7 +294,7 @@ unsigned long IoTItem::getRtcUnixTime()
 
 //=========================================================================================================================================
 
-IoTItem* myIoTItem;
+// IoTItem* myIoTItem; // экономим память, используется в одном месте
 
 // поиск элемента модуля в существующей конфигурации
 IoTItem* findIoTItem(const String& name) {

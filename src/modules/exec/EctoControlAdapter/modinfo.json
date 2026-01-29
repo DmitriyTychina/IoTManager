@@ -1,0 +1,208 @@
+{
+    "menuSection": "executive_devices",
+    "configItem": [
+        {
+            "global": 0,
+            "name": "ectoCtrlAdapter",
+            "type": "Reading",
+            "subtype": "ecAdapter",
+            "id": "ecto",
+            "widget": "anydataTmp",
+            "page": "Котёл",
+            "descr": "Адаптер",
+            "int": 60,
+            "addr": 240,
+            "RX": 18,
+            "TX": 19,
+            "DIR_PIN": 4,
+            "baud": 19200,
+            "protocol": "SERIAL_8N1",
+            "debug": 1
+        }
+    ],
+    "about": {
+        "authorName": "Mikhail Bubnov",
+        "authorContact": "https://t.me/Mit4bmw",
+        "authorGit": "https://github.com/Mit4el",
+        "specialThanks": "",
+        "moduleName": "EctoControlAdapter",
+        "moduleVersion": "1.0",
+        "usedRam": {
+            "esp32_4mb": 15,
+            "esp8266_4mb": 15
+        },
+        "subTypes": [
+            "ecAdapter"
+        ],
+        "title": "EctoControlAdapter",
+        "moduleDesc": "Управление отопительным котлом через адаптер EctoControl по протоколам OpenTherm, eBUS, Navien. Посредством Modbus RTU. Разъем 4P4C: 1-Желтый(красный)+12V; 2-Белый-GND; 3-Зелёный-A; 4-Коричневый(Синий)-B",
+        "propInfo": {
+            "addr": "Адрес slave, что бы узнать адрес - в конфиге адрес 0 и смотреть лог (требуется проверка)",
+            "int": "Количество секунд между опросами датчика.",
+            "RX": "Пин RX",
+            "TX": "Пин TX",
+            "DIR_PIN": "connect DR, RE pin of MAX485 to gpio, указать 0 если не нужен",
+            "baud": "скорость Uart",
+            "protocol": "Протокол Uart: SERIAL_8N1 или SERIAL_8N2",
+            "debug": "0 - отключить дебаг, 1 - включить вывод дебага, 2 - лог комманд, 3 - вывод modbus"
+        },
+        "funcInfo": [
+            {
+                "name": "getModelVersion",
+                "descr": "Запрос модели и версии адаптера и бойлера",
+                "params": []
+            },
+            {
+                "name": "getBoilerInfo",
+                "descr": "Запрос состояния связи с котлом, типа адаптера и код перезагрузки адаптера",
+                "params": []
+            },
+            {
+                "name": "getBoilerStatus",
+                "descr": "Запрос состояния контуров котла и горелки",
+                "params": []
+            },
+            {
+                "name": "getCodeError",
+                "descr": "Код ошибки котла (основной). Зависит от марки и модели котла.",
+                "params": []
+            },
+            {
+                "name": "getCodeErrorExt",
+                "descr": "Код ошибки котла (дополнительный). Зависит от марки и модели котла.",
+                "params": []
+            },
+            {
+                "name": "getFlagErrorOT",
+                "descr": "Стандартные флаги ошибок котла (только для котлов с интерфейсом OpenTherm)",
+                "params": []
+            },
+            {
+                "name": "getFlowRate",
+                "descr": "Текущий расхода ГВС",
+                "params": []
+            },
+            {
+                "name": "getMaxSetCH",
+                "descr": "Верхний предел уставки теплоносителя",
+                "params": []
+            },
+            {
+                "name": "getMaxSetDHW",
+                "descr": "Верхний предел уставки ГВС",
+                "params": []
+            },
+            {
+                "name": "getMinSetCH",
+                "descr": "Нижний предел уставки теплоносителя",
+                "params": []
+            },
+            {
+                "name": "getMinSetDHW",
+                "descr": "Нижний предел уставки ГВС",
+                "params": []
+            },
+            {
+                "name": "getModLevel",
+                "descr": "Текущая модуляция горелки",
+                "params": []
+            },
+            {
+                "name": "getPressure",
+                "descr": "Текущее Давление в контуре",
+                "params": []
+            },
+            {
+                "name": "getTempCH",
+                "descr": "Текущая температура теплоносителя",
+                "params": []
+            },
+            {
+                "name": "getTempDHW",
+                "descr": "Текущая температура ГВС",
+                "params": []
+            },
+            {
+                "name": "getTempOutside",
+                "descr": "Температура уличного датчика котла",
+                "params": []
+            },
+            {
+                "name": "setTypeConnect",
+                "descr": "Установить тип внешних подключений (сохраняется в EPROM Адаптера): 0 - адаптер подключен к котлу, 1 - котел подключен к внешнему устройству (панель или перемычка)",
+                "params": ["Тип подключения"]
+            },
+            {
+                "name": "setTCH",
+                "descr": "Уставка температуры теплоносителя (сохраняется в EPROM Адаптера)",
+                "params": ["температура передаётся до десятых градуса"]
+            },
+            {
+                "name": "setTDHW",
+                "descr": "Уставка температуры ГВС (сохраняется в EPROM Адаптера)",
+                "params": ["температура передаётся до десятых градуса"]
+            },
+            {
+                "name": "setTCHFaultConn",
+                "descr": "Уставка теплоносителя в аварийном режиме (сохраняется в EPROM Адаптера). Будет передана котлу в случае отсутствия связи адаптера с управляющим устройством",
+                "params": ["температура передаётся до десятых градуса"]
+            },
+            {
+                "name": "setMinCH",
+                "descr": "Задать нижний предел уставки теплоносителя",
+                "params": ["температура от 0 до 100"]
+            },
+            {
+                "name": "setMaxCH",
+                "descr": "Задать верхний предел уставки теплоносителя",
+                "params": ["температура от 0 до 100"]
+            },
+            {
+                "name": "setMinDHW",
+                "descr": "Задать нижний предел уставки ГВС",
+                "params": ["температура от 0 до 100"]
+            },
+            {
+                "name": "setMaxDHW",
+                "descr": "Задать верхний предел уставки ГВС",
+                "params": ["температура от 0 до 100"]
+            },
+
+            {
+                "name": "setMaxModLevel",
+                "descr": "Уставка максимальной модуляции горелки (сохраняется в EPROM Адаптера)",
+                "params": ["уровень модуляции 0-100%"]
+            },
+            {
+                "name": "setStatusCH",
+                "descr": "Установить режим (Включить) контура отопления; 0 - отключен, 1 - включен",
+                "params": ["вкл/откл отопления"]
+            },
+            {
+                "name": "setStatusDHW",
+                "descr": "Установить режим (Включить) ГВС; 0 - отключен, 1 - включен",
+                "params": ["вкл/откл ГВС"]
+            },
+            {
+                "name": "setStatusCH2",
+                "descr": "Установить режим (Включить) второго контура отопления; 0 - отключен, 1 - включен. используется только некоторыми котлами с интерфейсом OpenTherm и может отвечать за активацию бойлера косвенного нагрева или встроенной функции ГВС",
+                "params": ["вкл/откл второго контура отопления"]
+            },
+            {
+                "name": "lockOutReset",
+                "descr": "Сброс ошибок котла",
+                "params": []
+            },
+            {
+                "name": "rebootAdapter",
+                "descr": "Перезагрузка адаптера",
+                "params": []
+            }
+        ]
+    },
+    "defActive": false,
+    "usedLibs": {
+        "esp32*": [],
+        "esp32c3m_4mb": ["exclude"]
+    }
+}

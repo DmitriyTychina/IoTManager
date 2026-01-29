@@ -45,7 +45,7 @@ class Smi2_m : public IoTItem {
         //  Пакет,SLAVE адрес,функция модбус,адрес регистра,количесво запрашиваемых регистров,локальный адрес регистра.
         //  Пакет,SLAVE адрес,функция модбус,адрес регистра,данные,локальный адрес регистра.
         smi->modbus_construct(&packets[PACKET1], 1, PRESET_MULTIPLE_REGISTERS, 4200, 1, 0);
-        smi->modbus_configure(&Serial, _baud, SERIAL_8N1, _rx, _tx, _pin, packets, TOTAL_NO_OF_PACKETS, regs);
+        smi->modbus_configure((HardwareSerial*)&Serial, _baud, SERIAL_8N1, _rx, _tx, _pin, &packets[PACKET1], (uint)TOTAL_NO_OF_PACKETS, &regs[0]);
 
         jsonRead(parameters, "id2show", _show);
     }

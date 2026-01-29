@@ -49,6 +49,12 @@
     },
     "defActive": false,
     "usedLibs": {
+        "esp32c6_4mb": [
+            "exclude"
+        ],
+        "esp32c6_8mb": [
+            "exclude"
+        ],
         "esp32*": []
     }
 }

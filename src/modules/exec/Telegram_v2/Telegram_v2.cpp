@@ -11,6 +11,7 @@
 #ifdef ESP8266
 #define FB_DYNAMIC
 #endif
+
 #include <FastBot.h>
 #include <map>
 
@@ -94,8 +95,8 @@ public:
             _myBot->tick();
             if (fl_rollback)
             {
-                _myBot->tickManual(); // Чтобы отметить сообщение прочитанным
 #ifdef ESP32
+                _myBot->tickManual(); // Чтобы отметить сообщение прочитанным
                 if (Update.rollBack())
                 {
                     SerialPrint("I", F("Update"), F("Откат OTA успешно выполнен"));
@@ -107,6 +108,9 @@ public:
                     SerialPrint("E", F("Update"), F("Откат OTA не выполнен!"));
                     _myBot->sendMessage("Откат OTA не выполнен!", _chatID);
                 }
+#else
+                SerialPrint("I", F("Update"), F("Откат OTA только в ESP32"));
+                _myBot->sendMessage("Откат OTA поддерживается только в ESP32", _chatID);
 #endif
             }
             // была попытка OTA обновления. Обновляемся после ответа серверу!
@@ -686,7 +690,7 @@ public:
             {
                 _myBot->sendMessage("ID: " + chipId, _chatID);
                 _myBot->sendMessage("chatID: " + _chatID, _chatID);
-                _myBot->sendMessage("Command: /help - this text \n /all - inline menu get all values \n /allMenu - bottom menu get all values \n /menu - bottom USER menu from scenario \n /get_id - get value by ID \n /set_id_value - set value in ID \n /file_name_type - take file from esp \n /file_type - support file type \n /reboot - reboot esp \n\n send file and write download - \"download\" file to esp \n\n send *.tft file - flash Nextion \n\n send firmware.bin or littltfs.bin - firmware ESP ", _chatID);
+                _myBot->sendMessage("Command: /help - this text \n /all - inline menu get all values \n /allMenu - bottom menu get all values \n /menu - bottom USER menu from scenario \n /get_id - get value by ID \n /set_id_value - set value in ID \n /file_/path/name_type - take file from esp \n /file_type - support file type \n /reboot - reboot esp \n\n send file and write download - \"download\" file to esp \n\n send *.tft file - flash Nextion \n\n send firmware.bin or littltfs.bin - firmware ESP ", _chatID);
             }
         }
         else if (msg.text.indexOf("/reboot") != -1)

@@ -3,7 +3,13 @@
 #include "classes/IoTDB.h"
 #include "utils/Statistic.h"
 #include "classes/IoTBench.h"
+#ifndef LIBRETINY
 #include <Wire.h>
+#endif
+#include "DebugTrace.h"
+#if defined(ESP32)
+#include <esp_task_wdt.h>
+#endif
 #if defined(esp32s2_4mb) || defined(esp32s3_16mb)
 #include <USB.h>
 #endif
@@ -46,7 +52,7 @@ void elementsLoop() {
 #define COUNTER_ERRORMARKER 4       // количество шагов счетчика
 #define STEPPER_ERRORMARKER 100000  // размер шага счетчика интервала доверия выполнения блока кода мкс
 
-#if defined(esp32_4mb) || defined(esp32_16mb) || defined(esp32cam_4mb)
+#if defined(esp32_4mb) || defined(esp32_4mb3f) || defined(esp32_16mb) || defined(esp32cam_4mb)
 
 static int IRAM_ATTR initErrorMarkerId = 0;  // ИД маркера
 static int IRAM_ATTR errorMarkerId = 0;
@@ -65,14 +71,14 @@ void IRAM_ATTR onTimer() {
 #endif
 
 void initErrorMarker(int id) {
-#if defined(esp32_4mb) || defined(esp32_16mb) || defined(esp32cam_4mb)
+#if defined(esp32_4mb) || defined(esp32_4mb3f) || defined(esp32_16mb) || defined(esp32cam_4mb)
     initErrorMarkerId = id;
     errorMarkerCounter = 0;
 #endif
 }
 
 void stopErrorMarker(int id) {
-#if defined(esp32_4mb) || defined(esp32_16mb) || defined(esp32cam_4mb)
+#if defined(esp32_4mb) || defined(esp32_4mb3f) || defined(esp32_16mb) || defined(esp32cam_4mb)
     errorMarkerCounter = -1;
     if (errorMarkerId)
         SerialPrint("I", "WARNING!", "A lazy (freezing loop more than " + (String)(COUNTER_ERRORMARKER * STEPPER_ERRORMARKER / 1000) + " ms) section has been found! With ID=" + (String)errorMarkerId);
@@ -85,7 +91,7 @@ void setup() {
 #if defined(esp32s2_4mb) || defined(esp32s3_16mb)
     USB.begin();
 #endif
-#if defined(esp32_4mb) || defined(esp32_16mb) || defined(esp32cam_4mb)
+#if defined(esp32_4mb) || defined(esp32_4mb3f) || defined(esp32_16mb) || defined(esp32cam_4mb)
     My_timer = timerBegin(0, 80, true);
     timerAttachInterrupt(My_timer, &onTimer, true);
     timerAlarmWrite(My_timer, STEPPER_ERRORMARKER, true);
@@ -97,6 +103,14 @@ void setup() {
 
     Serial.begin(115200);
     Serial.flush();
+    //----------- Отладка EXCEPTION (функции с заглушками для отключения) ---------
+#if defined(RESTART_DEBUG_INFO)  
+    //Привязка коллбэк функции для вызова при перезагрузке
+    esp_register_shutdown_handler(debugUpdate);
+#endif // RESTART_DEBUG_INFO
+    // Печать или оправка отладочной информации
+    printDebugTrace();
+    startWatchDog();
     Serial.println();
     Serial.println(F("--------------started----------------"));
 
@@ -117,6 +131,8 @@ void setup() {
     // получение chip id
     setChipId();
 
+    verifyFirmware();
+
     // синхронизация глобальных переменных с flash
     globalVarsSync();
 
@@ -130,17 +146,43 @@ void setup() {
     jsonRead(settingsFlashJson, "pinSDA", pinSDA, false);
     jsonRead(settingsFlashJson, "i2cFreq", i2cFreq, false);
     jsonRead(settingsFlashJson, "i2c", i2c, false);
+    //jsonWriteStr_(ssidListHeapJson, "0", "Scaning...");
     if (i2c != 0) {
 #ifdef ESP32
         Wire.end();
         Wire.begin(pinSDA, pinSCL, (uint32_t)i2cFreq);
-#else
+#elif defined(ESP8266)
         Wire.begin(pinSDA, pinSCL);
         Wire.setClock(i2cFreq);
 #endif
         SerialPrint("i", "i2c", F("i2c pins overriding done"));
     }
-
+#if defined(RESTART_DEBUG_INFO)
+  esp_reset_reason_t esp_reason = esp_reset_reason();
+  if (esp_reason == ESP_RST_UNKNOWN || esp_reason == ESP_RST_POWERON) 
+    bootloop_panic_count = 0;
+/*   else if (bootloop_panic_count == 3 || bootloop_panic_count == 0 ) bootloop_panic_count = 1;
+  else if (bootloop_panic_count == 2) bootloop_panic_count = 3;
+  else if (bootloop_panic_count == 1) bootloop_panic_count = 2;
+  else bootloop_panic_count = 0; */
+     Serial.println("bootloop_panic_count     " + String(bootloop_panic_count));
+    if (bootloop_panic_count >3 )
+    {
+        //resetSettingsFlashByPanic();
+        bootloop_panic_count = 0;
+    }      
+    if (bootloop_panic_count >= 3)
+    {
+        resetSettingsFlashByPanic();
+        bootloop_panic_count = -1;
+    } 
+    if (bootloop_panic_count == -1)
+    {
+        SerialPrint("E", "CORE", F("CONFIG and SCENARIO reset !!!"));
+        bootloop_panic_count = 0;
+        ESP.restart();
+    } 
+#endif // RESTART_DEBUG_INFO
     // настраиваем микроконтроллер
     configure("/config.json");
 
@@ -159,8 +201,11 @@ void setup() {
     initErrorMarker(SETUPINET_ERRORMARKER);
 
 // подключаемся к роутеру
+#ifndef WIFI_ASYNC
     routerConnect();
-
+#else
+    WiFiUtilsItit();
+#endif
 // инициализация асинхронного веб сервера и веб сокетов
 #ifdef ASYNC_WEB_SERVER
     asyncWebServerInit();
@@ -179,6 +224,10 @@ void setup() {
 
     stopErrorMarker(SETUPINET_ERRORMARKER);
 
+    // bool postMsgTelegram;
+    // if (!jsonRead(settingsFlashJson, "debugTraceMsgTlgrm", postMsgTelegram, false)) postMsgTelegram = 1;
+    // sendDebugTraceAndFreeMemory(postMsgTelegram);
+    
     initErrorMarker(SETUPLAST_ERRORMARKER);
 
     elementsLoop();
@@ -188,11 +237,15 @@ void setup() {
     // инициализация задач переодического выполнения
     periodicTasksInit();
 
+#if !defined(WIFI_ASYNC)
+    // Перенесли после получения IP, так как теперь работа WiFi асинхронная
     // запуск работы udp
     addThisDeviceToList();
+    #ifdef UDP_ENABLED
     udpListningInit();
     udpBroadcastInit();
-
+    #endif
+#endif    
     // создаем событие завершения конфигурирования для возможности выполнения блока кода при загрузке
     createItemFromNet("onStart", "1", 1);
 
@@ -201,6 +254,13 @@ void setup() {
     // настраиваем секундные обслуживания системы
     ts.add(
         TIMES, 1000, [&](void *) {
+            // сброс WDT
+#if defined(ESP32)
+            //SerialPrint("i", "Task", "reset wdt");
+             #if !defined(esp32c6_4mb) && !defined(esp32c6_8mb) //TODO esp32-c6 переписать esp_task_wdt_init
+            esp_task_wdt_reset();
+            #endif
+#endif
             // сохраняем значения IoTItems в файл каждую секунду, если были изменения (установлены маркеры на сохранение)
             if (needSaveValues) {
                 syncValuesFlashJson();
@@ -216,14 +276,50 @@ void setup() {
         },
         nullptr, true);
 
+    // ловим пинги от WS (2сек) и дисконнектим если их нет 3 раза 3сек*2прохода = 6сек
+    ts.add(
+        PiWS, 3000, [&](void*) {
+            if (isNetworkActive()) {
+                for (size_t i = 0; i < WEBSOCKETS_CLIENT_MAX; i++)
+                {
+                    if (ws_clients[i] == 0) {
+                        disconnectWSClient(i);
+                        ws_clients[i]=-1;
+                    }
+                    if (ws_clients[i] > 0) { 
+                        ws_clients[i]=0;
+                    }
+
+                }
+            }
+        },
+        nullptr, true);
+
     // test
-    Serial.println("-------test start--------");
-    Serial.println("--------test end---------");
+    //Serial.println("-------test start--------");
+    //Serial.println("--------test end---------");
 
     stopErrorMarker(SETUPLAST_ERRORMARKER);
+#if defined(RESTART_DEBUG_INFO)    
+    bootloop_panic_count = 0;
+#endif // RESTART_DEBUG_INFO
 }
 
 void loop() {
+#if defined(WIFI_ASYNC)
+    static bool udpFirstFlag = true;
+    // Перенесли после получения IP, так как теперь работа WiFi асинхронная
+    if (isNetworkActive() && udpFirstFlag) {
+        udpFirstFlag = false;
+        // запуск работы udp
+        addThisDeviceToList();
+        #ifdef UDP_ENABLED
+        udpListningInit();
+        udpBroadcastInit();
+        #endif
+    }
+#endif    
+
 #ifdef LOOP_DEBUG
     unsigned long st = millis();
 #endif

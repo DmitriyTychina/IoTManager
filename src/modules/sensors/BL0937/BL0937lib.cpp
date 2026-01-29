@@ -177,16 +177,21 @@ void BL0937::setResistors(double current, double voltage_upstream, double voltag
         _calculateDefaultMultipliers();
     }
 }
-
+#if defined LIBRETINY
+void /* ICACHE_RAM_ATTR */ BL0937::cf_interrupt() {
+#else
 void ICACHE_RAM_ATTR BL0937::cf_interrupt() {
+#endif
     unsigned long now = micros();
     _power_pulse_width = now - _last_cf_interrupt;
     _last_cf_interrupt = now;
     _pulse_count++;
 }
-
+#if defined LIBRETINY
+void /* ICACHE_RAM_ATTR */ BL0937::cf1_interrupt() {
+#else    
 void ICACHE_RAM_ATTR BL0937::cf1_interrupt() {
-
+#endif
     unsigned long now = micros();
 
     if ((now - _first_cf1_interrupt) > _pulse_timeout) {

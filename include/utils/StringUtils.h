@@ -12,6 +12,8 @@ uint8_t hexStringToUint8(const String& hex);
 
 uint16_t hexStringToUint16(const String& hex);
 
+uint32_t hexStringToUint32(const String& hex);
+
 String selectToMarkerLast(String str, const String& found);
 
 String selectToMarker(String str, const String& found);
@@ -40,7 +42,7 @@ boolean isDigitDotCommaStr(const String& str);
 
 String prettyBytes(size_t size);
 
-String uint64ToString(uint64_t input, uint8_t base = 10);
+String uint64ToStringIoTM(uint64_t input, uint8_t base = 10);
 
 void cleanString(String& str);
 
@@ -49,3 +51,5 @@ unsigned char ChartoHex(char ch);
 std::vector<String> splitStr(const String& str, const String& delimiter);
 
 bool strInVector(const String& str, const std::vector<String>& vec);
+
+String getUtf8CharByIndex(const String& utf8str, int index);
