@@ -119,6 +119,16 @@ def module_supports_env(used_libs, env):
     return False
 
 
+def env_to_base_from_module(used_libs, env):
+    """Return the usedLibs pattern that matches env (base key for about.size). From module info, no hardcode."""
+    if not used_libs:
+        return env
+    for pattern in used_libs:
+        if fnmatch.fnmatch(env, pattern):
+            return pattern
+    return env
+
+
 def build_profile_with_modules(prof_template, active_paths, env):
     """Return a new profile dict with only given module paths active for the given env."""
     prof = json.loads(json.dumps(prof_template))
@@ -173,6 +183,7 @@ def main():
     ap.add_argument("--profile", default="myProfile.json", help="Profile to use as template")
     ap.add_argument("--dry-run", action="store_true", help="Only list modules and envs, do not build")
     ap.add_argument("--no-color", action="store_true", help="Disable colored output")
+    ap.add_argument("--limit", type=int, default=None, metavar="N", help="Measure only first N modules per env (e.g. --limit 5)")
     args = ap.parse_args()
     if args.no_color:
         USE_COLOR = False
@@ -189,6 +200,8 @@ def main():
     modules = collect_modules()
     baseline_paths = set(BASELINE_MODULE_PATHS)
     modules_by_env = {e: [m for m in modules if module_supports_env(m["usedLibs"], e)] for e in envs}
+    if args.limit is not None:
+        modules_by_env = {e: mods[: args.limit] for e, mods in modules_by_env.items()}
 
     if args.dry_run:
         log_section("Dry run — modules per env")
@@ -204,10 +217,12 @@ def main():
     log_step(f"Profile: {profile_path.name}")
     log_step(f"Envs: {', '.join(envs)}")
     total_modules = sum(len(modules_by_env[e]) for e in envs)
-    log_step(f"Total builds: baseline×{len(envs)} + {total_modules} module builds")
+    limit_note = f" (first {args.limit} per env)" if args.limit is not None else ""
+    log_step(f"Total builds: baseline×{len(envs)} + {total_modules} module builds{limit_note}")
 
     platformio_ini = PROJECT_ROOT / "platformio.ini"
     platformio_backup = PROJECT_ROOT / "platformio.ini.ram_measure.bak"
+    original_env = prof_template["projectProp"]["platformio"].get("default_envs", envs[0] if envs else "esp32_4mb")
     shutil.copy(platformio_ini, platformio_backup)
 
     try:
@@ -255,8 +270,9 @@ def main():
                     continue
                 delta = size - baseline_size.get(env, 0)
                 size_kb = max(0, round(delta / 1024))
-                results[mod["modinfo_path"]][env] = size_kb
-                log_ok(f"[{idx}/{total_modules}] {mod['moduleName']}: +{delta:,} B → {size_kb} KB")
+                base = env_to_base_from_module(mod["usedLibs"], env)
+                results[mod["modinfo_path"]][base] = size_kb
+                log_ok(f"[{idx}/{total_modules}] {mod['moduleName']} ({base}): +{delta:,} B → {size_kb} KB")
 
         updated = 0
         log_section("Updating modinfo.json")
@@ -284,6 +300,12 @@ def main():
     finally:
         shutil.copy(platformio_backup, platformio_ini)
         platformio_backup.unlink(missing_ok=True)
+        # Restore project state: run PrepareProject with original profile so all modules are as before
+        log_section("Restoring project state")
+        if run_prepare_project(profile_path, original_env):
+            log_ok(f"PrepareProject applied: {profile_path.name} (env={original_env})")
+        else:
+            log_fail(f"PrepareProject failed — restore manually: python PrepareProject.py -p {profile_path.name} -b {original_env}")
     print()
 
 
