@@ -1,2 +1,5 @@
 .pio
 .vscode
+KODA.md
+*.docx
+.gitignore
