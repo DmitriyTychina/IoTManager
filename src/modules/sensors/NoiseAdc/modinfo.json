@@ -1,0 +1,70 @@
+{
+    "menuSection": "sensors",
+    "configItem": [
+        {
+            "global": 0,
+            "name": "Анализ шума ADC",
+            "type": "Reading",
+            "subtype": "NoiseAdc",
+            "id": "noise",
+            "widget": "anydataDef",
+            "page": "Сенсоры",
+            "descr": "NoiseAdc",
+            "map": "",
+            "plus": 0,
+            "multiply": 1,
+            "round": 0,
+            "pin": 0,
+            "int": 10,
+            "steps": 100,
+            "parameter": "peakToPeak",
+            "debug": 1,
+            "refVoltage": 0.02,           
+            "btn-setRefVoltage": "nil"
+        }
+    ],
+    "about": {
+        "authorName": "Alex",
+        "authorContact": "https://t.me/cmche",
+        "authorGit": "https://github.com/CHE77/IoTManager-Modules",
+        "exampleURL": "https://iotmanager.org/wiki",
+        "specialThanks": "",
+        "moduleName": "NoiseAdc",
+        "moduleVersion": "1.0",
+        "usedRam": {
+            "esp32_4mb": 10,
+            "esp8266_4mb": 3
+        },
+        "title": "Анализ шума ADC",
+        "moduleDesc": "Позволяет получить различные характеристики сигнала на аналоговом GPIO. В каждый промежуток времени int делает avgSteps измерений, орпеделяет характоистики ряда и выводит один параметров.",
+        "license": "Cooperative Non-Violent Public License (CNPL)",
+        "propInfo": {
+            "pin": "Аналоговый GPIO номер, к которому подключен датчик.",
+            "int": "Длительность опроса датчика и вывод показаний",
+            "steps": "Количество считываний в период опроса. Минимальное - 10. Максимальное - 200(esp8266), 1000(esp32). По факту оно будет несколько меньше.",
+            "parameter": {
+                "mean": "Среднее",
+                "minVal": "Минимальное значение ADC",
+                "maxVal": "Максимальное значение ADC",
+                "RMS": "Среднеквадратичное отклонение (от среднего)",
+                "median": "Медиана (от среднего)",
+                "minValMean": "Минимальное значение (от среднего)",
+                "maxValMean": "Максимальное значение (от среднего)",
+                "peak": "Абсолютный пик (от среднего)",
+                "peakToPeak": "Размах сигнала относительно среднего (AC) в отсчётах ADC",
+                "peakVoltage": "Максимальная амплитуда колебаний сигнала",
+                "db": "Приближённая оценка уровня звука в децибелах "
+            },
+   
+            "debug": "Вывод отладочной информации",
+            "refVoltage": "Базовый уровень для сигнала (в тишине) в Вольтах",           
+            "btn-setRefVoltage": "Замер базового уровня в тишине и вывод его в сериал"
+        }
+    },
+    "defActive": false,
+    "usedLibs": {
+        "esp32*": [],
+        "esp82*": [],
+        "bk72*": []
+    }
+}

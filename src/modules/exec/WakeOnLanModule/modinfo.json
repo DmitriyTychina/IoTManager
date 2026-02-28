@@ -1,0 +1,48 @@
+{
+    "menuSection": "executive_devices",
+    "configItem": [
+        {
+            "global": 0,
+            "name": "WakeOnLan",
+            "type": "Reading",
+            "subtype": "WakeOnLanModule",
+            "id": "wakeLan",
+            "widget": "toggle",
+            "page": "Кнопки",
+            "descr": "Wake PC",
+            "MAC": "A8:A3:A5:A5:52:42",
+            "SecureOn": "",
+            "port": 9,
+            "repeats": 3
+        }
+    ],
+    "about": {
+        "authorName": "Alex",
+        "authorContact": "https://t.me/cmche",
+        "authorGit": "https://github.com/CHE77/IoTManager-Modules",
+        "specialThanks": "",
+        "moduleName": "WakeOnLanModule",
+        "moduleVersion": "1.0",
+        "usedRam": {
+            "esp32_4mb": 15,
+            "esp8266_4mb": 15
+        },
+        "title": "WakeOnLan",
+        "moduleDesc": "Пробуждение компютера по сети",
+        "license": "Cooperative Non-Violent Public License (CNPL)",
+        "propInfo": {
+            "MAC": "MAC адрес сетевой карты",
+            "SecureOn": "Секретный ключ в таком же виде как и MAC адрес. (необязательно)",
+            "port": "порт - по умолчнияю - 9",
+            "repeats": "Количество повторов команд пробужния - для надежности"
+        }
+    },
+    "defActive": false,
+    "usedLibs": {
+        "esp32*": ["a7md0/WakeOnLan @ ^1.1.7"],
+        "esp82*": ["a7md0/WakeOnLan @ ^1.1.7"],
+        "bk72*": ["a7md0/WakeOnLan @ ^1.1.7"]
+    }
+}
+
+
