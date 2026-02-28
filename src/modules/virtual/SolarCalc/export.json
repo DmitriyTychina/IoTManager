@@ -1,0 +1,455 @@
+{
+    "mark": "iotm",
+    "config": [
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "VButton",
+            "id": "CalculateBtn",
+            "needSave": 0,
+            "widget": "toggle",
+            "page": "Sun",
+            "descr": "Calculate",
+            "int": "0",
+            "val": "0"
+        },
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "Variable",
+            "id": "RiseTimeToday",
+            "needSave": 0,
+            "widget": "anydataTm",
+            "page": "Sun rise",
+            "descr": "   sunrise today",
+            "int": "0",
+            "val": "0.0",
+            "map": "1024,1024,1,100",
+            "plus": 0,
+            "multiply": 1,
+            "round": 0,
+            "moduleName": "Variable"
+        },
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "Variable",
+            "id": "azimuth",
+            "needSave": 0,
+            "widget": "anydataСorner",
+            "page": "horizontal coordinates",
+            "descr": " azimuth",
+            "int": "0",
+            "val": "0.0",
+            "map": "",
+            "plus": 0,
+            "multiply": 1,
+            "round": "1",
+            "moduleName": "Variable"
+        },
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "Variable",
+            "id": "elevationTransit",
+            "needSave": 0,
+            "widget": "anydataСorner",
+            "page": "Sun transit",
+            "descr": "elevation at Transit",
+            "int": "0",
+            "val": "0.0",
+            "map": "",
+            "plus": 0,
+            "multiply": 1,
+            "round": "1",
+            "moduleName": "Variable"
+        },
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "Variable",
+            "id": "elevation",
+            "needSave": 0,
+            "widget": "anydataСorner",
+            "page": "horizontal coordinates",
+            "descr": " elevation",
+            "int": "0",
+            "val": "0.0",
+            "map": "",
+            "plus": 0,
+            "multiply": 1,
+            "round": "1",
+            "moduleName": "Variable"
+        },
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "Variable",
+            "id": "SetTimeToday",
+            "needSave": 0,
+            "widget": "anydataTm",
+            "page": "Sun set",
+            "descr": "  sunset today",
+            "int": "0",
+            "val": "0.0",
+            "map": "1024,1024,1,100",
+            "plus": 0,
+            "multiply": 1,
+            "round": 0,
+            "moduleName": "Variable"
+        },
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "Variable",
+            "id": "TransitTimeToday",
+            "needSave": 0,
+            "widget": "anydataTm",
+            "page": "Sun transit",
+            "descr": "   transit today",
+            "int": "0",
+            "val": "0.0",
+            "map": "1024,1024,1,100",
+            "plus": 0,
+            "multiply": 1,
+            "round": 0,
+            "moduleName": "Variable"
+        },
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "Variable",
+            "id": "hourRiseToday",
+            "needSave": 0,
+            "widget": "anydataDef",
+            "page": "Sun rise",
+            "descr": "Sun rise UTC hours",
+            "int": "0",
+            "val": "0.0",
+            "map": "1024,1024,1,100",
+            "plus": 0,
+            "multiply": 1,
+            "round": 0,
+            "moduleName": "Variable"
+        },
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "Variable",
+            "id": "minuteRiseToday",
+            "needSave": 0,
+            "widget": "anydataDef",
+            "page": "Sun rise",
+            "descr": "Sun rise UTC minutes",
+            "int": "0",
+            "val": "0.0",
+            "map": "1024,1024,1,100",
+            "plus": 0,
+            "multiply": 1,
+            "round": 0,
+            "moduleName": "Variable"
+        },
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "Variable",
+            "id": "azimuthRise",
+            "needSave": 0,
+            "widget": "anydataСorner",
+            "page": "Sun rise",
+            "descr": "azimuth at sunrise",
+            "int": "0",
+            "val": "0.0",
+            "map": "",
+            "plus": 0,
+            "multiply": 1,
+            "round": "1",
+            "moduleName": "Variable"
+        },
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "Variable",
+            "id": "azimuthTransit",
+            "needSave": 0,
+            "widget": "anydataСorner",
+            "page": "Sun transit",
+            "descr": "azimuth at transit",
+            "int": "0",
+            "val": "0.0",
+            "map": "",
+            "plus": 0,
+            "multiply": 1,
+            "round": "1",
+            "moduleName": "Variable"
+        },
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "Variable",
+            "id": "azimuthSet",
+            "needSave": 0,
+            "widget": "anydataСorner",
+            "page": "Sun set",
+            "descr": "azimuth at sunset",
+            "int": "0",
+            "val": "0.0",
+            "map": "",
+            "plus": 0,
+            "multiply": 1,
+            "round": "1",
+            "moduleName": "Variable"
+        },
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "VButton",
+            "id": "isDayTime",
+            "needSave": 0,
+            "widget": "toggle",
+            "page": "Sun",
+            "descr": "is Day Time",
+            "int": "0",
+            "val": "0",
+            "moduleName": "VButton"
+        },
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "SolarCalculator",
+            "id": "Sun",
+            "widget": "anydataСorner",
+            "page": "by Interval",
+            "descr": "Azimuth",
+            "lat": "50.118",
+            "lon": "-005.478",
+            "parameter": "azimuth",
+            "int": "60",
+            "ticker": "1",
+            "debug": 1,
+            "moduleName": "SolarCalculator"
+        },
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "Variable",
+            "id": "sunArcFromTransit",
+            "needSave": 0,
+            "widget": "anydataСorner",
+            "page": "Sun transit",
+            "descr": "Sun Arc From Transit",
+            "int": "0",
+            "val": "0.0",
+            "map": "",
+            "plus": 0,
+            "multiply": 1,
+            "round": "1",
+            "moduleName": "Variable"
+        },
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "Variable",
+            "id": "jd",
+            "needSave": 0,
+            "widget": "anydataDef",
+            "page": "Raw astro data",
+            "descr": "jd",
+            "int": "0",
+            "val": "0.0",
+            "map": "",
+            "plus": 0,
+            "multiply": 1,
+            "round": "2",
+            "moduleName": "Variable"
+        },
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "Variable",
+            "id": "GMST",
+            "needSave": 0,
+            "widget": "anydataСorner",
+            "page": "Raw astro data",
+            "descr": "   GMST",
+            "int": "0",
+            "val": "0.0",
+            "map": "",
+            "plus": 0,
+            "multiply": 1,
+            "round": "1",
+            "moduleName": "Variable"
+        },
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "Variable",
+            "id": "LST",
+            "needSave": 0,
+            "widget": "anydataСorner",
+            "page": "Raw astro data",
+            "descr": "  LST",
+            "int": "0",
+            "val": "0.0",
+            "map": "",
+            "plus": 0,
+            "multiply": 1,
+            "round": "1",
+            "moduleName": "Variable"
+        },
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "Variable",
+            "id": "ra",
+            "needSave": 0,
+            "widget": "anydataСorner",
+            "page": "equatorial coordinates",
+            "descr": "ra",
+            "int": "0",
+            "val": "0.0",
+            "map": "",
+            "plus": 0,
+            "multiply": 1,
+            "round": "1",
+            "moduleName": "Variable"
+        },
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "Variable",
+            "id": "dec",
+            "needSave": 0,
+            "widget": "anydataСorner",
+            "page": "equatorial coordinates",
+            "descr": "dec",
+            "int": "0",
+            "val": "0.0",
+            "map": "",
+            "plus": 0,
+            "multiply": 1,
+            "round": "1",
+            "moduleName": "Variable"
+        },
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "Variable",
+            "id": "GHA",
+            "needSave": 0,
+            "widget": "anydataСorner",
+            "page": "Raw astro data",
+            "descr": " GHA",
+            "int": "0",
+            "val": "0.0",
+            "map": "",
+            "plus": 0,
+            "multiply": 1,
+            "round": "1",
+            "moduleName": "Variable"
+        },
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "Variable",
+            "id": "LHA",
+            "needSave": 0,
+            "widget": "anydataСorner",
+            "page": "Raw astro data",
+            "descr": "LHA",
+            "int": "0",
+            "val": "0.0",
+            "map": "",
+            "plus": 0,
+            "multiply": 1,
+            "round": "1",
+            "moduleName": "Variable"
+        },
+        {
+            "global": 0,
+            "type": "Writing",
+            "subtype": "Timer",
+            "id": "timerMinute",
+            "widget": "anydataDef",
+            "page": "Timers",
+            "descr": "Timer 1 minite",
+            "int": 1,
+            "countDown": "60",
+            "ticker": "0",
+            "repeat": 1,
+            "needSave": 0,
+            "moduleName": "Timer"
+        },
+        {
+            "global": 0,
+            "type": "Writing",
+            "subtype": "Timer",
+            "id": "timerDay",
+            "widget": "anydataDef",
+            "page": "Timers",
+            "descr": "Timer 1 Day",
+            "int": 1,
+            "countDown": "86400",
+            "ticker": "0",
+            "repeat": "1",
+            "needSave": 0,
+            "moduleName": "Timer"
+        },
+        {
+            "global": 0,
+            "type": "Writing",
+            "subtype": "Cron",
+            "id": "cronMidnight",
+            "widget": "anydataDef",
+            "page": "Timers",
+            "descr": "Cron midnight",
+            "int": 1,
+            "val": "1 0 0 * * *",
+            "formatNextAlarm": "%H:%M:%S",
+            "needSave": 0,
+            "moduleName": "Cron"
+        }
+    ]
+}
+
+scenario=>if timerDay == 0 | CalculateBtn == 1 then {
+RiseTimeToday = Sun.sunrise()
+TransitTimeToday = Sun.transit()
+SetTimeToday = Sun.sunset()
+
+hourRiseToday = Sun.getHour(RiseTimeToday)
+minuteRiseToday = Sun.getMinute(RiseTimeToday)
+
+if RiseTimeToday then azimuthRise = Sun.azimuth(getDay(),getMonth(),2025, Sun.getHour(RiseTimeToday) ,Sun.getMinute(RiseTimeToday))
+
+if TransitTimeToday then {azimuthTransit = Sun.azimuth(getDay(),getMonth(),2025, Sun.getHour(TransitTimeToday),Sun.getMinute(TransitTimeToday))
+
+elevationTransit = Sun.elevation(getDay(),getMonth(),2025, Sun.getHour(TransitTimeToday) ,Sun.getMinute(TransitTimeToday))
+}
+
+if SetTimeToday then azimuthSet = Sun.azimuth(getDay(),getMonth(),2025, Sun.getHour(SetTimeToday) ,Sun.getMinute(SetTimeToday))
+
+CalculateBtn = 0
+}
+
+if timerMinute == 0 | CalculateBtn == 1 then {
+
+jd = Sun.jd()
+GMST = Sun.GMST()
+LST = Sun.LST()
+ra = Sun.ra()
+dec = Sun.dec()
+GHA = GMST - ra
+LHA = GHA - 28.8448
+
+azimuth = Sun.azimuth()
+elevation = Sun.elevation()
+sunArcFromTransit = Sun.sunArcFromTransit()
+
+if elevation > 0 then isDayTime = 1 else isDayTime = 0
+
+CalculateBtn = 0
+}
+
+if cronMidnight then CalculateBtn = 1
+if onStart then CalculateBtn = 1
