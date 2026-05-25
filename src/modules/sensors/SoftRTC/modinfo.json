@@ -1,0 +1,161 @@
+{
+    "menuSection": "sensors",
+    "configItem": [
+        {
+            "global": 0,
+            "name": "Часы реального времени (программные)",
+            "type": "Reading",
+            "subtype": "SoftRTC",
+            "id": "softRTC",
+            "widget": "anydataDef",
+            "page": "Таймеры",
+            "descr": "UT softRTC",
+            "winterTime": 2,
+            "summerTime": 3,
+            "ticker": 0,
+            "int": 10,
+            "debug": 1,
+            "btn-setUTime": "0",
+            "btn-setSysTime": "d-m-y h:m:s"
+        },
+        {
+            "global": 0,
+            "name": "Часы реального времени (программные) Статус",
+            "type": "Reading",
+            "subtype": "SoftRTCsyncStatus",
+            "id": "softRTCsyncStatus",
+            "widget": "anydataDef",
+            "page": "Таймеры",
+            "descr": "softRTC Sync Status",
+            "ticker": 1,
+            "debug": 1
+        }
+    ],
+    "about": {
+        "authorName": "Alex K",
+        "authorContact": "https://t.me/cmche",
+        "authorGit": "https://github.com/CHE77/IoTManager-Modules",
+        "exampleURL": "https://iotmanager.org/wiki",
+        "specialThanks": "",
+        "moduleName": "SoftRTC",
+        "moduleVersion": "1.0",
+        "usedRam": {
+            "esp32_4mb": 15,
+            "esp8266_4mb": 15
+        },
+        "title": "Часы реального времени программные",
+        "moduleDesc": "Позволяет хранить время в энергонезависимой памяти.",
+        "license": "Cooperative Non-Violent Public License (CNPL)",
+        "propInfo": {
+            "ticker": "Генерировать(1) или нет(0) события при каждом тике часов (каждые int секунд).",
+            "debug": "Вывод отладочной информации",
+            "int": "Количество секунд между сохраниеями времени. Желательно чётное.",
+            "btn-setUTime": "Кнопка установки времени на основе указанного unixtime",
+            "btn-setSysTime": "Кнопка установки времени на основе указанного в формате d-m-y h:m:s или y-m-d h:m:s"
+        },
+        "retInfo": "Содержит сохраненное Время в энергонезависимую память",
+        "funcInfo": [
+            {
+                "name": "getTime",
+                "descr": "Получить строковое значение времени по указанному формату.",
+                "params": [
+                    "SoftRTC.getTime()"
+                ]
+            },
+            {
+                "name": "getUTShort",
+                "descr": "Получить строковое значение времени по указанному формату.",
+                "params": [
+                    "SoftRTC.getUTShort()"
+                ]
+            },
+            {
+                "name": "setUnixTime",
+                "descr": "Установить время через сценарий в формате юникстайм",
+                "params": [
+                    "SoftRTC.setUnixTime(1743087041) - параметр в виде числа или строки"
+                ]
+            },
+            {
+                "name": "setTimeFromYMDHMS",
+                "descr": "Установить время через сценарий в формате YYYY,MM,DD,HH,MM,SS",
+                "params": [
+                    "softRTC.setTimeFromYMDHMS(2025,01,01,12,30,30)         "
+                             ]
+            },           
+            {
+                "name": "lastNTPtimeCorrection",
+                "descr": "Вывести поправку после синхронизации по NTP",
+                "params": [
+                   " softRTC.lastNTPtimeCorrection()            "
+                ]
+            },           
+            {
+                "name": "getWeekNumber",
+                "descr": "Вывести номер недели в году",
+                "params": [
+                   " softRTC.getWeekNumber()            "
+                ]
+            },           
+            {
+                "name": "getDayOfWeek",
+                "descr": "Вывести день недели. Воскресенье (0) → 7",
+                "params": [
+                   " softRTC.getDayOfWeek()            "
+                ]
+            },           
+            {
+                "name": "getYear",
+                "descr": "Вывести год",
+                "params": [
+                   " softRTC.getYear()            "
+                ]
+            },           
+            {
+                "name": "getDayOfYear",
+                "descr": "Вывести день в году",
+                "params": [
+                   " softRTC.getDayOfYear()            "
+                ]
+            },           
+            {
+                "name": "getOrthodoxEaster",
+                "descr": "Вывести дату Пасхи в текущем году",
+                "params": [
+                   " softRTC.getOrthodoxEaster()            "
+                ]
+            },           
+            {
+                "name": "isOrthodoxEaster",
+                "descr": "уже Пасха?",
+                "params": [
+                   " softRTC.isOrthodoxEaster()            "
+                ]
+            }
+        ]
+        ,
+        "title2": "Часы реального времени программные Статус",
+        "moduleDesc2": "Позволяет получать статус синхроницации времени",
+        "propInfo2": {
+            "ticker": "Генерировать(1) или нет(0) события при каждом изменении статуса.",
+            "debug": "Вывод отладочной информации"
+       },
+        "retInfo2": "Содержит статус синхроницации времени",
+        "Status": {
+            "0": "Время не установлено",
+            "1": "Время было установлено до SoftRTC",
+            "2": "Время восстановлено из памяти",
+            "3": "Время установлено вручную",
+            "4": "Время синхронизировано через NTP или через Браузер",
+            "5": "Время синхронизировано через Браузер",            
+            "6": "Время только что синхронизировано через NTP",
+            "7": "Время синхронизировано через NTP"
+        }
+
+    },
+    "defActive": false,
+    "usedLibs": {
+        "esp32*": [],
+        "esp82*": []
+    }
+}
