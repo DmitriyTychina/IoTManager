@@ -1,0 +1,89 @@
+{
+    "mark": "iotm",
+    "config": [
+        {
+            "global": 0,
+            "type": "Writing",
+            "subtype": "TelegramLT",
+            "id": "tg0",
+            "widget": "",
+            "page": "",
+            "descr": "",
+            "token": "1262564256457:AAGQJ6LvZ-dOGFvaerhbserhdtbzgdndaY",
+            "chatID": "49999999"
+        },
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "Variable",
+            "id": "valueTreashhold",
+            "needSave": "1",
+            "widget": "inputDgt",
+            "page": "Сенсоры",
+            "descr": "ADC Threshold",
+            "int": "0",
+            "val": "4095",
+            "map": "",
+            "plus": 0,
+            "multiply": 1,
+            "round": 0
+        },
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "VButton",
+            "id": "vbtnListen",
+            "needSave": "1",
+            "widget": "toggle",
+            "page": "Сенсоры",
+            "descr": "Tg Alerts",
+            "int": "0",
+            "val": "0",
+            "moduleName": "VButton"
+        },
+        {
+            "global": 0,
+            "type": "Writing",
+            "subtype": "Loging",
+            "id": "logNoise",
+            "widget": "chart2",
+            "page": "Графики",
+            "descr": "Noise",
+            "int": 0,
+            "daysSave": 5,
+            "daysShow": 0,
+            "points": 300,
+            "moduleName": "Loging"
+        },
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "NoiseAdc",
+            "id": "noiseADC",
+            "widget": "anydataDef",
+            "page": "Сенсоры",
+            "descr": "NoiseAdc",
+            "map": "",
+            "plus": 0,
+            "multiply": 1,
+            "round": 0,
+            "pin": "0",
+            "int": 10,
+            "avgSteps": "500",
+            "parameter": "peakToPeak",
+            "debug": 1,
+            "refVoltage": "0.02",
+            "btn-setRefVoltage": "nil",
+            "moduleName": "NoiseAdc"
+        }
+    ]
+}
+
+scenario=>if onStart then tg0.sendMsg("ESP Noise reboot.  IP  " + getIP() ) 
+
+if noiseADC > valueTreashhold & vbtnListen then {tg0.sendMsg("Noise level = " + noiseADC) 
+}
+
+if noiseADC then  = noiseADC
+
+

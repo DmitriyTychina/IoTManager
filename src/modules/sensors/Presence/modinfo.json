@@ -1,0 +1,199 @@
+{
+  "menuSection": "sensors",
+  "configItem": [
+    {
+      "global": 0,
+      "name": "MQTT Presence Subscriber",
+      "type": "Reading",
+      "subtype": "Presence",
+      "id": "presence",
+      "widget": "anydataM",
+      "page": "Presence",
+      "descr": "Дистанция",
+      "Lat. A": "47.0159",
+      "Long. A": "28.8448",
+      "parameter": "distance",
+      "topic": "/myPhone/status",
+      "isJson": 1,
+      "round": "0",
+      "orange": 60,
+      "red": 120,
+      "offline": 180,
+      "int": 15,
+      "ticker": 1,
+      "debug": 1
+    }
+  ],
+  "about": {
+    "authorName": "Alex",
+    "authorContact": "https://t.me/cmche",
+    "authorGit": "https://github.com/CHE77/IoTManager-Modules",
+    "exampleURL": "https://iotmanager.org/wiki",
+    "specialThanks": "",
+    "moduleName": "Presence",
+    "moduleVersion": "1.0",
+    "usedRam": {
+      "esp32_4mb": 15,
+      "esp8266_4mb": 15
+    },
+    "title": "MQTT Presence Subscriber",
+    "moduleDesc": "Модуль получения и обработки данных из Presence Publisher app - https://f-droid.org/packages/org.ostrya.presencepublisher/ https://play.google.com/store/apps/details?id=org.ostrya.presencepublisher Получает геопозицию телефона, считает пеленг и дистанцию.",
+    "license": "Cooperative Non-Violent Public License (CNPL)",
+    "propInfo": {
+      "Lat. A": "Широта точки отсчета (локации), в градусах",
+      "Long. A": "Долгота точки отсчета (локации), в градусах",
+      "parameter": "Параметр/ключ для получения данных из json и его производных. Совпадают с методами для сценария",
+      "topic": "Топик на который подписывется модуль. Должен совпадать с топиком в приложении и оканчиваться на status",
+      "isJson": "1 - ожидаем в топике json. Другие форматы пока не подерживаются. В приложении выберите тоже json",
+      "round": "Округление после запятой.",
+      "orange": "Количество минут после которого окрасить виджет в оранжевый цвет",
+      "red": "количество минут после которого окрасить виджет в красный цвет",
+      "offline": "Количество минут после которого отобразить что устройство offline, если все три orange red и offline поставить в ноль - то функция окраски выключится",
+      "int": "Интервал для изменения цвета",
+      "ticker": "Генерировать(1) или нет(0) события при каждом тике часов (каждые int секунд).",
+      "debug": "1 - выводить дополнительный лог в сериал"
+    },
+    "retInfo": " - Согласно выбраного параметра",
+    "funcInfo": [
+      {
+        "name": "latitude",
+        "descr": "Получить широту позиции устройства (и далее) с приложением Presence Publisher",
+        "params": [
+          "presence.latitude()"
+        ]
+      },
+      {
+        "name": "longitude",
+        "descr": "Получить долготу позиции устройства",
+        "params": [
+          "presence.longitude()"
+        ]
+      },
+      {
+        "name": "distance",
+        "descr": "Получить дистанцию до устройства",
+        "params": [
+          "presence.distance()"
+        ]
+      },
+      {
+        "name": "azimuth",
+        "descr": "Получить пеленг на устройтво",
+        "params": [
+          "presence.azimuth()"
+        ]
+      },
+      {
+        "name": "batteryLevel",
+        "descr": "Получить уровень заряда батареи устройства",
+        "params": [
+          "presence.batteryLevel()"
+        ]
+      },
+      {
+        "name": "geoTime",
+        "descr": "Получить время определения геопозии устройства",
+        "params": [
+          "presence.geoTime()"
+        ]
+      },
+      {
+        "name": "geoTimestamp",
+        "descr": "Получить UnixTime определения геопозии устройства",
+        "params": [
+          "presence.geoTimestamp()"
+        ]
+      },
+      {
+        "name": "currentTime",
+        "descr": "Получить время получения геопозиции от устройства",
+        "params": [
+          "presence.currentTime()"
+        ]
+      },
+      {
+        "name": "currentTimestamp",
+        "descr": "Получить UnixTime получения геопозиции от устройства",
+        "params": [
+          "presence.currentTimestamp()"
+        ]
+      },
+      {
+        "name": "nextScheduledTime",
+        "descr": "Получить время следующего получения геопозиции от устройства",
+        "params": [
+          "presence.nextScheduledTime()"
+        ]
+      },
+      {
+        "name": "nextScheduledTimestamp",
+        "descr": "Получить UnixTime следующего получения геопозиции от устройства",
+        "params": [
+          "presence.nextScheduledTimestamp()"
+        ]
+      },
+      {
+        "name": "nextAlarmclockTime",
+        "descr": "Получить время следующего будильника на устройтве",
+        "params": [
+          "presence.nextAlarmclockTime()"
+        ]
+      },
+      {
+        "name": "nextAlarmclockTimestamp",
+        "descr": "Получить UnixTime следующего будильника на устройтве",
+        "params": [
+          "presence.nextAlarmclockTimestamp()"
+        ]
+      },
+      {
+        "name": "chargingState",
+        "descr": "Получить статус зарядки устройства",
+        "params": [
+          "presence.chargingState()"
+        ]
+      },
+      {
+        "name": "plugState",
+        "descr": "Получить тип зарядки устройства",
+        "params": [
+          "presence.plugState()"
+        ]
+      },
+      {
+        "name": "connectedWifi",
+        "descr": "Получить Wi-Fi точку доступа к которой подключено устройство",
+        "params": [
+          "presence.connectedWifi()"
+        ]
+      },
+      {
+        "name": "deviceName",
+        "descr": "Получить имя устройства",
+        "params": [
+          "presence.deviceName()"
+        ]
+      },
+      {
+        "name": "geoLocation",
+        "descr": "Получить строку с широтой, долготой и верменем определения геопозиции",
+        "params": [
+          "presence.geoLocation()"
+        ]
+      },
+      {
+        "name": "conditionContent",
+        "descr": "Получить дополнительное условие отправки данных (геопозиции и др)",
+        "params": [
+          "presence.conditionContent()"
+        ]
+      }
+    ]
+  },
+  "defActive": false,
+  "usedLibs": {
+    "esp32*": [],
+    "esp82*": [],
+    "bk72*": []
+  }
+}

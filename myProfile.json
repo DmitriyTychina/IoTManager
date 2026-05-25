@@ -213,6 +213,10 @@
                 "active": true
             },
             {
+                "path": "src/modules/virtual/SolarCalc",
+                "active": false
+            },
+            {
                 "path": "src/modules/virtual/Timer",
                 "active": true
             },
@@ -375,11 +379,19 @@
                 "active": false
             },
             {
+                "path": "src/modules/sensors/NoiseAdc",
+                "active": false
+            },
+            {
                 "path": "src/modules/sensors/Ntc",
                 "active": true
             },
             {
                 "path": "src/modules/sensors/Pcf8591",
+                "active": false
+            },
+            {
+                "path": "src/modules/sensors/Presence",
                 "active": false
             },
             {
@@ -420,6 +432,10 @@
             },
             {
                 "path": "src/modules/sensors/Sht30",
+                "active": false
+            },
+            {
+                "path": "src/modules/sensors/SoftRTC",
                 "active": false
             },
             {
@@ -549,6 +565,10 @@
                 "active": true
             },
             {
+                "path": "src/modules/exec/WakeOnLanModule",
+                "active": false
+            },
+            {
                 "path": "src/modules/sensors/Ds2423",
                 "active": false
             }
@@ -564,6 +584,10 @@
             },
             {
                 "path": "src/modules/display/Lcd2004",
+                "active": false
+            },
+            {
+                "path": "src/modules/display/LedFX",
                 "active": false
             },
             {
@@ -588,6 +612,10 @@
             },
             {
                 "path": "src/modules/display/TM16XX",
+                "active": false
+            },
+            {
+                "path": "src/modules/display/U8g2lib",
                 "active": false
             },
             {

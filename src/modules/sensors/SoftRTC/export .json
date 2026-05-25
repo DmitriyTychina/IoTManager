@@ -1,0 +1,264 @@
+{
+    "mark": "iotm",
+    "config": [
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "Variable",
+            "id": "voutTime",
+            "needSave": 0,
+            "widget": "anydataDef",
+            "page": "Time",
+            "descr": "Local Time",
+            "int": "0",
+            "val": "0.0",
+            "map": "",
+            "plus": 0,
+            "multiply": 1,
+            "round": 0
+        },
+        {
+            "global": 0,
+            "type": "Writing",
+            "subtype": "Timer",
+            "id": "timer1",
+            "widget": "anydataDef",
+            "page": "Timers",
+            "descr": "Timer",
+            "int": 1,
+            "countDown": "15",
+            "ticker": "0",
+            "repeat": 1,
+            "needSave": 0
+        },
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "Variable",
+            "id": "voutNTPtimeCorrection",
+            "needSave": 0,
+            "widget": "anydataDef",
+            "page": "Time",
+            "descr": "Last NTP Time Correction",
+            "int": "0",
+            "val": "0.0",
+            "map": "",
+            "plus": 0,
+            "multiply": 1,
+            "round": 0
+        },
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "Variable",
+            "id": "voutSyncStatus",
+            "needSave": 0,
+            "widget": "anydataDef",
+            "page": "Time",
+            "descr": "SoftRTC Sync Status",
+            "int": "0",
+            "val": "0.0",
+            "map": "1024,1024,1,100",
+            "plus": 0,
+            "multiply": 1,
+            "round": 0
+        },
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "Variable",
+            "id": "voutTimeSoft",
+            "needSave": 0,
+            "widget": "anydataDef",
+            "page": "Time",
+            "descr": "Local Time Soft",
+            "int": "0",
+            "val": "0.0",
+            "map": "",
+            "plus": 0,
+            "multiply": 1,
+            "round": 0
+        },
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "SoftRTCsyncStatus",
+            "id": "softRTCsyncStatus",
+            "widget": "anydataDef",
+            "page": "Time",
+            "descr": "SoftRTC Sync Status",
+            "ticker": "1",
+            "int": 10,
+            "round": 0,
+            "debug": 1
+        },
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "SoftRTC",
+            "id": "softRTC",
+            "widget": "anydataDef",
+            "page": "Timers",
+            "descr": "UT softRTC",
+            "winterTime": 2,
+            "summerTime": 3,
+            "ticker": 0,
+            "int": 10,
+            "debug": 1,
+            "btn-setUTime": "0",
+            "btn-setSysTime": "d-m-y h:m:s",
+            "moduleName": "SoftRTC"
+        },
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "Variable",
+            "id": "dayOfWeek",
+            "needSave": 0,
+            "widget": "anydataDef",
+            "page": "Days",
+            "descr": "Day of Week",
+            "int": "0",
+            "val": "0.0",
+            "map": "1024,1024,1,100",
+            "plus": 0,
+            "multiply": 1,
+            "round": 0,
+            "moduleName": "Variable"
+        },
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "Variable",
+            "id": "weekNumber",
+            "needSave": 0,
+            "widget": "anydataDef",
+            "page": "Days",
+            "descr": " Week Number",
+            "int": "0",
+            "val": "0.0",
+            "map": "1024,1024,1,100",
+            "plus": 0,
+            "multiply": 1,
+            "round": 0,
+            "moduleName": "Variable"
+        },
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "Variable",
+            "id": "dayOfWeekT",
+            "needSave": 0,
+            "widget": "anydataDef",
+            "page": "Days",
+            "descr": "Day of Week",
+            "int": "0",
+            "val": "0.0",
+            "map": "",
+            "plus": 0,
+            "multiply": 1,
+            "round": 0,
+            "moduleName": "Variable"
+        },
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "Variable",
+            "id": "getDayOfYear",
+            "needSave": 0,
+            "widget": "anydataDef",
+            "page": "Days",
+            "descr": "Day of Year",
+            "int": "0",
+            "val": "0.0",
+            "map": "1024,1024,1,100",
+            "plus": 0,
+            "multiply": 1,
+            "round": 0,
+            "moduleName": "Variable"
+        },
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "Variable",
+            "id": "getDaysInMonth",
+            "needSave": 0,
+            "widget": "anydataDef",
+            "page": "Days",
+            "descr": "Days in Month",
+            "int": "0",
+            "val": "0.0",
+            "map": "1024,1024,1,100",
+            "plus": 0,
+            "multiply": 1,
+            "round": 0,
+            "moduleName": "Variable"
+        },
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "Variable",
+            "id": "getOrthodoxEaster",
+            "needSave": 0,
+            "widget": "anydataDef",
+            "page": "Days",
+            "descr": "Orthodox Easter",
+            "int": "0",
+            "val": "0.0",
+            "map": "1024,1024,1,100",
+            "plus": 0,
+            "multiply": 1,
+            "round": 0,
+            "moduleName": "Variable"
+        },
+        {
+            "global": 0,
+            "type": "Reading",
+            "subtype": "VButton",
+            "id": "isOrthodoxEasterB",
+            "needSave": 0,
+            "widget": "toggle",
+            "page": "Days",
+            "descr": "is Orthodox Easter",
+            "int": "0",
+            "val": "0",
+            "moduleName": "VButton"
+        }
+    ]
+}
+
+scenario=>
+
+
+if timer1 == 0 then {
+voutTime = getTime();# не сработает если время не обновлено
+voutTimeSoft = softRTC.getTime();
+dayOfWeek = softRTC.getDayOfWeek()
+voutNTPtimeCorrection = softRTC.lastNTPtimeCorrection() 
+weekNumber = softRTC.getWeekNumber()
+getDayOfYear = softRTC.getDayOfYear()
+getDaysInMonth = softRTC.getDaysInMonth()
+getOrthodoxEaster = softRTC.getOrthodoxEaster()
+isOrthodoxEasterB = softRTC.isOrthodoxEaster()
+}
+
+if dayOfWeek == 1 then dayOfWeekT = "Monday"
+if dayOfWeek == 2 then dayOfWeekT = "Tuesday"
+if dayOfWeek == 3 then dayOfWeekT = "Wednesday"
+if dayOfWeek == 4 then dayOfWeekT = "Thursday"
+if dayOfWeek == 5 then dayOfWeekT = "Friday"
+if dayOfWeek == 6 then dayOfWeekT = "Saturday"
+if dayOfWeek == 7 then dayOfWeekT = "Sunday"
+
+if softRTCsyncStatus == 0 then voutSyncStatus = "Not set";
+if softRTCsyncStatus == 1 then voutSyncStatus = "Set before SoftRTC";
+if softRTCsyncStatus == 2 then voutSyncStatus = "Restored";
+if softRTCsyncStatus == 3 then voutSyncStatus = "Set manually";
+if softRTCsyncStatus == 4 then voutSyncStatus = "Set with NTP or Browser";
+if softRTCsyncStatus == 5 then voutSyncStatus = "Set with Browser";
+if softRTCsyncStatus == 6 then voutSyncStatus = "Just set with NTP";
+if softRTCsyncStatus == 7 then voutSyncStatus = "Set with NTP";
+
+if softRTC then {voutNTPtimeCorrection = softRTC.lastNTPtimeCorrection() 
+}
+
