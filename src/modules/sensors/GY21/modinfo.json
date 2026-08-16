@@ -33,10 +33,6 @@
         "specialThanks": "",
         "moduleName": "GY21",
         "moduleVersion": "1.0",
-        "usedRam": {
-            "esp32_4mb": 15,
-            "esp8266_4mb": 15
-        },
         "subTypes": [
             "GY21t",
             "GY21h"
@@ -55,5 +51,46 @@
         "esp82*": [
             "https://github.com/JonasGMorsch/GY-21.git"
         ]
-    }
+    },
+    "sizeInfo": [
+        {
+            "moduleVersion": "1.0",
+            "usedFLASH": {
+                "esp8266_1mb": 2896,
+                "esp32_4mb": 8300,
+                "esp8266_4mb": 2896,
+                "esp32_4mb3f": 8300,
+                "esp8266_16mb": 2896,
+                "esp32cam_4mb": 8500,
+                "esp32s2_4mb": "-",
+                "esp32s3_16mb": "-",
+                "esp32c3m_4mb": 8402,
+                "esp8266_1mb_ota": "-",
+                "esp8266_2mb": "-",
+                "esp8266_2mb_ota": "-",
+                "esp8285_1mb": "-",
+                "esp8285_1mb_ota": 2896,
+                "esp32c6_4mb": 2280,
+                "esp32c6_8mb": "-"
+            },
+            "usedRAM": {
+                "esp8266_1mb": 56,
+                "esp32_4mb": 16,
+                "esp8266_4mb": 56,
+                "esp32_4mb3f": 16,
+                "esp8266_16mb": 56,
+                "esp32cam_4mb": 16,
+                "esp32s2_4mb": "-",
+                "esp32s3_16mb": "-",
+                "esp32c3m_4mb": 8,
+                "esp8266_1mb_ota": "-",
+                "esp8266_2mb": "-",
+                "esp8266_2mb_ota": "-",
+                "esp8285_1mb": "-",
+                "esp8285_1mb_ota": 56,
+                "esp32c6_4mb": 8,
+                "esp32c6_8mb": "-"
+            }
+        }
+    ]
 }

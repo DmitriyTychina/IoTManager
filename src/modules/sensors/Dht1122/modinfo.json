@@ -35,10 +35,6 @@
         "specialThanks": "Serghei Crasnicov @Serghei63",
         "moduleName": "Dht1122",
         "moduleVersion": "1.0",
-        "usedRam": {
-            "esp32_4mb": 15,
-            "esp8266_4mb": 15
-        },
         "subTypes": [
             "Dht1122t",
             "Dht1122h"
@@ -58,5 +54,46 @@
         "esp82*": [
             "beegee-tokyo/DHT sensor library for ESPx"
         ]
-    }
+    },
+    "sizeInfo": [
+        {
+            "moduleVersion": "1.0",
+            "usedFLASH": {
+                "esp8266_1mb": 2736,
+                "esp32_4mb": 3548,
+                "esp8266_4mb": 2736,
+                "esp32_4mb3f": 3564,
+                "esp8266_16mb": 2736,
+                "esp32cam_4mb": 3724,
+                "esp32s2_4mb": "-",
+                "esp32s3_16mb": "-",
+                "esp32c3m_4mb": 3608,
+                "esp8266_1mb_ota": "-",
+                "esp8266_2mb": "-",
+                "esp8266_2mb_ota": "-",
+                "esp8285_1mb": "-",
+                "esp8285_1mb_ota": 2736,
+                "esp32c6_4mb": 4022,
+                "esp32c6_8mb": "-"
+            },
+            "usedRAM": {
+                "esp8266_1mb": 108,
+                "esp32_4mb": 24,
+                "esp8266_4mb": 108,
+                "esp32_4mb3f": 24,
+                "esp8266_16mb": 108,
+                "esp32cam_4mb": 24,
+                "esp32s2_4mb": "-",
+                "esp32s3_16mb": "-",
+                "esp32c3m_4mb": 16,
+                "esp8266_1mb_ota": "-",
+                "esp8266_2mb": "-",
+                "esp8266_2mb_ota": "-",
+                "esp8285_1mb": "-",
+                "esp8285_1mb_ota": 100,
+                "esp32c6_4mb": 16,
+                "esp32c6_8mb": "-"
+            }
+        }
+    ]
 }

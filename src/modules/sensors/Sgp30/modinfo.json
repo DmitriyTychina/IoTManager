@@ -35,7 +35,6 @@
         "specialThanks": "Ilya Belyakov",
         "moduleName": "Sgp30",
         "moduleVersion": "1.0",
-        "usedRam": 15,
         "subTypes": [
             "Sgp30t",
             "Sgp30e"
@@ -54,5 +53,46 @@
         "esp82*": [
             "sparkfun/SparkFun SGP30 Arduino Library@^1.0.5"
         ]
-    }
+    },
+    "sizeInfo": [
+        {
+            "moduleVersion": "1.0",
+            "usedFLASH": {
+                "esp8266_1mb": 3224,
+                "esp32_4mb": 8816,
+                "esp8266_4mb": 3224,
+                "esp32_4mb3f": 8816,
+                "esp8266_16mb": 3228,
+                "esp32cam_4mb": 9060,
+                "esp32s2_4mb": "-",
+                "esp32s3_16mb": "-",
+                "esp32c3m_4mb": 8688,
+                "esp8266_1mb_ota": "-",
+                "esp8266_2mb": "-",
+                "esp8266_2mb_ota": "-",
+                "esp8285_1mb": "-",
+                "esp8285_1mb_ota": 3224,
+                "esp32c6_4mb": 2568,
+                "esp32c6_8mb": "-"
+            },
+            "usedRAM": {
+                "esp8266_1mb": 72,
+                "esp32_4mb": 16,
+                "esp8266_4mb": 72,
+                "esp32_4mb3f": 16,
+                "esp8266_16mb": 76,
+                "esp32cam_4mb": 16,
+                "esp32s2_4mb": "-",
+                "esp32s3_16mb": "-",
+                "esp32c3m_4mb": 8,
+                "esp8266_1mb_ota": "-",
+                "esp8266_2mb": "-",
+                "esp8266_2mb_ota": "-",
+                "esp8285_1mb": "-",
+                "esp8285_1mb_ota": 72,
+                "esp32c6_4mb": 8,
+                "esp32c6_8mb": "-"
+            }
+        }
+    ]
 }
