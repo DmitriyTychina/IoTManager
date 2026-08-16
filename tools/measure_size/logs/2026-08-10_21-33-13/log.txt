@@ -1,0 +1,62 @@
+
+  ✓ Лог запуска сохранён: E:\GitHub\IoTManager\measure_size\logs\2026-08-10_21-33-13
+
+  Выбор режима обработки
+────────────────────────────────────────────────────────────
+
+  Выберите режим обработки модулей:
+    1 — обработка ВСЕХ модулей (94)
+    2 — обработка только модулей из myProfile.json (1)
+    3 — обработка только модулей без информации о размере (94)
+
+  ● Режим 1: обработка ВСЕХ модулей
+
+  Измерение размера Flash/RAM модулей
+────────────────────────────────────────────────────────────
+  ● Профиль: myProfile.json
+  ● Платформы: esp8266_1mb_ota
+  ● Всего сборок: baseline × 1 + 94 модулей 
+
+  Базовая сборка (без модулей)
+────────────────────────────────────────────────────────────
+  ✓ esp8266_1mb_ota: baseline Flash=448,583 B, baseline RAM=37,232 B, total Flash=958,448 B, total RAM=81,920 B
+  ✓ platforms.json обновлён: E:\GitHub\IoTManager\src\modules\platforms.json
+
+  Измерение модулей — esp8266_1mb_ota
+────────────────────────────────────────────────────────────
+  ✓ [1/94] DwinI (esp8266_1mb_ota): +8020 B Flash, +336 B RAM
+  ✗ [2/94] GyverLAMP — не удалось распарсить размер
+  ✓ [3/94] Lcd2004 (esp8266_1mb_ota): +5984 B Flash, +216 B RAM
+  ✓ [4/94] LedFX (esp8266_1mb_ota): +0 B Flash, +0 B RAM
+  ✗ [5/94] Nextion — не удалось распарсить размер
+  ✗ [6/94] NextionUpload — не удалось распарсить размер
+  ✓ [7/94] Oled128 (esp8266_1mb_ota): +6096 B Flash, +1264 B RAM
+  ✓ [8/94] Oled64 (esp8266_1mb_ota): +11720 B Flash, +628 B RAM
+  ✓ [9/94] TM16XX (esp8266_1mb_ota): +6860 B Flash, +104 B RAM
+  ✓ [10/94] U8g2lib (esp8266_1mb_ota): +0 B Flash, +0 B RAM
+  ✓ [11/94] Ws2812b (esp8266_1mb_ota): +4296 B Flash, +272 B RAM
+  ✓ [12/94] AnalogBtn (esp8266_1mb_ota): +760 B Flash, +28 B RAM
+  ✓ [13/94] ButtonIn (esp8266_1mb_ota): +1292 B Flash, +0 B RAM
+  ✓ [14/94] ButtonOut (esp8266_1mb_ota): +1196 B Flash, +32 B RAM
+  ✓ [15/94] Buzzer (esp8266_1mb_ota): +5552 B Flash, +476 B RAM
+  ✓ [16/94] Encoder (esp8266_1mb_ota): +2020 B Flash, +76 B RAM
+  ✓ [17/94] FTPModule (esp8266_1mb_ota): +24712 B Flash, +1032 B RAM
+  ✓ [18/94] HttpGet (esp8266_1mb_ota): +2180 B Flash, +80 B RAM
+  ✓ [19/94] IoTServo (esp8266_1mb_ota): +1468 B Flash, +72 B RAM
+  ✓ [20/94] IRremote (esp8266_1mb_ota): +99184 B Flash, +2132 B RAM
+  ✓ [21/94] Mcp23008 (esp8266_1mb_ota): +7256 B Flash, +180 B RAM
+  ✓ [22/94] Mcp23017 (esp8266_1mb_ota): +7256 B Flash, +180 B RAM
+  ✓ [23/94] Mp3 (esp8266_1mb_ota): +8280 B Flash, +368 B RAM
+  ✓ [24/94] Multitouch (esp8266_1mb_ota): +1448 B Flash, +92 B RAM
+  ✓ [25/94] Pcf8574 (esp8266_1mb_ota): +3796 B Flash, +236 B RAM
+  ✓ [26/94] Pwm8266 (esp8266_1mb_ota): +968 B Flash, +16 B RAM
+  ✓ [27/94] SIM800 (esp8266_1mb_ota): +8768 B Flash, +428 B RAM
+  ✓ [28/94] SmartBoiler (esp8266_1mb_ota): +16808 B Flash, +2116 B RAM
+  ✓ [29/94] SysExt (esp8266_1mb_ota): +376 B Flash, +0 B RAM
+  ✓ [30/94] Tca9555 (esp8266_1mb_ota): +3720 B Flash, +124 B RAM
+  ✓ [31/94] TelegramLT (esp8266_1mb_ota): +1832 B Flash, +208 B RAM
+  ✓ [32/94] Thermostat (esp8266_1mb_ota): +7524 B Flash, +516 B RAM
+
+  Восстановление состояния проекта
+────────────────────────────────────────────────────────────
+  ✓ PrepareProject применён: myProfile.json (env=esp8266_1mb)

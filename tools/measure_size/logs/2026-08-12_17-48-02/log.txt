@@ -1,0 +1,132 @@
+
+  ✓ Лог запуска сохранён: E:\GitHub\IoTManager\measure_size\logs\2026-08-12_17-48-02
+
+  Выбор режима обработки
+────────────────────────────────────────────────────────────
+
+  Выберите режим обработки модулей:
+    1 — обработка ВСЕХ модулей (97)
+    2 — обработка только модулей из myProfile.json (1)
+    3 — обработка только модулей без информации о размере (95)
+
+  ● Режим 1: обработка ВСЕХ модулей
+
+  Измерение размера Flash/RAM модулей
+────────────────────────────────────────────────────────────
+  ● Профиль: myProfile.json
+  ● Платформы: esp8266_4mb
+  ● Всего сборок: baseline × 1 + 97 модулей 
+
+  Базовая сборка (без модулей)
+────────────────────────────────────────────────────────────
+  ✓ esp8266_4mb: baseline Flash=448,579 B, baseline RAM=37,228 B, total Flash=1,044,464 B, total RAM=81,920 B
+  ✓ platforms.json обновлён: E:\GitHub\IoTManager\src\modules\platforms.json
+
+  Измерение модулей — esp8266_4mb
+────────────────────────────────────────────────────────────
+  ✓ [1/97] DwinI (esp8266_4mb): +8020 B Flash, +336 B RAM
+  ✗ [2/97] GyverLAMP — не удалось распарсить размер
+  ✓ [3/97] Lcd2004 (esp8266_4mb): +5984 B Flash, +216 B RAM
+  ✓ [4/97] LedFX (esp8266_4mb): +0 B Flash, +0 B RAM
+  ✗ [5/97] Nextion — не удалось распарсить размер
+  ✗ [6/97] NextionUpload — не удалось распарсить размер
+  ✓ [7/97] Oled128 (esp8266_4mb): +6096 B Flash, +1264 B RAM
+  ✓ [8/97] Oled64 (esp8266_4mb): +11720 B Flash, +620 B RAM
+  ✓ [9/97] TM16XX (esp8266_4mb): +6860 B Flash, +96 B RAM
+  ✓ [10/97] U8g2lib (esp8266_4mb): +0 B Flash, +0 B RAM
+  ✓ [11/97] Ws2812b (esp8266_4mb): +4296 B Flash, +272 B RAM
+  ✓ [12/97] AnalogBtn (esp8266_4mb): +760 B Flash, +36 B RAM
+  ✓ [13/97] ButtonIn (esp8266_4mb): +1292 B Flash, +0 B RAM
+  ✓ [14/97] ButtonOut (esp8266_4mb): +1196 B Flash, +32 B RAM
+  ✓ [15/97] Buzzer (esp8266_4mb): +5552 B Flash, +468 B RAM
+  ✓ [16/97] Encoder (esp8266_4mb): +2020 B Flash, +84 B RAM
+  ✓ [17/97] FTPModule (esp8266_4mb): +24712 B Flash, +1024 B RAM
+  ✓ [18/97] HttpGet (esp8266_4mb): +2180 B Flash, +80 B RAM
+  ✓ [19/97] IoTServo (esp8266_4mb): +1468 B Flash, +72 B RAM
+  ✓ [20/97] IRremote (esp8266_4mb): +99184 B Flash, +2124 B RAM
+  ✓ [21/97] Mcp23008 (esp8266_4mb): +7256 B Flash, +188 B RAM
+  ✓ [22/97] Mcp23017 (esp8266_4mb): +7256 B Flash, +188 B RAM
+  ✓ [23/97] Mp3 (esp8266_4mb): +8280 B Flash, +368 B RAM
+  ✓ [24/97] Multitouch (esp8266_4mb): +1448 B Flash, +84 B RAM
+  ✓ [25/97] Pcf8574 (esp8266_4mb): +3796 B Flash, +244 B RAM
+  ✓ [26/97] Pwm8266 (esp8266_4mb): +968 B Flash, +16 B RAM
+  ✓ [27/97] SIM800 (esp8266_4mb): +8768 B Flash, +420 B RAM
+  ✓ [28/97] SmartBoiler (esp8266_4mb): +16808 B Flash, +2124 B RAM
+  ✓ [29/97] SysExt (esp8266_4mb): +376 B Flash, +0 B RAM
+  ✓ [30/97] Tca9555 (esp8266_4mb): +3720 B Flash, +116 B RAM
+  ✗ [31/97] Telegram — не удалось распарсить размер
+  ✓ [32/97] TelegramLT (esp8266_4mb): +1832 B Flash, +208 B RAM
+  ✓ [33/97] Telegram_v2 (esp8266_4mb): +125332 B Flash, +2636 B RAM
+  ✓ [34/97] Thermostat (esp8266_4mb): +7524 B Flash, +508 B RAM
+  ✓ [35/97] A02Distance (esp8266_4mb): +7300 B Flash, +420 B RAM
+  ✓ [36/97] Acs712 (esp8266_4mb): +1468 B Flash, +80 B RAM
+  ✓ [37/97] Ads1115 (esp8266_4mb): +3504 B Flash, +80 B RAM
+  ✓ [38/97] AhtXX (esp8266_4mb): +5780 B Flash, +172 B RAM
+  ✓ [39/97] AnalogAdc (esp8266_4mb): +708 B Flash, +32 B RAM
+  ✓ [40/97] Bh1750 (esp8266_4mb): +3140 B Flash, +20 B RAM
+  ✓ [41/97] BL0937 (esp8266_4mb): +7868 B Flash, +644 B RAM
+  ✓ [42/97] BL0942 (esp8266_4mb): +9248 B Flash, +524 B RAM
+  ✓ [43/97] Bme280 (esp8266_4mb): +11156 B Flash, +208 B RAM
+  ✓ [44/97] Bmp280 (esp8266_4mb): +9800 B Flash, +192 B RAM
+  ✓ [45/97] Dht1122 (esp8266_4mb): +2736 B Flash, +108 B RAM
+  ✓ [46/97] Ds18b20 (esp8266_4mb): +5212 B Flash, +92 B RAM
+  ✗ [47/97] DS2401 — не удалось распарсить размер
+  ✓ [48/97] Ds2423 (esp8266_4mb): +5448 B Flash, +152 B RAM
+  ✓ [49/97] Emon (esp8266_4mb): +2212 B Flash, +244 B RAM
+  ✓ [50/97] EnergyMon485 (esp8266_4mb): +9812 B Flash, +972 B RAM
+  ✓ [51/97] ExampleModule (esp8266_4mb): +1864 B Flash, +120 B RAM
+  ✓ [52/97] ExternalMQTT (esp8266_4mb): +4836 B Flash, +100 B RAM
+  ✓ [53/97] FreqMeter (esp8266_4mb): +11516 B Flash, +17076 B RAM
+  ✓ [54/97] GY21 (esp8266_4mb): +2896 B Flash, +56 B RAM
+  ✓ [55/97] Hdc1080 (esp8266_4mb): +2876 B Flash, +36 B RAM
+  ✓ [56/97] Hx710 (esp8266_4mb): +1688 B Flash, +32 B RAM
+  ✓ [57/97] Hx711 (esp8266_4mb): +1216 B Flash, +48 B RAM
+  ✓ [58/97] Impulse (esp8266_4mb): +1160 B Flash, +0 B RAM
+  ✓ [59/97] Ina219 (esp8266_4mb): +7328 B Flash, +292 B RAM
+  ✓ [60/97] Ina226 (esp8266_4mb): +7120 B Flash, +292 B RAM
+  ✓ [61/97] IoTWiegand (esp8266_4mb): +1096 B Flash, +60 B RAM
+  ✓ [62/97] Max6675 (esp8266_4mb): +996 B Flash, +40 B RAM
+  ✓ [63/97] Mhz19 (esp8266_4mb): +10240 B Flash, +1160 B RAM
+  ✗ [64/97] ModbusRTU — не удалось распарсить размер
+  ✓ [65/97] MQgas (esp8266_4mb): +11528 B Flash, +1296 B RAM
+  ✓ [66/97] Ntc (esp8266_4mb): +2292 B Flash, +48 B RAM
+  ✓ [67/97] Pcf8591 (esp8266_4mb): +0 B Flash, +0 B RAM
+  ✗ [68/97] Pzem004 — не удалось распарсить размер
+  ✓ [69/97] Pzem004_v2 (esp8266_4mb): +14308 B Flash, +592 B RAM
+  ✓ [70/97] RCswitch (esp8266_4mb): +3124 B Flash, +816 B RAM
+  ✓ [71/97] RTC (esp8266_4mb): +9876 B Flash, +216 B RAM
+  ✓ [72/97] S8 (esp8266_4mb): +6720 B Flash, +388 B RAM
+  ✓ [73/97] Scd40 (esp8266_4mb): +8992 B Flash, +1768 B RAM
+  ✓ [74/97] Sds011 (esp8266_4mb): +11840 B Flash, +1180 B RAM
+  ✓ [75/97] Sgp30 (esp8266_4mb): +3224 B Flash, +72 B RAM
+  ✓ [76/97] Sht20 (esp8266_4mb): +3116 B Flash, +44 B RAM
+  ✓ [77/97] Sht30 (esp8266_4mb): +3912 B Flash, +160 B RAM
+  ✓ [78/97] Sonar (esp8266_4mb): +944 B Flash, +32 B RAM
+  ✓ [79/97] UART (esp8266_4mb): +8008 B Flash, +372 B RAM
+  ✓ [80/97] Benchmark (esp8266_4mb): +3508 B Flash, +112 B RAM
+  ✓ [81/97] Cron (esp8266_4mb): +18384 B Flash, +1484 B RAM
+  ✓ [82/97] DiscoveryHA (esp8266_4mb): +8192 B Flash, +932 B RAM
+  ✓ [83/97] DiscoveryHomeD (esp8266_4mb): +8184 B Flash, +592 B RAM
+  ✓ [84/97] GoogleSheet (esp8266_4mb): +2220 B Flash, +96 B RAM
+  ✓ [85/97] Loging (esp8266_4mb): +11640 B Flash, +804 B RAM
+  ✓ [86/97] Loging2 (esp8266_4mb): +10044 B Flash, +756 B RAM
+  ✓ [87/97] Loging3 (esp8266_4mb): +10392 B Flash, +752 B RAM
+  ✓ [88/97] LogingDaily (esp8266_4mb): +6908 B Flash, +512 B RAM
+  ✓ [89/97] LogingHourly (esp8266_4mb): +6836 B Flash, +468 B RAM
+  ✓ [90/97] IoTMath (esp8266_4mb): +8612 B Flash, +176 B RAM
+  ✓ [91/97] owmWeather (esp8266_4mb): +9648 B Flash, +612 B RAM
+  ✓ [92/97] Ping (esp8266_4mb): +3464 B Flash, +112 B RAM
+  ✓ [93/97] Timer (esp8266_4mb): +1016 B Flash, +80 B RAM
+  ✓ [94/97] UpdateServer (esp8266_4mb): +504 B Flash, +48 B RAM
+  ✓ [95/97] Variable (esp8266_4mb): +348 B Flash, +0 B RAM
+  ✓ [96/97] VButton (esp8266_4mb): +496 B Flash, +16 B RAM
+  ✓ [97/97] Weather (esp8266_4mb): +3876 B Flash, +248 B RAM
+
+  Итог
+────────────────────────────────────────────────────────────
+  ✓ Файлов modinfo.json обновлено: 90
+  ✓ platformio.ini восстановлен.
+
+  Восстановление состояния проекта
+────────────────────────────────────────────────────────────
+  ✓ PrepareProject применён: myProfile.json (env=esp8266_1mb)
