@@ -197,6 +197,11 @@ def index():
     return send_from_directory(BASE_DIR, 'index.html')
 
 
+@app.route('/favicon.png')
+def favicon():
+    return send_from_directory(BASE_DIR, 'favicon.png', mimetype='image/png')
+
+
 # ==================== Маршруты: проекты ====================
 
 @app.route('/api/projects', methods=['GET'])
