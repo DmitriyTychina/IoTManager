@@ -1,7 +1,7 @@
 {
     "projectProp": {
         "platformio": {
-            "default_envs": "esp32s3_16mb"
+            "default_envs": "esp32_wifirep"
         }
     },
     "modules": {
@@ -102,7 +102,7 @@
             },
             {
                 "path": "src/modules/sensors/AnalogAdc",
-                "active": true
+                "active": false
             },
             {
                 "path": "src/modules/sensors/BH_1750",
@@ -280,7 +280,7 @@
         "executive_devices": [
             {
                 "path": "src/modules/exec/AnalogBtn",
-                "active": false
+                "active": true
             },
             {
                 "path": "src/modules/exec/BrokerMQTT",

@@ -1,0 +1,79 @@
+
+  ✓ Лог запуска сохранён: E:\GitHub\IoTManager\tools\measure_size\logs\2026-08-16_16-50-40
+
+  Выбор режима обработки
+────────────────────────────────────────────────────────────
+
+  Выберите режим обработки модулей:
+    1 — обработка ВСЕХ модулей (94)
+    2 — обработка только модулей из myProfile.json (1)
+    3 — обработка только модулей без информации о размере (44)
+
+  ● Режим 3: обработка модулей без информации о размере (59)
+
+  Измерение размера Flash/RAM модулей
+────────────────────────────────────────────────────────────
+  ● Профиль: myProfile.json
+  ● Платформы: esp8285_1mb
+  ● Всего сборок: baseline × 1 + 44 модулей 
+
+  Базовая сборка (без модулей)
+────────────────────────────────────────────────────────────
+  ✓ esp8285_1mb: baseline Flash=448,779 B, baseline RAM=37,244 B, total Flash=761,840 B, total RAM=81,920 B
+  ✓ platforms.json обновлён: E:\GitHub\IoTManager\tools\measure_size\platforms.json
+
+  Измерение модулей — esp8285_1mb
+────────────────────────────────────────────────────────────
+  ✓ [1/44] DwinI (esp8285_1mb): +8036 B Flash, +336 B RAM
+  ✗ [2/44] GyverLAMP — не удалось распарсить размер
+  ✓ [3/44] Lcd2004 (esp8285_1mb): +5984 B Flash, +216 B RAM
+  ✗ [4/44] Nextion — не удалось распарсить размер
+  ✗ [5/44] NextionUpload — не удалось распарсить размер
+  ✓ [6/44] Oled128 (esp8285_1mb): +6096 B Flash, +1264 B RAM
+  ✓ [7/44] Oled64 (esp8285_1mb): +11720 B Flash, +620 B RAM
+  ✓ [8/44] TM16XX (esp8285_1mb): +6860 B Flash, +96 B RAM
+  ✓ [9/44] Ws2812b (esp8285_1mb): +4300 B Flash, +276 B RAM
+  ✓ [10/44] Encoder (esp8285_1mb): +2024 B Flash, +80 B RAM
+  ✓ [11/44] IRremote (esp8285_1mb): +99184 B Flash, +2124 B RAM
+  ✓ [12/44] Mcp23008 (esp8285_1mb): +7256 B Flash, +188 B RAM
+  ✓ [13/44] Mcp23017 (esp8285_1mb): +7256 B Flash, +188 B RAM
+  ✓ [14/44] Mp3 (esp8285_1mb): +8296 B Flash, +368 B RAM
+  ✓ [15/44] Pcf8574 (esp8285_1mb): +3796 B Flash, +244 B RAM
+  ✓ [16/44] Tca9555 (esp8285_1mb): +3724 B Flash, +128 B RAM
+  ✓ [17/44] Ads1115 (esp8285_1mb): +3504 B Flash, +80 B RAM
+  ✓ [18/44] AhtXX (esp8285_1mb): +5780 B Flash, +172 B RAM
+  ✓ [19/44] Bh1750 (esp8285_1mb): +3144 B Flash, +16 B RAM
+  ✓ [20/44] Bme280 (esp8285_1mb): +11160 B Flash, +212 B RAM
+  ✓ [21/44] Bmp280 (esp8285_1mb): +9804 B Flash, +196 B RAM
+  ✓ [22/44] Dht1122 (esp8285_1mb): +2736 B Flash, +108 B RAM
+  ✓ [23/44] Ds18b20 (esp8285_1mb): +5212 B Flash, +92 B RAM
+  ✗ [24/44] DS2401 — не удалось распарсить размер
+  ✓ [25/44] Ds2423 (esp8285_1mb): +5448 B Flash, +152 B RAM
+  ✓ [26/44] Emon (esp8285_1mb): +2212 B Flash, +244 B RAM
+  ✓ [27/44] FreqMeter (esp8285_1mb): +11516 B Flash, +17076 B RAM
+  ✓ [28/44] GY21 (esp8285_1mb): +2896 B Flash, +56 B RAM
+  ✓ [29/44] Hdc1080 (esp8285_1mb): +2876 B Flash, +36 B RAM
+  ✓ [30/44] Hx710 (esp8285_1mb): +1688 B Flash, +32 B RAM
+  ✓ [31/44] Hx711 (esp8285_1mb): +1220 B Flash, +52 B RAM
+  ✓ [32/44] Ina219 (esp8285_1mb): +7328 B Flash, +292 B RAM
+  ✓ [33/44] Ina226 (esp8285_1mb): +7120 B Flash, +292 B RAM
+  ✓ [34/44] Max6675 (esp8285_1mb): +1000 B Flash, +44 B RAM
+  ✗ [35/44] ModbusRTU — не удалось распарсить размер
+  ✗ [36/44] Pzem004 — не удалось распарсить размер
+  ✓ [37/44] RCswitch (esp8285_1mb): +3124 B Flash, +816 B RAM
+  ✓ [38/44] Scd40 (esp8285_1mb): +8992 B Flash, +1768 B RAM
+  ✓ [39/44] Sds011 (esp8285_1mb): +11856 B Flash, +1180 B RAM
+  ✓ [40/44] Sgp30 (esp8285_1mb): +3228 B Flash, +76 B RAM
+  ✓ [41/44] Sht20 (esp8285_1mb): +3116 B Flash, +44 B RAM
+  ✓ [42/44] Sht30 (esp8285_1mb): +3912 B Flash, +160 B RAM
+  ✓ [43/44] UART (esp8285_1mb): +8024 B Flash, +372 B RAM
+  ✓ [44/44] Ping (esp8285_1mb): +3464 B Flash, +112 B RAM
+
+  Итог
+────────────────────────────────────────────────────────────
+  ✓ Файлов modinfo.json обновлено: 38
+  ✓ platformio.ini восстановлен.
+
+  Восстановление состояния проекта
+────────────────────────────────────────────────────────────
+  ✓ PrepareProject применён: myProfile.json (env=esp8266_1mb_ota)

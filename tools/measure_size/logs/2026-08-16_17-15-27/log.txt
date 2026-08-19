@@ -1,0 +1,88 @@
+
+  ✓ Лог запуска сохранён: E:\GitHub\IoTManager\tools\measure_size\logs\2026-08-16_17-15-27
+
+  Выбор режима обработки
+────────────────────────────────────────────────────────────
+
+  Выберите режим обработки модулей:
+    1 — обработка ВСЕХ модулей (107)
+    2 — обработка только модулей из myProfile.json (1)
+    3 — обработка только модулей без информации о размере (53)
+
+  ● Режим 3: обработка модулей без информации о размере (55)
+
+  Измерение размера Flash/RAM модулей
+────────────────────────────────────────────────────────────
+  ● Профиль: myProfile.json
+  ● Платформы: esp32s3_16mb
+  ● Всего сборок: baseline × 1 + 53 модулей 
+
+  Базовая сборка (без модулей)
+────────────────────────────────────────────────────────────
+  ✓ esp32s3_16mb: baseline Flash=1,054,441 B, baseline RAM=60,556 B, total Flash=4,718,592 B, total RAM=327,680 B
+  ✓ platforms.json обновлён: E:\GitHub\IoTManager\tools\measure_size\platforms.json
+
+  Измерение модулей — esp32s3_16mb
+────────────────────────────────────────────────────────────
+  ✓ [1/53] DwinI (esp32s3_16mb): +10056 B Flash, +608 B RAM
+  ✗ [2/53] GyverLAMP — не удалось распарсить размер
+  ✓ [3/53] Lcd2004 (esp32s3_16mb): +11048 B Flash, +8 B RAM
+  ✗ [4/53] NextionUpload — не удалось распарсить размер
+  ✓ [5/53] Oled128 (esp32s3_16mb): +9976 B Flash, +1088 B RAM
+  ✓ [6/53] Oled64 (esp32s3_16mb): +20156 B Flash, +504 B RAM
+  ✓ [7/53] TM16XX (esp32s3_16mb): +8520 B Flash, +16 B RAM
+  ✓ [8/53] Ws2812b (esp32s3_16mb): +8452 B Flash, +24 B RAM
+  ✗ [9/53] EctoControlAdapter — не удалось распарсить размер
+  ✓ [10/53] Encoder (esp32s3_16mb): +3020 B Flash, +0 B RAM
+  ✓ [11/53] IoTServo (esp32s3_16mb): +7808 B Flash, +72 B RAM
+  ✓ [12/53] IRremote (esp32s3_16mb): +124548 B Flash, +8 B RAM
+  ✓ [13/53] Mcp23008 (esp32s3_16mb): +16256 B Flash, +32 B RAM
+  ✓ [14/53] Mcp23017 (esp32s3_16mb): +16400 B Flash, +32 B RAM
+  ✓ [15/53] Mp3 (esp32s3_16mb): +10916 B Flash, +608 B RAM
+  ✓ [16/53] Pcf8574 (esp32s3_16mb): +9144 B Flash, +0 B RAM
+  ✓ [17/53] SDcard (esp32s3_16mb): +55892 B Flash, +420 B RAM
+  ✓ [18/53] Tca9555 (esp32s3_16mb): +9340 B Flash, +0 B RAM
+  ✗ [19/53] Telegram — не удалось распарсить размер
+  ✓ [20/53] Telegram_v2 (esp32s3_16mb): +160748 B Flash, +1076 B RAM
+  ✓ [21/53] Ads1115 (esp32s3_16mb): +8996 B Flash, +0 B RAM
+  ✓ [22/53] AhtXX (esp32s3_16mb): +11800 B Flash, +24 B RAM
+  ✓ [23/53] Bh1750 (esp32s3_16mb): +8248 B Flash, +0 B RAM
+  ✓ [24/53] Ble (esp32s3_16mb): +254208 B Flash, +6736 B RAM
+  ✓ [25/53] Ble_part1 (esp32s3_16mb): +202360 B Flash, +5800 B RAM
+  ✓ [26/53] Ble_part2 (esp32s3_16mb): +228496 B Flash, +6200 B RAM
+  ✓ [27/53] Bme280 (esp32s3_16mb): +22204 B Flash, +80 B RAM
+  ✓ [28/53] Bmp280 (esp32s3_16mb): +20100 B Flash, +80 B RAM
+  ✓ [29/53] Dht1122 (esp32s3_16mb): +3556 B Flash, +24 B RAM
+  ✓ [30/53] Ds18b20 (esp32s3_16mb): +7284 B Flash, +24 B RAM
+  ✗ [31/53] DS2401 — не удалось распарсить размер
+  ✓ [32/53] Ds2423 (esp32s3_16mb): +7372 B Flash, +24 B RAM
+  ✓ [33/53] Emon (esp32s3_16mb): +3084 B Flash, +192 B RAM
+  ✓ [34/53] FreqMeter (esp32s3_16mb): +13020 B Flash, +16488 B RAM
+  ✓ [35/53] GY21 (esp32s3_16mb): +8144 B Flash, +8 B RAM
+  ✓ [36/53] Hdc1080 (esp32s3_16mb): +8320 B Flash, +0 B RAM
+  ✓ [37/53] Hx710 (esp32s3_16mb): +2616 B Flash, +0 B RAM
+  ✓ [38/53] Hx711 (esp32s3_16mb): +1864 B Flash, +0 B RAM
+  ✓ [39/53] Ina219 (esp32s3_16mb): +13772 B Flash, +48 B RAM
+  ✓ [40/53] Ina226 (esp32s3_16mb): +13560 B Flash, +48 B RAM
+  ✗ [41/53] IoTWiegand — не удалось распарсить размер
+  ✓ [42/53] ld2410 (esp32s3_16mb): +15044 B Flash, +56 B RAM
+  ✓ [43/53] Max6675 (esp32s3_16mb): +1752 B Flash, +8 B RAM
+  ✗ [44/53] ModbusRTU — не удалось распарсить размер
+  ✓ [45/53] ModbusRTUasync (esp32s3_16mb): +27760 B Flash, +212 B RAM
+  ✗ [46/53] Pzem004 — не удалось распарсить размер
+  ✓ [47/53] RCswitch (esp32s3_16mb): +5556 B Flash, +1032 B RAM
+  ✓ [48/53] Scd40 (esp32s3_16mb): +16388 B Flash, +264 B RAM
+  ✓ [49/53] Sds011 (esp32s3_16mb): +8960 B Flash, +400 B RAM
+  ✓ [50/53] Sgp30 (esp32s3_16mb): +8708 B Flash, +8 B RAM
+  ✓ [51/53] Sht20 (esp32s3_16mb): +8740 B Flash, +8 B RAM
+  ✓ [52/53] Sht30 (esp32s3_16mb): +9784 B Flash, +16 B RAM
+  ✓ [53/53] UART (esp32s3_16mb): +10528 B Flash, +616 B RAM
+
+  Итог
+────────────────────────────────────────────────────────────
+  ✓ Файлов modinfo.json обновлено: 45
+  ✓ platformio.ini восстановлен.
+
+  Восстановление состояния проекта
+────────────────────────────────────────────────────────────
+  ✓ PrepareProject применён: myProfile.json (env=esp8266_1mb_ota)

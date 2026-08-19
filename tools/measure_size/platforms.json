@@ -271,5 +271,19 @@
         "total_flash": 1083136,
         "total_ram": 262144,
         "failed_modules": []
+    },
+    "esp32_16mb": {
+        "baseline_flash": 1077989,
+        "baseline_ram": 49244,
+        "total_flash": 4718592,
+        "total_ram": 327680,
+        "failed_modules": []
+    },
+    "esp32_wifirep": {
+        "baseline_flash": 767869,
+        "baseline_ram": 40496,
+        "total_flash": 1572864,
+        "total_ram": 327680,
+        "failed_modules": []
     }
 }

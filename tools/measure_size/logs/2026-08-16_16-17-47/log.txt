@@ -1,0 +1,79 @@
+
+  ✓ Лог запуска сохранён: E:\GitHub\IoTManager\tools\measure_size\logs\2026-08-16_16-17-47
+
+  Выбор режима обработки
+────────────────────────────────────────────────────────────
+
+  Выберите режим обработки модулей:
+    1 — обработка ВСЕХ модулей (94)
+    2 — обработка только модулей из myProfile.json (1)
+    3 — обработка только модулей без информации о размере (44)
+
+  ● Режим 3: обработка модулей без информации о размере (59)
+
+  Измерение размера Flash/RAM модулей
+────────────────────────────────────────────────────────────
+  ● Профиль: myProfile.json
+  ● Платформы: esp8266_2mb_ota
+  ● Всего сборок: baseline × 1 + 44 модулей 
+
+  Базовая сборка (без модулей)
+────────────────────────────────────────────────────────────
+  ✓ esp8266_2mb_ota: baseline Flash=453,023 B, baseline RAM=37,400 B, total Flash=1,044,464 B, total RAM=81,920 B
+  ✓ platforms.json обновлён: E:\GitHub\IoTManager\tools\measure_size\platforms.json
+
+  Измерение модулей — esp8266_2mb_ota
+────────────────────────────────────────────────────────────
+  ✓ [1/44] DwinI (esp8266_2mb_ota): +8024 B Flash, +328 B RAM
+  ✗ [2/44] GyverLAMP — не удалось распарсить размер
+  ✓ [3/44] Lcd2004 (esp8266_2mb_ota): +6000 B Flash, +200 B RAM
+  ✗ [4/44] Nextion — не удалось распарсить размер
+  ✗ [5/44] NextionUpload — не удалось распарсить размер
+  ✓ [6/44] Oled128 (esp8266_2mb_ota): +6124 B Flash, +1244 B RAM
+  ✓ [7/44] Oled64 (esp8266_2mb_ota): +11744 B Flash, +612 B RAM
+  ✓ [8/44] TM16XX (esp8266_2mb_ota): +6856 B Flash, +92 B RAM
+  ✓ [9/44] Ws2812b (esp8266_2mb_ota): +4300 B Flash, +268 B RAM
+  ✓ [10/44] Encoder (esp8266_2mb_ota): +2024 B Flash, +80 B RAM
+  ✓ [11/44] IRremote (esp8266_2mb_ota): +99216 B Flash, +2124 B RAM
+  ✓ [12/44] Mcp23008 (esp8266_2mb_ota): +7284 B Flash, +168 B RAM
+  ✓ [13/44] Mcp23017 (esp8266_2mb_ota): +7284 B Flash, +168 B RAM
+  ✓ [14/44] Mp3 (esp8266_2mb_ota): +8284 B Flash, +360 B RAM
+  ✓ [15/44] Pcf8574 (esp8266_2mb_ota): +3812 B Flash, +236 B RAM
+  ✓ [16/44] Tca9555 (esp8266_2mb_ota): +3740 B Flash, +112 B RAM
+  ✓ [17/44] Ads1115 (esp8266_2mb_ota): +3520 B Flash, +64 B RAM
+  ✓ [18/44] AhtXX (esp8266_2mb_ota): +5804 B Flash, +164 B RAM
+  ✓ [19/44] Bh1750 (esp8266_2mb_ota): +3160 B Flash, +16 B RAM
+  ✓ [20/44] Bme280 (esp8266_2mb_ota): +11180 B Flash, +192 B RAM
+  ✓ [21/44] Bmp280 (esp8266_2mb_ota): +9824 B Flash, +176 B RAM
+  ✓ [22/44] Dht1122 (esp8266_2mb_ota): +2728 B Flash, +84 B RAM
+  ✓ [23/44] Ds18b20 (esp8266_2mb_ota): +5220 B Flash, +84 B RAM
+  ✗ [24/44] DS2401 — не удалось распарсить размер
+  ✓ [25/44] Ds2423 (esp8266_2mb_ota): +5440 B Flash, +136 B RAM
+  ✓ [26/44] Emon (esp8266_2mb_ota): +2212 B Flash, +228 B RAM
+  ✓ [27/44] FreqMeter (esp8266_2mb_ota): +11508 B Flash, +17052 B RAM
+  ✓ [28/44] GY21 (esp8266_2mb_ota): +2912 B Flash, +56 B RAM
+  ✓ [29/44] Hdc1080 (esp8266_2mb_ota): +2888 B Flash, +32 B RAM
+  ✓ [30/44] Hx710 (esp8266_2mb_ota): +1688 B Flash, +32 B RAM
+  ✓ [31/44] Hx711 (esp8266_2mb_ota): +1220 B Flash, +44 B RAM
+  ✓ [32/44] Ina219 (esp8266_2mb_ota): +7352 B Flash, +268 B RAM
+  ✓ [33/44] Ina226 (esp8266_2mb_ota): +7144 B Flash, +268 B RAM
+  ✓ [34/44] Max6675 (esp8266_2mb_ota): +1000 B Flash, +28 B RAM
+  ✗ [35/44] ModbusRTU — не удалось распарсить размер
+  ✗ [36/44] Pzem004 — не удалось распарсить размер
+  ✓ [37/44] RCswitch (esp8266_2mb_ota): +3076 B Flash, +796 B RAM
+  ✓ [38/44] Scd40 (esp8266_2mb_ota): +9008 B Flash, +1768 B RAM
+  ✓ [39/44] Sds011 (esp8266_2mb_ota): +11836 B Flash, +1148 B RAM
+  ✓ [40/44] Sgp30 (esp8266_2mb_ota): +3244 B Flash, +68 B RAM
+  ✓ [41/44] Sht20 (esp8266_2mb_ota): +3132 B Flash, +36 B RAM
+  ✓ [42/44] Sht30 (esp8266_2mb_ota): +3940 B Flash, +140 B RAM
+  ✓ [43/44] UART (esp8266_2mb_ota): +8012 B Flash, +364 B RAM
+  ✓ [44/44] Ping (esp8266_2mb_ota): +3648 B Flash, +208 B RAM
+
+  Итог
+────────────────────────────────────────────────────────────
+  ✓ Файлов modinfo.json обновлено: 38
+  ✓ platformio.ini восстановлен.
+
+  Восстановление состояния проекта
+────────────────────────────────────────────────────────────
+  ✓ PrepareProject применён: myProfile.json (env=esp8266_1mb_ota)

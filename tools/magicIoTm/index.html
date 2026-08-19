@@ -23,7 +23,7 @@ body.dark{background:var(--bg);color:var(--text)}
 .sidebar-actions{padding:8px;display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--border)}
 .sidebar-actions button{font-size:12px;padding:4px 8px}
 .project-tree{flex:1;overflow-y:auto;padding:8px}
-.tree-category{margin-bottom:8px}
+.tree-category{margin-bottom:2px}
 .tree-cat-header{display:flex;align-items:center;padding:4px 8px;cursor:pointer;border-radius:4px;font-weight:600;font-size:13px}
 .tree-cat-header:hover{background:rgba(74,144,217,0.1)}
 .tree-cat-header .cat-actions{margin-left:auto;display:flex;gap:4px;visibility:hidden;pointer-events:none}
@@ -35,6 +35,11 @@ body.dark{background:var(--bg);color:var(--text)}
 .tree-project .proj-actions{margin-left:auto;display:flex;gap:4px;visibility:hidden;pointer-events:none}
 .tree-project:hover .proj-actions,.tree-project.active .proj-actions{visibility:visible;pointer-events:auto}
 .tree-project .proj-actions button{background:none;border:none;color:inherit;cursor:pointer;font-size:14px;padding:0 2px}
+
+/* Виртуальный защищённый проект PlatformIO (в стиле дерева, с разделителями) */
+.platformio-sep{margin:2px 8px 0;border-top:2px solid var(--accent);border-bottom:2px solid var(--accent);padding:4px 2px}
+.platformio-sep .tree-project{padding:4px 8px;font-size:13px}
+.platformio-sep .proj-actions button{background:none;border:none;color:inherit;cursor:pointer;font-size:14px;padding:0 2px}
 
 /* Main content */
 .topbar{padding:8px 16px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;z-index:50}
@@ -135,6 +140,14 @@ textarea{resize:vertical;min-height:60px;font-family:inherit}
       <h1>magicIoTm</h1>
       <button class="btn-sm" onclick="toggleTheme()" title="Тема">🌙</button>
     </div>
+    <div class="platformio-sep">
+      <div class="tree-project" id="platformioEntry" title="Виртуальный проект PlatformIO (только копирование)" onclick="openProject('__virtual__','PlatformIO')">
+        🔧 PlatformIO
+        <div class="proj-actions">
+          <button title="Копировать в другой проект" onclick="event.stopPropagation();showCopy('__virtual__','PlatformIO')">⧉</button>
+        </div>
+      </div>
+    </div>
     <div class="sidebar-actions">
       <button class="btn-sm btn-primary" onclick="showCreateCategory()" title="Создать новую категорию">+ Категория</button>
       <button class="btn-sm btn-primary" onclick="showCreateProject()" title="Создать новый проект">+ Проект</button>
@@ -148,7 +161,7 @@ textarea{resize:vertical;min-height:60px;font-family:inherit}
   <!-- Main -->
   <div class="main">
     <div class="topbar">
-      <span class="project-name" id="topProjectName">Проект не выбран</span>
+      <span class="project-name" id="topProjectName" style="display:none">Проект не выбран</span>
       <div class="platform-select" id="platformSelectWrap" style="display:none">
         <label>Платформа:</label>
         <select id="platformSelect" onchange="changePlatform()"></select>
@@ -189,6 +202,7 @@ textarea{resize:vertical;min-height:60px;font-family:inherit}
 // ==================== State ====================
 let configData = null;
 let currentProject = null;
+let collapsedCats = new Set();
 let moduleCompat = {};
 
 // ==================== Init ====================
@@ -234,14 +248,14 @@ function renderTree(tree){
   let html = '';
   for(const [cat, projs] of Object.entries(tree)){
     html += `<div class="tree-category">
-      <div class="tree-cat-header" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display=='none'?'block':'none'">
+      <div class="tree-cat-header" onclick="toggleCat('${esc(cat)}', this)">
         📁 ${esc(cat)}
         <div class="cat-actions">
           <button class="btn-sm" title="Создать проект в этой категории" onclick="event.stopPropagation();showCreateProject('${esc(cat)}')">+</button>
           <button class="btn-sm btn-danger" title="Удалить категорию со всеми проектами" onclick="event.stopPropagation();deleteCategory('${esc(cat)}')">✕</button>
         </div>
       </div>
-      <div class="tree-projects">`;
+      <div class="tree-projects"${collapsedCats.has(cat)?' style="display:none"':''}>`;
     for(const p of projs){
       const active = currentProject && currentProject.category===cat && currentProject.name===p;
       html += `<div class="tree-project ${active?'active':''}" onclick="openProject('${esc(cat)}','${esc(p)}')">
@@ -257,15 +271,44 @@ function renderTree(tree){
     html += '</div></div>';
   }
   el.innerHTML = html;
+  updatePlatformioActive();
+}
+
+// Сворачивание/разворачивание категории с сохранением состояния при перерисовке
+function toggleCat(cat, el){
+  const body = el.nextElementSibling;
+  if(!body) return;
+  if(collapsedCats.has(cat)){
+    collapsedCats.delete(cat);
+    body.style.display = 'block';
+  } else {
+    collapsedCats.add(cat);
+    body.style.display = 'none';
+  }
+}
+
+// Обновление подсветки виртуального проекта PlatformIO
+function updatePlatformioActive(){
+  const el = document.getElementById('platformioEntry');
+  if(!el) return;
+  el.classList.toggle('active', !!(currentProject && currentProject.name === 'PlatformIO'));
 }
 
 async function openProject(cat, name){
-  const r = await fetch(`/api/projects/${encodeURIComponent(cat)}/${encodeURIComponent(name)}/open`, {method:'POST'});
+  // Виртуальный проект PlatformIO открывается через специальный endpoint
+  let url;
+  if(name === 'PlatformIO'){
+    url = '/api/platformio/open';
+  } else {
+    url = `/api/projects/${encodeURIComponent(cat)}/${encodeURIComponent(name)}/open`;
+  }
+  const r = await fetch(url, {method:'POST'});
   const d = await r.json();
   if(!d.success){ toast(d.error||'Ошибка', 'error'); return; }
   configData = d.config;
   currentProject = {category: cat, name: name};
-  document.getElementById('topProjectName').textContent = `${cat} / ${name}`;
+  const displayName = (name === 'PlatformIO') ? 'PlatformIO' : `${cat} / ${name}`;
+  document.getElementById('topProjectName').textContent = displayName;
   document.getElementById('platformSelectWrap').style.display = 'flex';
   document.getElementById('gaugeBar').style.display = 'flex';
   document.getElementById('gaugeBarRam').style.display = 'flex';
@@ -319,11 +362,14 @@ async function loadCompatibility(){
 // ==================== Content rendering ====================
 function renderContent(about){
   const el = document.getElementById('content');
-  el.innerHTML = `
+  // Для виртуального проекта PlatformIO поле описания скрыто
+  const isPio = !!(currentProject && currentProject.name === 'PlatformIO');
+  const aboutSection = isPio ? '' : `
     <div class="content-section">
       <h2>📝 Описание проекта</h2>
       <textarea id="aboutText" style="width:100%;min-height:80px" placeholder="Описание проекта..." oninput="debounceSaveAbout()">${esc(about||'')}</textarea>
-    </div>
+    </div>`;
+  el.innerHTML = `
     <div class="content-section">
       <div class="section-header">
         <h2>📡 Настройки устройства (iotmSettings)</h2>
@@ -338,7 +384,7 @@ function renderContent(about){
       </div>
       <div class="module-list" id="moduleList"></div>
     </div>
-  `;
+  ` + aboutSection;
   renderSettings();
   renderModules();
 }
@@ -378,7 +424,7 @@ function renderSettings(){
       if(type === 'password'){
         html += `<div class="pw-wrap">
           <input type="password" id="set_${key}" value="${esc(String(val))}" onchange="saveSetting('${key}', this.value)">
-          <button type="button" class="pw-toggle" id="btn_set_${key}" title="Показать/скрыть пароль" onclick="togglePass('set_${key}')">👁️</button>
+          <button type="button" class="pw-toggle" id="btn_set_${key}" title="Показать/скрыть пароль" onclick="togglePass('set_${key}')">🔓</button>
         </div>`;
       } else {
         html += `<input type="${type}" id="set_${key}" value="${esc(String(val))}" onchange="saveSetting('${key}', this.value)" oninput="validateField('${key}', this)">`;
@@ -399,8 +445,8 @@ function togglePass(id){
   const inp = document.getElementById(id);
   const btn = document.getElementById('btn_' + id);
   if(!inp) return;
-  if(inp.type === 'password'){ inp.type='text'; btn.textContent='🙈'; }
-  else { inp.type='password'; btn.textContent='👁️'; }
+  if(inp.type === 'password'){ inp.type='text'; btn.textContent='🔒'; }
+  else { inp.type='password'; btn.textContent='🔓'; }
 }
 
 async function saveSetting(key, value){
@@ -627,6 +673,7 @@ function resetToInitial(){
       <h2>Добро пожаловать в magicIoTm</h2>
       <p>Создайте или выберите проект слева для начала работы</p>
     </div>`;
+  updatePlatformioActive();
 }
 
 function showRename(cat, name){
@@ -650,12 +697,15 @@ function showCopy(srcCat, srcName){
     <div class="modal-actions"><button title="Закрыть без сохранения" onclick="closeModal()">Отмена</button><button class="btn-primary" title="Создать копию проекта" onclick="copyProject('${esc(srcCat)}','${esc(srcName)}')">Копировать</button></div>`);
   fetch('/api/projects').then(r=>r.json()).then(d=>{
     const sel = document.getElementById('copyDstCat');
-    for(const cat of Object.keys(d.tree||{})){
+    const cats = Object.keys(d.tree||{});
+    cats.forEach(cat => {
       const o = document.createElement('option');
       o.value = cat; o.textContent = cat;
-      if(cat === srcCat) o.selected = true;
       sel.appendChild(o);
-    }
+    });
+    // Выбираем категорию источника, если она реальна; иначе первую доступную
+    sel.value = srcCat;
+    if(!sel.value && cats.length) sel.selectedIndex = 0;
   });
 }
 async function copyProject(srcCat, srcName){

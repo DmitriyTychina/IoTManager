@@ -6,6 +6,7 @@ Web-сервер на Flask для управления проектами и к
 import json
 import os
 import glob
+import re
 import logging
 import threading
 from datetime import datetime
@@ -38,6 +39,7 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(BASE_DIR))
 ROOT_CONFIG_FILE = os.path.join(PROJECT_ROOT, 'myProfile.json')
 MODULES_SRC_DIR = os.path.join(PROJECT_ROOT, 'src', 'modules')
 PLATFORMS_FILE = os.path.join(BASE_DIR, '..', 'measure_size', 'platforms.json')
+PLATFORMIO_INI_FILE = os.path.join(PROJECT_ROOT, 'platformio.ini')
 
 # ==================== Состояние ====================
 current_project = None  # {"category": ..., "name": ...}
@@ -58,6 +60,53 @@ def load_platforms():
         logger.info(f"Загружено платформ: {len(platforms_cache)}")
     except Exception as e:
         logger.error(f"platforms.json: {e}")
+
+
+def load_platformio_envs(ini_path=None):
+    """Получение списка платформ из platformio.ini (секции [env:*]).
+
+    Исключаются вспомогательные секции вида *_fromitems.
+    Возвращает список имён платформ в порядке появления в файле.
+    """
+    ini_path = ini_path or PLATFORMIO_INI_FILE
+    envs = []
+    try:
+        with open(ini_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                m = re.match(r'^\s*\[env:([^\]]+)\]\s*$', line)
+                if m:
+                    name = m.group(1).strip()
+                    # Пропускаем вспомогательные секции-шаблоны от PreBuild
+                    if name.endswith('_fromitems'):
+                        continue
+                    if name not in envs:
+                        envs.append(name)
+        logger.info(f"platformio.ini: загружено платформ: {len(envs)}")
+    except Exception as e:
+        logger.error(f"platformio.ini: {e}")
+    return envs
+
+
+def get_project_platformio_path(proj=None):
+    """Путь к platformio.ini текущего проекта (из папки проекта).
+
+    Если проект не открыт, является виртуальным PlatformIO или у проекта нет
+    собственного platformio.ini — используется корневой platformio.ini.
+    """
+    if not proj:
+        return PLATFORMIO_INI_FILE
+    if projects.is_platformio(proj.get("name", "")):
+        return PLATFORMIO_INI_FILE
+    path = os.path.join(projects.PROJECTS_DIR, proj.get("category", ""), proj.get("name", ""), "platformio.ini")
+    if os.path.exists(path):
+        return path
+    return PLATFORMIO_INI_FILE
+
+
+def get_platformio_platforms():
+    """Список платформ из platformio.ini текущего проекта (или корневого)"""
+    ini = get_project_platformio_path(current_project)
+    return load_platformio_envs(ini)
 
 
 def scan_modinfo():
@@ -238,12 +287,16 @@ def api_create_project():
 
 @app.route('/api/projects/<category>/<name>', methods=['DELETE'])
 def api_delete_project(category, name):
+    if projects.is_platformio(name):
+        return jsonify({"success": False, "error": "Виртуальный проект PlatformIO нельзя удалить"}), 400
     ok, msg = projects.delete_project(category, name)
     return jsonify({"success": ok, "error": msg if not ok else None})
 
 
 @app.route('/api/projects/<category>/<name>/rename', methods=['POST'])
 def api_rename_project(category, name):
+    if projects.is_platformio(name):
+        return jsonify({"success": False, "error": "Виртуальный проект PlatformIO нельзя переименовать"}), 400
     new_name = request.json.get('name', '').strip()
     if not new_name:
         return jsonify({"success": False, "error": "Новое имя не указано"}), 400
@@ -254,16 +307,24 @@ def api_rename_project(category, name):
 @app.route('/api/projects/copy', methods=['POST'])
 def api_copy_project():
     data = request.json
-    ok, msg = projects.copy_project(
-        data.get('src_cat', ''), data.get('src_name', ''),
-        data.get('dst_cat', ''), data.get('dst_name', '')
-    )
+    src_cat = data.get('src_cat', '')
+    src_name = data.get('src_name', '')
+    dst_cat = data.get('dst_cat', '')
+    dst_name = data.get('dst_name', '')
+    if projects.is_platformio(src_name):
+        # Копирование виртуального проекта PlatformIO:
+        # создаём обычный проект из корневого myProfile.json как шаблона
+        ok, msg = projects.create_project(dst_cat, dst_name, "")
+    else:
+        ok, msg = projects.copy_project(src_cat, src_name, dst_cat, dst_name)
     return jsonify({"success": ok, "error": msg if not ok else None})
 
 
 @app.route('/api/projects/move', methods=['POST'])
 def api_move_project():
     data = request.json
+    if projects.is_platformio(data.get('src_name', '')):
+        return jsonify({"success": False, "error": "Виртуальный проект PlatformIO нельзя перенести"}), 400
     ok, msg = projects.move_project(
         data.get('src_cat', ''), data.get('src_name', ''),
         data.get('dst_cat', ''), data.get('dst_name', '')
@@ -288,6 +349,34 @@ def api_open_project(category, name):
         current_platform = de
     logger.info(f"Открыт проект: {category}/{name}")
     return jsonify({"success": True, "config": config, "about": about, "platform": current_platform})
+
+
+@app.route('/api/platformio/open', methods=['POST'])
+def api_open_platformio():
+    """Открытие виртуального проекта PlatformIO.
+
+    Данные берутся напрямую из корневого myProfile.json,
+    список платформ — из platformio.ini.
+    """
+    global current_project, current_config, current_platform
+    if not os.path.exists(ROOT_CONFIG_FILE):
+        return jsonify({"success": False, "error": "myProfile.json не найден"}), 404
+    with open(ROOT_CONFIG_FILE, 'r', encoding='utf-8') as f:
+        config = json.load(f)
+    current_project = {"category": "__virtual__", "name": projects.PLATFORMIO_PROJECT}
+    current_config = config
+    # Платформа по умолчанию из конфига
+    de = config.get("projectProp", {}).get("platformio", {}).get("default_envs", "")
+    if de:
+        current_platform = de
+    logger.info(f"Открыт виртуальный проект: {projects.PLATFORMIO_PROJECT}")
+    return jsonify({
+        "success": True,
+        "config": config,
+        "about": "",
+        "platform": current_platform,
+        "protected": True,
+    })
 
 
 @app.route('/api/projects/last', methods=['GET'])
@@ -400,8 +489,9 @@ def api_module_info():
 
 @app.route('/api/platforms', methods=['GET'])
 def api_platforms():
-    envs = (current_config or {}).get("projectProp", {}).get("platformio", {}).get("envs", [])
-    return jsonify({"success": True, "platforms": [{"name": e.get("name", "")} for e in envs if "name" in e]})
+    # Список платформ берём из platformio.ini текущего проекта (или корневого)
+    platforms = [{"name": p} for p in get_platformio_platforms()]
+    return jsonify({"success": True, "platforms": platforms})
 
 
 @app.route('/api/platform/change', methods=['POST'])
@@ -410,8 +500,7 @@ def api_change_platform():
     if not current_project:
         return jsonify({"success": False, "error": "Проект не открыт"}), 400
     new_plat = request.json.get('platform', '')
-    envs = current_config.get("projectProp", {}).get("platformio", {}).get("envs", [])
-    names = [e.get("name") for e in envs]
+    names = get_platformio_platforms()
     if new_plat not in names:
         return jsonify({"success": False, "error": "Платформа не найдена"}), 400
     current_platform = new_plat
