@@ -500,10 +500,27 @@ def show_platform_menu(modules):
         supported = count_modules_for_envs(modules, [name])
         # Количество модулей в ошибке (failed_modules) для данной платформы
         failed = len(platforms_data.get(name, {}).get("failed_modules", []))
+        # Цвет имени платформы:
+        #   red — платформа отсутствует в platforms.json или одно из значений
+        #         (baseline_flash / baseline_ram / total_flash / total_ram) равно 0.
+        name_color = "cyan"
+        pdata = platforms_data.get(name)
+        if pdata is None:
+            name_color = "red"
+        else:
+            values = [
+                pdata.get("baseline_flash"),
+                pdata.get("baseline_ram"),
+                pdata.get("total_flash"),
+                pdata.get("total_ram"),
+            ]
+            # Значение 0 или отсутствующее (None) считается «не измеренным»
+            if any(v is None or v == 0 for v in values):
+                name_color = "red"
         print(
             style(f"    {i + 1}", "green", bold=True) +
             " — " +
-            style(f"{name}", "cyan") +
+            style(f"{name}", name_color) +
             f" обработано {supported} из {total_modules}, " +
             style(f"в ошибке {failed}", "red")
         )
