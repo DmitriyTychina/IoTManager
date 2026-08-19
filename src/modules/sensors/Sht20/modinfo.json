@@ -62,16 +62,16 @@
                 "esp32_4mb3f": 8840,
                 "esp8266_16mb": 3116,
                 "esp32cam_4mb": 9144,
-                "esp32s2_4mb": "-",
-                "esp32s3_16mb": "-",
+                "esp32s2_4mb": 8732,
+                "esp32s3_16mb": 8740,
                 "esp32c3m_4mb": 8680,
-                "esp8266_1mb_ota": "-",
-                "esp8266_2mb": "-",
-                "esp8266_2mb_ota": "-",
-                "esp8285_1mb": "-",
+                "esp8266_1mb_ota": 3116,
+                "esp8266_2mb": 3132,
+                "esp8266_2mb_ota": 3132,
+                "esp8285_1mb": 3116,
                 "esp8285_1mb_ota": 3116,
                 "esp32c6_4mb": 2506,
-                "esp32c6_8mb": "-"
+                "esp32c6_8mb": 2504
             },
             "usedRAM": {
                 "esp8266_1mb": 44,
@@ -80,16 +80,16 @@
                 "esp32_4mb3f": 16,
                 "esp8266_16mb": 44,
                 "esp32cam_4mb": 16,
-                "esp32s2_4mb": "-",
-                "esp32s3_16mb": "-",
+                "esp32s2_4mb": 16,
+                "esp32s3_16mb": 8,
                 "esp32c3m_4mb": 8,
-                "esp8266_1mb_ota": "-",
-                "esp8266_2mb": "-",
-                "esp8266_2mb_ota": "-",
-                "esp8285_1mb": "-",
+                "esp8266_1mb_ota": 36,
+                "esp8266_2mb": 28,
+                "esp8266_2mb_ota": 36,
+                "esp8285_1mb": 44,
                 "esp8285_1mb_ota": 36,
                 "esp32c6_4mb": 8,
-                "esp32c6_8mb": "-"
+                "esp32c6_8mb": 8
             }
         }
     ]

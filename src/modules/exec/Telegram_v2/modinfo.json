@@ -170,22 +170,22 @@
                 "esp32_4mb": 164796,
                 "esp32_4mb3f": 164796,
                 "esp32cam_4mb": 165584,
-                "esp32s2_4mb": "-",
-                "esp32s3_16mb": "-",
+                "esp32s2_4mb": 162544,
+                "esp32s3_16mb": 160748,
                 "esp32c3m_4mb": 169718,
                 "esp32c6_4mb": 130800,
-                "esp32c6_8mb": "-"
+                "esp32c6_8mb": 130810
             },
             "usedRAM": {
                 "esp8266_4mb": 2636,
                 "esp32_4mb": 1076,
                 "esp32_4mb3f": 1076,
                 "esp32cam_4mb": 1076,
-                "esp32s2_4mb": "-",
-                "esp32s3_16mb": "-",
+                "esp32s2_4mb": 1092,
+                "esp32s3_16mb": 1076,
                 "esp32c3m_4mb": 1088,
                 "esp32c6_4mb": 672,
-                "esp32c6_8mb": "-"
+                "esp32c6_8mb": 672
             }
         }
     ]

@@ -80,7 +80,7 @@ from datetime import datetime
 from pathlib import Path
 
 # IoTManager project root (parent of this script's folder)
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 os.chdir(PROJECT_ROOT)
 
 # Путь к platforms.json - tools\measure_size
@@ -244,8 +244,7 @@ BASELINE_MODULE_PATHS = []
 # ----------------------------------------------------------------------------
 # DEFAULT_ENVS = ["esp8266_4mb", "esp32_4mb", "esp32_4mb3f", "esp8266_16mb", "esp32cam_4mb", "esp32s2_4mb", "esp32s3_16mb", "esp32c3m_4mb", "esp8266_1mb", "esp8266_1mb_ota", "esp8266_2mb", "esp8266_2mb_ota", "esp8285_1mb", "esp8285_1mb_ota", "esp32c6_4mb", "esp32c6_8mb", "bk7231n"]
 # DEFAULT_ENVS = ["esp32s3_16mb", "esp32c3m_4mb", "esp32c6_4mb", "esp32_wifirep"]
-DEFAULT_ENVS = ["bk7231n"]
-
+DEFAULT_ENVS = []
 
 # ----------------------------------------------------------------------------
 # ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ РАБОТЫ С JSON
@@ -432,6 +431,100 @@ def show_menu(total_modules, profile_modules_count, modules_without_size_count):
             print()
             log_fail("Ввод прерван. Выход.")
             sys.exit(1)
+
+
+# ----------------------------------------------------------------------------
+# МЕНЮ ВЫБОРА ПЛАТФОРМЫ
+# ----------------------------------------------------------------------------
+
+def get_envs_from_platformio_ini():
+    """
+    Извлекает список платформ (env) из platformio.ini.
+
+    Платформы задаются секциями вида "[env:имя]" (например, "[env:esp32_4mb]").
+    Секции-шаблоны с суффиксом "_fromitems" (например, "[env:esp32_4mb_fromitems]")
+    пропускаются — они содержат только расширения настроек для модулей
+    и платформами не являются.
+
+    Возвращает список имён платформ (list[str]) в порядке их появления в файле.
+    """
+    ini_path = PROJECT_ROOT / "platformio.ini"
+    if not ini_path.is_file():
+        log_fail(f"Не найден файл platformio.ini: {ini_path}")
+        sys.exit(1)
+
+    envs = []
+    with open(ini_path, "r", encoding="utf-8") as f:
+        for line in f:
+            m = re.match(r"^\s*\[env:([^\]]+)\]\s*$", line)
+            if m:
+                name = m.group(1).strip()
+                if not name.endswith("_fromitems"):
+                    envs.append(name)
+    return envs
+
+
+def show_platform_menu(modules):
+    """
+    Показывает список платформ из platformio.ini
+    и ждёт выбора пользователя по номеру.
+
+    Для каждой платформы выводится:
+      номер - имя_платформы обработано X из Y
+    где X — количество модулей, поддерживающих эту платформу,
+        Y — общее количество модулей.
+
+    Параметры:
+      modules: список всех модулей (от collect_modules)
+
+    Возвращает: список из одной выбранной платформы (list[str]).
+    """
+    # Извлекаем список платформ из platformio.ini
+    platform_names = get_envs_from_platformio_ini()
+
+    if not platform_names:
+        log_fail("В platformio.ini не найдено ни одной платформы (секций [env:...])")
+        sys.exit(1)
+
+    total_modules = len(modules)
+
+    # Загружаем platforms.json для получения failed_modules по платформам
+    platforms_data = load_platforms_data()
+
+    log_section("Выбор платформы")
+    print()
+    print(style("  Выберите платформу:", "cyan", bold=True))
+    print()
+
+    for i, name in enumerate(platform_names):
+        supported = count_modules_for_envs(modules, [name])
+        # Количество модулей в ошибке (failed_modules) для данной платформы
+        failed = len(platforms_data.get(name, {}).get("failed_modules", []))
+        print(
+            style(f"    {i + 1}", "green", bold=True) +
+            " — " +
+            style(f"{name}", "cyan") +
+            f" обработано {supported} из {total_modules}, " +
+            style(f"в ошибке {failed}", "red")
+        )
+
+    print()
+
+    while True:
+        try:
+            choice = input(style("  Ваш выбор: ", "yellow")).strip()
+            idx = int(choice) - 1
+            if 0 <= idx < len(platform_names):
+                selected = platform_names[idx]
+                log_ok(f"Выбрана платформа: {selected}")
+                return [selected]
+            log_fail("Некорректный номер. Попробуйте снова.")
+        except (EOFError, KeyboardInterrupt):
+            print()
+            log_fail("Ввод прерван. Выход.")
+            sys.exit(1)
+        except ValueError:
+            log_fail("Введите номер платформы.")
 
 
 # ----------------------------------------------------------------------------
@@ -845,8 +938,6 @@ def main():
     if args.no_color:
         USE_COLOR = False
 
-    envs = args.env if args.env else DEFAULT_ENVS
-
     # -------------------------------------------------------------------------
     # ОПРЕДЕЛЕНИЕ ПРОФИЛЯ: ищем профиль сборки в порядке приоритета:
     #   1. Файл, указанный через --profile (по умолчанию myProfile.json)
@@ -862,6 +953,19 @@ def main():
     prof_template = load_json(profile_path)
     modules = collect_modules()
     baseline_paths = set(BASELINE_MODULE_PATHS)  # пустое множество — без модулей
+
+    # -------------------------------------------------------------------------
+    # ОПРЕДЕЛЕНИЕ ПЛАТФОРМ:
+    #   1. Если указан --env — используем его.
+    #   2. Если DEFAULT_ENVS не пуст — используем его.
+    #   3. Иначе — показываем меню выбора платформы из platformio.ini.
+    # -------------------------------------------------------------------------
+    if args.env:
+        envs = args.env
+    elif DEFAULT_ENVS:
+        envs = DEFAULT_ENVS
+    else:
+        envs = show_platform_menu(modules)
 
     # -------------------------------------------------------------------------
     # ЗАПУСК ЛОГИРОВАНИЯ В ФАЙЛ:

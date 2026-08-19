@@ -25,14 +25,14 @@ body.dark{background:var(--bg);color:var(--text)}
 .tree-category{margin-bottom:8px}
 .tree-cat-header{display:flex;align-items:center;padding:4px 8px;cursor:pointer;border-radius:4px;font-weight:600;font-size:13px}
 .tree-cat-header:hover{background:rgba(74,144,217,0.1)}
-.tree-cat-header .cat-actions{margin-left:auto;display:none;gap:4px}
-.tree-cat-header:hover .cat-actions{display:flex}
+.tree-cat-header .cat-actions{margin-left:auto;display:flex;gap:4px;visibility:hidden;pointer-events:none}
+.tree-cat-header:hover .cat-actions{visibility:visible;pointer-events:auto}
 .tree-projects{margin-left:12px;margin-top:2px}
 .tree-project{display:flex;align-items:center;padding:4px 8px;cursor:pointer;border-radius:4px;font-size:13px}
 .tree-project:hover{background:rgba(74,144,217,0.1)}
 .tree-project.active{background:var(--accent);color:#fff}
-.tree-project .proj-actions{margin-left:auto;display:none;gap:4px}
-.tree-project:hover .proj-actions,.tree-project.active .proj-actions{display:flex}
+.tree-project .proj-actions{margin-left:auto;display:flex;gap:4px;visibility:hidden;pointer-events:none}
+.tree-project:hover .proj-actions,.tree-project.active .proj-actions{visibility:visible;pointer-events:auto}
 .tree-project .proj-actions button{background:none;border:none;color:inherit;cursor:pointer;font-size:14px;padding:0 2px}
 
 /* Main content */
@@ -43,6 +43,7 @@ body.dark{background:var(--bg);color:var(--text)}
 
 /* Gauge */
 .gauge-bar{padding:8px 16px;background:var(--panel);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:16px}
+.gauge-label{font-size:13px;font-weight:700;white-space:nowrap;min-width:50px}
 .gauge-track{flex:1;height:24px;background:#e0e0e0;border-radius:12px;overflow:hidden;position:relative}
 body.dark .gauge-track{background:#2a2a4a}
 .gauge-fill{height:100%;border-radius:12px;transition:width 0.3s,background 0.3s;width:0%}
@@ -154,9 +155,16 @@ textarea{resize:vertical;min-height:60px;font-family:inherit}
     </div>
 
     <div class="gauge-bar" id="gaugeBar" style="display:none">
-      <div class="gauge-track"><div class="gauge-fill" id="gaugeFill"></div></div>
-      <span class="gauge-text" id="gaugeText">0%</span>
-      <span class="gauge-text" id="gaugeDetail" style="font-weight:400;font-size:11px;color:var(--muted)"></span>
+      <span class="gauge-label">FLASH:</span>
+      <div class="gauge-track"><div class="gauge-fill" id="gaugeFillFlash"></div></div>
+      <span class="gauge-text" id="gaugeTextFlash">0%</span>
+      <span class="gauge-text" id="gaugeDetailFlash" style="font-weight:400;font-size:11px;color:var(--muted)"></span>
+    </div>
+    <div class="gauge-bar" id="gaugeBarRam" style="display:none">
+      <span class="gauge-label">RAM:</span>
+      <div class="gauge-track"><div class="gauge-fill" id="gaugeFillRam"></div></div>
+      <span class="gauge-text" id="gaugeTextRam">0%</span>
+      <span class="gauge-text" id="gaugeDetailRam" style="font-weight:400;font-size:11px;color:var(--muted)"></span>
     </div>
 
     <div class="content" id="content">
@@ -259,6 +267,7 @@ async function openProject(cat, name){
   document.getElementById('topProjectName').textContent = `${cat} / ${name}`;
   document.getElementById('platformSelectWrap').style.display = 'flex';
   document.getElementById('gaugeBar').style.display = 'flex';
+  document.getElementById('gaugeBarRam').style.display = 'flex';
   await loadPlatforms();
   await loadCompatibility();
   renderContent(d.about || '');
@@ -493,21 +502,27 @@ async function toggleModule(section, path, active){
 }
 
 // ==================== Gauge ====================
-async function updateGauge(){
-  const r = await fetch('/api/size');
-  const d = await r.json();
-  const fill = document.getElementById('gaugeFill');
-  const text = document.getElementById('gaugeText');
-  const detail = document.getElementById('gaugeDetail');
+function setGauge(kind, pct, used, total){
+  const fill = document.getElementById(kind === 'ram' ? 'gaugeFillRam' : 'gaugeFillFlash');
+  const text = document.getElementById(kind === 'ram' ? 'gaugeTextRam' : 'gaugeTextFlash');
+  const detail = document.getElementById(kind === 'ram' ? 'gaugeDetailRam' : 'gaugeDetailFlash');
   if(!fill) return;
-  const pct = d.size || 0;
+  pct = Math.min(pct, 100);
   fill.style.width = pct + '%';
   let color = '#4caf50';
   if(pct > 90) color = '#f44336';
   else if(pct > 70) color = '#ff9800';
   fill.style.background = color;
   text.textContent = pct + '%';
-  detail.textContent = `${formatBytes(d.total_bytes||0)} / ${formatBytes(d.max_bytes||0)} (${d.platform||''})`;
+  detail.textContent = `${formatBytes(used||0)} / ${formatBytes(total||0)}`;
+}
+
+async function updateGauge(){
+  const r = await fetch('/api/size');
+  const d = await r.json();
+  if(!d) return;
+  setGauge('flash', d.flash_pct || 0, d.flash_used, d.flash_total);
+  setGauge('ram', d.ram_pct || 0, d.ram_used, d.ram_total);
 }
 
 function formatBytes(b){
@@ -605,6 +620,7 @@ function resetToInitial(){
   document.getElementById('topProjectName').textContent = 'Проект не выбран';
   document.getElementById('platformSelectWrap').style.display = 'none';
   document.getElementById('gaugeBar').style.display = 'none';
+  document.getElementById('gaugeBarRam').style.display = 'none';
   document.getElementById('content').innerHTML = `
     <div class="empty-state">
       <h2>Добро пожаловать в magicIoTm</h2>

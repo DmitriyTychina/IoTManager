@@ -34,17 +34,31 @@ CORS(app)
 _lock = threading.Lock()
 
 # ==================== Пути ====================
-PROJECT_ROOT = os.path.dirname(BASE_DIR)
+PROJECT_ROOT = os.path.dirname(os.path.dirname(BASE_DIR))
 ROOT_CONFIG_FILE = os.path.join(PROJECT_ROOT, 'myProfile.json')
 MODULES_SRC_DIR = os.path.join(PROJECT_ROOT, 'src', 'modules')
+PLATFORMS_FILE = os.path.join(BASE_DIR, '..', 'measure_size', 'platforms.json')
 
 # ==================== Состояние ====================
 current_project = None  # {"category": ..., "name": ...}
 current_config = None
 current_platform = "esp8266_4mb"
 modinfo_cache = {}
+platforms_cache = {}
 
 # ==================== modinfo кэш ====================
+
+def load_platforms():
+    """Загрузка platforms.json с baseline/total значениями"""
+    global platforms_cache
+    platforms_cache = {}
+    try:
+        with open(PLATFORMS_FILE, 'r', encoding='utf-8') as f:
+            platforms_cache = json.load(f)
+        logger.info(f"Загружено платформ: {len(platforms_cache)}")
+    except Exception as e:
+        logger.error(f"platforms.json: {e}")
+
 
 def scan_modinfo():
     """Сканирование всех modinfo.json"""
@@ -58,9 +72,17 @@ def scan_modinfo():
                 info = json.load(f)
             name = os.path.basename(os.path.dirname(fp))
             about = info.get("about", {})
+            # sizeInfo — массив, берём первый элемент
+            size_info_list = info.get("sizeInfo", [])
+            used_flash = {}
+            used_ram = {}
+            if size_info_list and isinstance(size_info_list, list):
+                si = size_info_list[0]
+                used_flash = si.get("usedFLASH", {})
+                used_ram = si.get("usedRAM", {})
             modinfo_cache[name] = {
-                "size": about.get("size", {}),
-                "usedRam": about.get("usedRam", {}),
+                "usedFLASH": used_flash,
+                "usedRAM": used_ram,
                 "usedLibs": info.get("usedLibs", {}),
                 "about": about,
             }
@@ -80,63 +102,74 @@ def is_compatible(platform, used_libs):
     return False
 
 
-def get_module_size(name, platform):
+def _lookup_platform_value(data, platform):
+    """Поиск значения по платформе с wildcard-фолбэком, '-' → 0"""
+    if not data or not isinstance(data, dict):
+        return 0
+    v = data.get(platform)
+    if v is not None and v != "-":
+        return int(v) if isinstance(v, (int, float, str)) else 0
+    # wildcard
+    for pattern, value in data.items():
+        if pattern.endswith("*") and platform.startswith(pattern[:-1]):
+            if value != "-":
+                return int(value) if isinstance(value, (int, float, str)) else 0
+            return 0
+    # кросс-платформенный фолбэк
+    if platform.startswith("esp82"):
+        v = data.get("esp32_4mb")
+        if v and v != "-":
+            return int(v)
+    if platform.startswith("esp32"):
+        v = data.get("esp8266_4mb")
+        if v and v != "-":
+            return int(v)
+    return 0
+
+
+def get_module_flash(name, platform):
+    """Размер FLASH модуля для платформы"""
     info = modinfo_cache.get(name, {})
-    size_data = info.get("size", {})
-    if isinstance(size_data, (int, float)):
-        return size_data
-    if isinstance(size_data, dict):
-        if platform in size_data:
-            return size_data[platform]
-        for pattern, value in size_data.items():
-            if pattern.endswith("*") and platform.startswith(pattern[:-1]):
-                return value
-        if platform.startswith("esp82"):
-            v = size_data.get("esp32_4mb", 0)
-            if v > 0:
-                return v
-        if platform.startswith("esp32"):
-            v = size_data.get("esp8266_4mb", 0)
-            if v > 0:
-                return v
-    if not size_data:
-        ur = info.get("usedRam", {})
-        if isinstance(ur, dict):
-            if platform in ur:
-                return ur[platform]
-            if platform.startswith("esp32"):
-                return ur.get("esp32_4mb", 0)
-            if platform.startswith("esp82"):
-                return ur.get("esp8266_4mb", 0)
-    return 0
+    return _lookup_platform_value(info.get("usedFLASH", {}), platform)
 
 
-def get_max_size(platform):
-    envs = (current_config or {}).get("projectProp", {}).get("platformio", {}).get("envs", [])
-    for env in envs:
-        if env.get("name") == platform:
-            try:
-                fw = int(env.get("firmware", "0x00000"), 16)
-                fs = int(env.get("littlefs", "0x00000"), 16)
-                return fs - fw
-            except (ValueError, TypeError):
-                return 0
-    return 0
+def get_module_ram(name, platform):
+    """Размер RAM модуля для платформы"""
+    info = modinfo_cache.get(name, {})
+    return _lookup_platform_value(info.get("usedRAM", {}), platform)
+
+
+def get_platform_limits(platform):
+    """Возвращает (baseline_flash, total_flash, baseline_ram, total_ram) из platforms.json"""
+    p = platforms_cache.get(platform, {})
+    return (
+        p.get("baseline_flash", 0),
+        p.get("total_flash", 0),
+        p.get("baseline_ram", 0),
+        p.get("total_ram", 0),
+    )
 
 
 def calc_size():
+    """Расчёт заполнения FLASH и RAM: baseline + сумма активных модулей"""
     if not current_config:
-        return 0, 0, 0
-    total = 0
+        return 0, 0, 0, 0, 0, 0
+    flash_total = 0
+    ram_total = 0
     for mods in current_config.get("modules", {}).values():
         if not isinstance(mods, list):
             continue
         for m in mods:
             if m.get("active"):
-                total += get_module_size(m.get("path", "").split("/")[-1], current_platform)
-    mx = get_max_size(current_platform)
-    pct = round(total / mx * 100) if mx > 0 else 0
-    return pct, total, mx
+                name = m.get("path", "").split("/")[-1]
+                flash_total += get_module_flash(name, current_platform)
+                ram_total += get_module_ram(name, current_platform)
+    bf, tf, br, tr = get_platform_limits(current_platform)
+    flash_used = bf + flash_total
+    ram_used = br + ram_total
+    flash_pct = round(flash_used / tf * 100) if tf > 0 else 0
+    ram_pct = round(ram_used / tr * 100) if tr > 0 else 0
+    return flash_pct, flash_used, tf, ram_pct, ram_used, tr
 
 
 def get_compat_map():
@@ -151,7 +184,8 @@ def get_compat_map():
             info = modinfo_cache.get(name, {})
             result[m.get("path", "")] = {
                 "compatible": is_compatible(current_platform, info.get("usedLibs", {})),
-                "size": get_module_size(name, current_platform),
+                "size": get_module_flash(name, current_platform),
+                "ram": get_module_ram(name, current_platform),
             }
     return result
 
@@ -334,8 +368,9 @@ def api_toggle_module():
                     m["active"] = active
                     break
         projects.save_project_config(current_project["category"], current_project["name"], current_config)
-    pct, total, mx = calc_size()
-    return jsonify({"success": True, "size": pct, "total_bytes": total, "max_bytes": mx})
+    fp, fu, ft, rp, ru, rt = calc_size()
+    return jsonify({"success": True, "flash_pct": fp, "flash_used": fu, "flash_total": ft,
+                     "ram_pct": rp, "ram_used": ru, "ram_total": rt})
 
 
 @app.route('/api/modules/compatibility', methods=['GET'])
@@ -352,7 +387,8 @@ def api_module_info():
     info = modinfo_cache.get(name, {})
     if not info:
         return jsonify({"success": False, "error": "Информация не найдена"}), 404
-    return jsonify({"success": True, "info": {"about": info.get("about", {}), "usedLibs": info.get("usedLibs", {}), "size": info.get("size", {})}})
+    return jsonify({"success": True, "info": {"about": info.get("about", {}), "usedLibs": info.get("usedLibs", {}),
+                                               "usedFLASH": info.get("usedFLASH", {}), "usedRAM": info.get("usedRAM", {})}})
 
 
 # ==================== Маршруты: платформы ====================
@@ -389,15 +425,18 @@ def api_change_platform():
         # Сохраняем default_envs
         current_config.setdefault("projectProp", {}).setdefault("platformio", {})["default_envs"] = current_platform
         projects.save_project_config(current_project["category"], current_project["name"], current_config)
-    pct, total, mx = calc_size()
+    fp, fu, ft, rp, ru, rt = calc_size()
     logger.info(f"Платформа: {current_platform}, отключено: {disabled}")
-    return jsonify({"success": True, "platform": current_platform, "size": pct, "disabled_count": disabled})
+    return jsonify({"success": True, "platform": current_platform, "flash_pct": fp, "flash_used": fu, "flash_total": ft,
+                     "ram_pct": rp, "ram_used": ru, "ram_total": rt, "disabled_count": disabled})
 
 
 @app.route('/api/size', methods=['GET'])
 def api_size():
-    pct, total, mx = calc_size()
-    return jsonify({"size": pct, "total_bytes": total, "max_bytes": mx, "platform": current_platform})
+    fp, fu, ft, rp, ru, rt = calc_size()
+    return jsonify({"flash_pct": fp, "flash_used": fu, "flash_total": ft,
+                     "ram_pct": rp, "ram_used": ru, "ram_total": rt,
+                     "platform": current_platform})
 
 
 # ==================== Маршруты: валидация ====================
@@ -509,6 +548,7 @@ def init():
     logger.info("magicIoTm запускается...")
     logger.info("=" * 60)
     projects.ensure_dirs()
+    load_platforms()
     scan_modinfo()
     logger.info("Готов к работе")
     logger.info("=" * 60)

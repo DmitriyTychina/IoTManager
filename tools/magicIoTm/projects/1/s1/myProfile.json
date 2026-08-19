@@ -155,11 +155,11 @@
     "virtual_elments": [
       {
         "path": "src/modules/virtual/Benchmark",
-        "active": true
+        "active": false
       },
       {
         "path": "src/modules/virtual/Cron",
-        "active": true
+        "active": false
       },
       {
         "path": "src/modules/virtual/DiscoveryHA",
@@ -175,7 +175,7 @@
       },
       {
         "path": "src/modules/virtual/Loging",
-        "active": true
+        "active": false
       },
       {
         "path": "src/modules/virtual/Loging2",
@@ -187,15 +187,15 @@
       },
       {
         "path": "src/modules/virtual/LogingDaily",
-        "active": true
+        "active": false
       },
       {
         "path": "src/modules/virtual/LogingHourly",
-        "active": true
+        "active": false
       },
       {
         "path": "src/modules/virtual/Math",
-        "active": true
+        "active": false
       },
       {
         "path": "src/modules/virtual/owmWeather",
@@ -203,23 +203,23 @@
       },
       {
         "path": "src/modules/virtual/Ping",
-        "active": true
+        "active": false
       },
       {
         "path": "src/modules/virtual/Timer",
-        "active": true
+        "active": false
       },
       {
         "path": "src/modules/virtual/UpdateServer",
-        "active": true
+        "active": false
       },
       {
         "path": "src/modules/virtual/Variable",
-        "active": true
+        "active": false
       },
       {
         "path": "src/modules/virtual/VButton",
-        "active": true
+        "active": false
       },
       {
         "path": "src/modules/virtual/Weather",
@@ -233,7 +233,7 @@
       },
       {
         "path": "src/modules/sensors/A02Distance",
-        "active": true
+        "active": false
       },
       {
         "path": "src/modules/sensors/Acs712",
@@ -245,11 +245,11 @@
       },
       {
         "path": "src/modules/sensors/AhtXX",
-        "active": true
+        "active": false
       },
       {
         "path": "src/modules/sensors/AnalogAdc",
-        "active": true
+        "active": false
       },
       {
         "path": "src/modules/sensors/BH_1750",
@@ -277,19 +277,19 @@
       },
       {
         "path": "src/modules/sensors/Bme280",
-        "active": true
+        "active": false
       },
       {
         "path": "src/modules/sensors/Bmp280",
-        "active": true
+        "active": false
       },
       {
         "path": "src/modules/sensors/Dht1122",
-        "active": true
+        "active": false
       },
       {
         "path": "src/modules/sensors/Ds18b20",
-        "active": true
+        "active": false
       },
       {
         "path": "src/modules/sensors/DS2401",
@@ -385,7 +385,7 @@
       },
       {
         "path": "src/modules/sensors/RCswitch",
-        "active": true
+        "active": false
       },
       {
         "path": "src/modules/sensors/RTC",
@@ -417,7 +417,7 @@
       },
       {
         "path": "src/modules/sensors/Sonar",
-        "active": true
+        "active": false
       },
       {
         "path": "src/modules/sensors/UART",
@@ -435,15 +435,15 @@
       },
       {
         "path": "src/modules/exec/ButtonIn",
-        "active": true
+        "active": false
       },
       {
         "path": "src/modules/exec/ButtonOut",
-        "active": true
+        "active": false
       },
       {
         "path": "src/modules/exec/Buzzer",
-        "active": true
+        "active": false
       },
       {
         "path": "src/modules/exec/EctoControlAdapter",
@@ -487,7 +487,7 @@
       },
       {
         "path": "src/modules/exec/Multitouch",
-        "active": true
+        "active": false
       },
       {
         "path": "src/modules/exec/MySensors",
@@ -581,7 +581,7 @@
       },
       {
         "path": "src/modules/display/TM16XX",
-        "active": true
+        "active": false
       },
       {
         "path": "src/modules/display/Ws2812b",

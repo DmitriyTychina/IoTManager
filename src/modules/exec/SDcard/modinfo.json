@@ -40,7 +40,7 @@
                 "esp32_4mb3f": 58504,
                 "esp32cam_4mb": 58196,
                 "esp32s2_4mb": "-",
-                "esp32s3_16mb": "-",
+                "esp32s3_16mb": 55892,
                 "esp32c3m_4mb": "-",
                 "esp32c6_4mb": "-",
                 "esp32c6_8mb": "-"
@@ -50,7 +50,7 @@
                 "esp32_4mb3f": 504,
                 "esp32cam_4mb": 488,
                 "esp32s2_4mb": "-",
-                "esp32s3_16mb": "-",
+                "esp32s3_16mb": 420,
                 "esp32c3m_4mb": "-",
                 "esp32c6_4mb": "-",
                 "esp32c6_8mb": "-"

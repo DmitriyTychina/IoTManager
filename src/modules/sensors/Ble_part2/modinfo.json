@@ -81,7 +81,7 @@
                 "esp32_4mb3f": 299504,
                 "esp32cam_4mb": "-",
                 "esp32s2_4mb": 0,
-                "esp32s3_16mb": "-",
+                "esp32s3_16mb": 228496,
                 "esp32c3m_4mb": 246154,
                 "esp32c6_4mb": "-",
                 "esp32c6_8mb": "-"
@@ -91,7 +91,7 @@
                 "esp32_4mb3f": 9684,
                 "esp32cam_4mb": "-",
                 "esp32s2_4mb": 0,
-                "esp32s3_16mb": "-",
+                "esp32s3_16mb": 6200,
                 "esp32c3m_4mb": 6200,
                 "esp32c6_4mb": "-",
                 "esp32c6_8mb": "-"

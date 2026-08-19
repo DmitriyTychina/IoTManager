@@ -1,7 +1,7 @@
 {
     "projectProp": {
         "platformio": {
-            "default_envs": "esp8266_1mb"
+            "default_envs": "esp32s3_16mb"
         }
     },
     "modules": {
@@ -102,7 +102,7 @@
             },
             {
                 "path": "src/modules/sensors/AnalogAdc",
-                "active": false
+                "active": true
             },
             {
                 "path": "src/modules/sensors/BH_1750",
@@ -414,7 +414,7 @@
             },
             {
                 "path": "src/modules/display/Nextion",
-                "active": true
+                "active": false
             },
             {
                 "path": "src/modules/display/NextionUpload",
