@@ -22,7 +22,8 @@ body.dark{background:var(--bg);color:var(--text)}
 .sidebar-header h1{font-size:16px;font-weight:600;flex:1}
 .sidebar-actions{padding:8px;display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--border)}
 .sidebar-actions button{font-size:12px;padding:4px 8px}
-.project-tree{flex:1;overflow-y:auto;padding:8px}
+.project-tree{flex:1;overflow-y:auto;padding:8px;scrollbar-width:none;-ms-overflow-style:none}
+.project-tree::-webkit-scrollbar{width:0;height:0;display:none}
 .tree-category{margin-bottom:2px}
 .tree-cat-header{display:flex;align-items:center;padding:4px 8px;cursor:pointer;border-radius:4px;font-weight:600;font-size:13px}
 .tree-cat-header:hover{background:rgba(74,144,217,0.1)}
@@ -141,7 +142,7 @@ textarea{resize:vertical;min-height:60px;font-family:inherit}
       <button class="btn-sm" onclick="toggleTheme()" title="Тема">🌙</button>
     </div>
     <div class="platformio-sep">
-      <div class="tree-project" id="platformioEntry" title="Виртуальный проект PlatformIO (только копирование)" onclick="openProject('__virtual__','PlatformIO')">
+      <div class="tree-project" id="platformioEntry" title="Проект PlatformIO" onclick="openProject('__virtual__','PlatformIO')">
         🔧 PlatformIO
         <div class="proj-actions">
           <button title="Копировать в другой проект" onclick="event.stopPropagation();showCopy('__virtual__','PlatformIO')">⧉</button>
@@ -307,9 +308,13 @@ async function openProject(cat, name){
   if(!d.success){ toast(d.error||'Ошибка', 'error'); return; }
   configData = d.config;
   currentProject = {category: cat, name: name};
-  const displayName = (name === 'PlatformIO') ? 'PlatformIO' : `${cat} / ${name}`;
+  const isPio = (name === 'PlatformIO');
+  const displayName = isPio ? 'PlatformIO' : `${cat} / ${name}`;
   document.getElementById('topProjectName').textContent = displayName;
+  // Селектор платформы виден, но для обычных проектов недоступен (disabled)
   document.getElementById('platformSelectWrap').style.display = 'flex';
+  document.getElementById('platformSelect').disabled = !isPio;
+  document.getElementById('platformSelect').title = isPio ? '' : 'Платформа фиксирована для данного проекта';
   document.getElementById('gaugeBar').style.display = 'flex';
   document.getElementById('gaugeBarRam').style.display = 'flex';
   await loadPlatforms();
@@ -479,14 +484,14 @@ async function validateField(key, input){
     if(val.includes(' ')){ hint.textContent='Без пробелов'; hint.className='form-hint'; input.classList.add('invalid'); return; }
     const r = await fetch(`/api/validate/name?value=${encodeURIComponent(val)}&project=${currentProject?currentProject.category+'/'+currentProject.name:''}`);
     const d = await r.json();
-    if(d.valid){ hint.textContent='✓ Уникально'; hint.className='form-hint ok'; input.classList.remove('invalid'); }
-    else{ hint.textContent=d.message; hint.className='form-hint'; input.classList.add('invalid'); }
+    if(d.valid){ hint.textContent='✓ Уникально'; hint.className='form-hint ok'; input.classList.remove('invalid'); input.removeAttribute('title'); }
+    else{ hint.textContent=d.message; hint.className='form-hint'; input.classList.add('invalid'); input.title=d.message; }
   }
   if(key === 'apssid' && input.value.trim()){
     const r = await fetch(`/api/validate/apssid?value=${encodeURIComponent(input.value.trim())}&project=${currentProject?currentProject.category+'/'+currentProject.name:''}`);
     const d = await r.json();
-    if(d.valid){ hint.textContent='✓ Уникально'; hint.className='form-hint ok'; input.classList.remove('invalid'); }
-    else{ hint.textContent=d.message; hint.className='form-hint'; input.classList.add('invalid'); }
+    if(d.valid){ hint.textContent='✓ Уникально'; hint.className='form-hint ok'; input.classList.remove('invalid'); input.removeAttribute('title'); }
+    else{ hint.textContent=d.message; hint.className='form-hint'; input.classList.add('invalid'); input.title=d.message; }
   }
 }
 

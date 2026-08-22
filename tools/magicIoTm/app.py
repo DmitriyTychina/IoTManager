@@ -7,6 +7,7 @@ import json
 import os
 import glob
 import re
+import shutil
 import logging
 import threading
 from datetime import datetime
@@ -90,7 +91,7 @@ def load_platformio_envs(ini_path=None):
 def get_project_platformio_path(proj=None):
     """Путь к platformio.ini текущего проекта (из папки проекта).
 
-    Если проект не открыт, является виртуальным PlatformIO или у проекта нет
+    Если проект не открыт, является проектом PlatformIO или у проекта нет
     собственного platformio.ini — используется корневой platformio.ini.
     """
     if not proj:
@@ -312,9 +313,14 @@ def api_copy_project():
     dst_cat = data.get('dst_cat', '')
     dst_name = data.get('dst_name', '')
     if projects.is_platformio(src_name):
-        # Копирование виртуального проекта PlatformIO:
+        # Копирование проекта PlatformIO:
         # создаём обычный проект из корневого myProfile.json как шаблона
         ok, msg = projects.create_project(dst_cat, dst_name, "")
+        if ok:
+            # Копируем и platformio.ini из корня в новый проект
+            dst_dir = os.path.join(projects.PROJECTS_DIR, dst_cat, dst_name)
+            if os.path.exists(PLATFORMIO_INI_FILE):
+                shutil.copy(PLATFORMIO_INI_FILE, os.path.join(dst_dir, 'platformio.ini'))
     else:
         ok, msg = projects.copy_project(src_cat, src_name, dst_cat, dst_name)
     return jsonify({"success": ok, "error": msg if not ok else None})
@@ -353,7 +359,7 @@ def api_open_project(category, name):
 
 @app.route('/api/platformio/open', methods=['POST'])
 def api_open_platformio():
-    """Открытие виртуального проекта PlatformIO.
+    """Открытие проекта PlatformIO.
 
     Данные берутся напрямую из корневого myProfile.json,
     список платформ — из platformio.ini.
@@ -369,7 +375,7 @@ def api_open_platformio():
     de = config.get("projectProp", {}).get("platformio", {}).get("default_envs", "")
     if de:
         current_platform = de
-    logger.info(f"Открыт виртуальный проект: {projects.PLATFORMIO_PROJECT}")
+    logger.info(f"Открыт проект: {projects.PLATFORMIO_PROJECT}")
     return jsonify({
         "success": True,
         "config": config,
@@ -489,7 +495,11 @@ def api_module_info():
 
 @app.route('/api/platforms', methods=['GET'])
 def api_platforms():
-    # Список платформ берём из platformio.ini текущего проекта (или корневого)
+    # Список платформ загружаем только для проекта PlatformIO.
+    # Для обычных проектов платформа фиксирована (из конфига) — менять её нельзя.
+    if not current_project or not projects.is_platformio(current_project.get("name", "")):
+        de = (current_config or {}).get("projectProp", {}).get("platformio", {}).get("default_envs", "")
+        return jsonify({"success": True, "platforms": [{"name": de}] if de else []})
     platforms = [{"name": p} for p in get_platformio_platforms()]
     return jsonify({"success": True, "platforms": platforms})
 
@@ -499,6 +509,8 @@ def api_change_platform():
     global current_platform
     if not current_project:
         return jsonify({"success": False, "error": "Проект не открыт"}), 400
+    if not projects.is_platformio(current_project.get("name", "")):
+        return jsonify({"success": False, "error": "Смена платформы доступна только для проекта PlatformIO"}), 403
     new_plat = request.json.get('platform', '')
     names = get_platformio_platforms()
     if new_plat not in names:

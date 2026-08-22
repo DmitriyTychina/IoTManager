@@ -1,0 +1,33 @@
+[
+    {
+        "name": "Выберите элемент",
+        "num": 0
+    },
+    {
+        "header": "virtual_elments"
+    },
+    {
+        "header": "sensors"
+    },
+    {
+        "header": "executive_devices"
+    },
+    {
+        "global": 0,
+        "name": "1. Аналоговая кнопка",
+        "type": "Reading",
+        "subtype": "AnalogBtn",
+        "id": "abtn",
+        "widget": "toggle",
+        "page": "Кнопки",
+        "descr": "Освещение",
+        "pin": 34,
+        "aValue": -1,
+        "delta": 50,
+        "num": 1,
+        "moduleName": "AnalogBtn"
+    },
+    {
+        "header": "screens"
+    }
+]

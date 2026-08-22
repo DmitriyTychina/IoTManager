@@ -321,7 +321,10 @@ def load_history():
 # ==================== Валидация ====================
 
 def get_all_field_values(field, exclude_project=None):
-    """Сбор значений поля из всех проектов (кроме текущего)"""
+    """Сбор значений поля из всех проектов (кроме текущего).
+
+    Возвращает словарь {значение: [список проектов, использующих значение]}.
+    """
     values = {}
     tree = list_projects()
     for cat, projects in tree.items():
@@ -332,7 +335,7 @@ def get_all_field_values(field, exclude_project=None):
             if config:
                 val = config.get("iotmSettings", {}).get(field, "")
                 if val:
-                    values[val] = f"{cat}/{proj}"
+                    values.setdefault(val, []).append(f"{cat}/{proj}")
     # Виртуальный проект PlatformIO (данные берутся из корневого myProfile.json)
     if exclude_project not in (f"__virtual__/{PLATFORMIO_PROJECT}", PLATFORMIO_PROJECT) and os.path.exists(ROOT_CONFIG_FILE):
         try:
@@ -340,7 +343,7 @@ def get_all_field_values(field, exclude_project=None):
                 pio_config = json.load(f)
             val = pio_config.get("iotmSettings", {}).get(field, "")
             if val:
-                values[val] = PLATFORMIO_PROJECT
+                values.setdefault(val, []).append(PLATFORMIO_PROJECT)
         except Exception as e:
             logger.error(f"Ошибка чтения корневого конфига PlatformIO: {e}")
     return values
@@ -356,9 +359,9 @@ def validate_name(name, current_project=None):
         return False, "Имя не должно содержать пробелы"
     # Проверка уникальности (текущий проект не участвует)
     all_names = get_all_field_values("name", exclude_project=current_project)
-    owner = all_names.get(name)
-    if owner:
-        return False, f"Имя уже используется в проекте: {owner}"
+    owners = all_names.get(name)
+    if owners:
+        return False, f"Имя уже используется в проектах: {', '.join(owners)}"
     return True, "OK"
 
 
@@ -367,9 +370,9 @@ def validate_apssid(apssid, current_project=None):
     if not apssid:
         return True, "OK"  # Может быть пустым
     all_ssids = get_all_field_values("apssid", exclude_project=current_project)
-    owner = all_ssids.get(apssid)
-    if owner:
-        return False, f"AP SSID уже используется в проекте: {owner}"
+    owners = all_ssids.get(apssid)
+    if owners:
+        return False, f"AP SSID уже используется в проектах: {', '.join(owners)}"
     return True, "OK"
 
 
