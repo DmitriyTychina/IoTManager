@@ -508,11 +508,7 @@ def api_module_info():
 
 @app.route('/api/platforms', methods=['GET'])
 def api_platforms():
-    # Список платформ загружаем только для проекта PlatformIO.
-    # Для обычных проектов платформа фиксирована (из конфига) — менять её нельзя.
-    if not current_project or not projects.is_platformio(current_project.get("name", "")):
-        de = (current_config or {}).get("projectProp", {}).get("platformio", {}).get("default_envs", "")
-        return jsonify({"success": True, "platforms": [{"name": de}] if de else []})
+    # Список платформ берём из platformio.ini текущего проекта (или корневого)
     platforms = [{"name": p} for p in get_platformio_platforms()]
     return jsonify({"success": True, "platforms": platforms})
 
@@ -522,8 +518,6 @@ def api_change_platform():
     global current_platform
     if not current_project:
         return jsonify({"success": False, "error": "Проект не открыт"}), 400
-    if not projects.is_platformio(current_project.get("name", "")):
-        return jsonify({"success": False, "error": "Смена платформы доступна только для проекта PlatformIO"}), 403
     new_plat = request.json.get('platform', '')
     names = get_platformio_platforms()
     if new_plat not in names:

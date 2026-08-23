@@ -48,6 +48,11 @@ body.dark{background:var(--bg);color:var(--text)}
 .topbar .project-name{font-weight:600;font-size:14px}
 .topbar .platform-select{display:flex;align-items:center;gap:6px}
 .topbar select{padding:4px 8px;border:1px solid var(--border);border-radius:4px;background:var(--panel);color:var(--text)}
+.build-upload{margin-left:auto;display:flex;align-items:center;gap:8px}
+.build-upload .btn-build,
+.build-upload .btn-upload{font-size:18px;line-height:1;padding:3px 7px;background:var(--panel);border:1px solid var(--border);color:var(--text);border-radius:4px}
+.build-upload .btn-build:hover,
+.build-upload .btn-upload:hover{background:rgba(74,144,217,0.12);border-color:var(--accent);color:var(--text)}
 
 /* Gauge */
 .gauge-bar{padding:8px 16px;background:var(--panel);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:16px}
@@ -144,7 +149,7 @@ textarea{resize:vertical;min-height:60px;font-family:inherit}
     </div>
     <div class="platformio-sep">
       <div class="tree-project" id="platformioEntry" title="Проект PlatformIO" onclick="openProject('__virtual__','PlatformIO')">
-        🔧 PlatformIO
+        🛠️ PlatformIO
         <div class="proj-actions">
           <button class="btn-sm" title="Копировать в другой проект" onclick="event.stopPropagation();showCopy('__virtual__','PlatformIO')"><span>⧉</span></button>
         </div>
@@ -167,6 +172,11 @@ textarea{resize:vertical;min-height:60px;font-family:inherit}
       <div class="platform-select" id="platformSelectWrap" style="display:none">
         <label>Платформа:</label>
         <select id="platformSelect" onchange="changePlatform()"></select>
+      </div>
+      <div class="build-upload">
+        <button class="btn-sm btn-build" title="Сборка (Build)" onclick="event.stopPropagation()">🔨</button>
+        <button class="btn-upload" title="Загрузка (Upload)" onclick="event.stopPropagation()">🚀</button>
+        <button class="btn-upload" title="OTA (обновление по воздуху)" onclick="event.stopPropagation()">📡</button>
       </div>
     </div>
 
@@ -263,7 +273,7 @@ function renderTree(tree){
       const active = currentProject && currentProject.category===cat && currentProject.name===p;
       const desc = projectAbout[cat+'/'+p] || '';
       html += `<div class="tree-project ${active?'active':''}" onclick="openProject('${esc(cat)}','${esc(p)}')" title="${esc(desc)}">
-        🔧 ${esc(p)}
+        🛠️ ${esc(p)}
         <div class="proj-actions">
           <button class="btn-sm" title="Переименовать" onclick="event.stopPropagation();showRename('${esc(cat)}','${esc(p)}')">✎</button>
           <button class="btn-sm" title="Копировать" onclick="event.stopPropagation();showCopy('${esc(cat)}','${esc(p)}')">⧉</button>
@@ -314,10 +324,7 @@ async function openProject(cat, name){
   const isPio = (name === 'PlatformIO');
   const displayName = isPio ? 'PlatformIO' : `${cat} / ${name}`;
   document.getElementById('topProjectName').textContent = displayName;
-  // Селектор платформы виден, но для обычных проектов недоступен (disabled)
   document.getElementById('platformSelectWrap').style.display = 'flex';
-  document.getElementById('platformSelect').disabled = !isPio;
-  document.getElementById('platformSelect').title = isPio ? '' : 'Платформа фиксирована для данного проекта';
   document.getElementById('gaugeBar').style.display = 'flex';
   document.getElementById('gaugeBarRam').style.display = 'flex';
   await loadPlatforms();
