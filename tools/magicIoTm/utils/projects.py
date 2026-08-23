@@ -21,13 +21,13 @@ BACKUP_DIR = os.path.join(PROJECTS_DIR, '.backups')
 
 CONFIG_FILENAME = 'myProfile.json'
 
-# Виртуальный защищённый проект PlatformIO (нельзя переименовать, перенести, удалить).
+# Защищённый проект PlatformIO (нельзя переименовать, перенести, удалить).
 # Его данные берутся напрямую из корневого myProfile.json, а список платформ — из platformio.ini.
 PLATFORMIO_PROJECT = 'PlatformIO'
 
 
 def is_platformio(name):
-    """Проверка, является ли имя проекта виртуальным проектом PlatformIO"""
+    """Проверка, является ли имя проектом PlatformIO"""
     return name == PLATFORMIO_PROJECT
 
 
@@ -153,7 +153,7 @@ def create_project(category, name, description=""):
 def delete_project(category, name):
     """Удаление проекта с резервной копией"""
     if is_platformio(name):
-        return False, "Виртуальный проект PlatformIO нельзя удалить"
+        return False, "Проект PlatformIO нельзя удалить"
     proj_path = os.path.join(PROJECTS_DIR, category, name)
     if not os.path.exists(proj_path):
         return False, "Проект не найден"
@@ -166,7 +166,7 @@ def delete_project(category, name):
 def rename_project(category, old_name, new_name):
     """Переименование проекта"""
     if is_platformio(old_name):
-        return False, "Виртуальный проект PlatformIO нельзя переименовать"
+        return False, "Проект PlatformIO нельзя переименовать"
     cat_path = os.path.join(PROJECTS_DIR, category)
     old_path = os.path.join(cat_path, old_name)
     new_path = os.path.join(cat_path, new_name)
@@ -222,7 +222,7 @@ def copy_project(src_cat, src_name, dst_cat, dst_name):
 def move_project(src_cat, src_name, dst_cat, dst_name=None):
     """Перенос проекта в другую категорию (с возможностью переименования)"""
     if is_platformio(src_name):
-        return False, "Виртуальный проект PlatformIO нельзя перенести"
+        return False, "Проект PlatformIO нельзя перенести"
     src_path = os.path.join(PROJECTS_DIR, src_cat, src_name)
     dst_cat_path = os.path.join(PROJECTS_DIR, dst_cat)
     if not os.path.exists(src_path):
@@ -269,7 +269,7 @@ def load_project_config(category, name):
 def save_project_config(category, name, config):
     """Сохранение myProfile.json проекта"""
     if is_platformio(name):
-        # Виртуальный проект PlatformIO пишет напрямую в корневой myProfile.json
+        # Проект PlatformIO пишет напрямую в корневой myProfile.json
         with open(ROOT_CONFIG_FILE, 'w', encoding='utf-8') as f:
             json.dump(config, f, ensure_ascii=False, indent=2)
         return
@@ -287,10 +287,22 @@ def load_project_about(category, name):
         return f.read()
 
 
+def get_all_abouts():
+    """Сбор описаний (about.txt) всех проектов: {cat/name: text}"""
+    result = {}
+    tree = list_projects()
+    for cat, projs in tree.items():
+        for proj in projs:
+            text = load_project_about(cat, proj).strip()
+            if text:
+                result[f"{cat}/{proj}"] = text
+    return result
+
+
 def save_project_about(category, name, text):
     """Сохранение about.txt"""
     if is_platformio(name):
-        # У виртуального проекта нет about.txt — игнорируем сохранение
+        # У проекта PlatformIO нет about.txt — игнорируем сохранение
         return
     path = os.path.join(PROJECTS_DIR, category, name, 'about.txt')
     with open(path, 'w', encoding='utf-8') as f:
@@ -336,7 +348,7 @@ def get_all_field_values(field, exclude_project=None):
                 val = config.get("iotmSettings", {}).get(field, "")
                 if val:
                     values.setdefault(val, []).append(f"{cat}/{proj}")
-    # Виртуальный проект PlatformIO (данные берутся из корневого myProfile.json)
+    # Проект PlatformIO (данные берутся из корневого myProfile.json)
     if exclude_project not in (f"__virtual__/{PLATFORMIO_PROJECT}", PLATFORMIO_PROJECT) and os.path.exists(ROOT_CONFIG_FILE):
         try:
             with open(ROOT_CONFIG_FILE, 'r', encoding='utf-8') as f:

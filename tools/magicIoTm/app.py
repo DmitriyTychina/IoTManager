@@ -256,7 +256,11 @@ def favicon():
 
 @app.route('/api/projects', methods=['GET'])
 def api_list_projects():
-    return jsonify({"success": True, "tree": projects.list_projects()})
+    return jsonify({
+        "success": True,
+        "tree": projects.list_projects(),
+        "about": projects.get_all_abouts(),
+    })
 
 
 @app.route('/api/projects/category', methods=['POST'])
@@ -289,7 +293,7 @@ def api_create_project():
 @app.route('/api/projects/<category>/<name>', methods=['DELETE'])
 def api_delete_project(category, name):
     if projects.is_platformio(name):
-        return jsonify({"success": False, "error": "Виртуальный проект PlatformIO нельзя удалить"}), 400
+        return jsonify({"success": False, "error": "Проект PlatformIO нельзя удалить"}), 400
     ok, msg = projects.delete_project(category, name)
     return jsonify({"success": ok, "error": msg if not ok else None})
 
@@ -297,7 +301,7 @@ def api_delete_project(category, name):
 @app.route('/api/projects/<category>/<name>/rename', methods=['POST'])
 def api_rename_project(category, name):
     if projects.is_platformio(name):
-        return jsonify({"success": False, "error": "Виртуальный проект PlatformIO нельзя переименовать"}), 400
+        return jsonify({"success": False, "error": "Проект PlatformIO нельзя переименовать"}), 400
     new_name = request.json.get('name', '').strip()
     if not new_name:
         return jsonify({"success": False, "error": "Новое имя не указано"}), 400
@@ -330,7 +334,7 @@ def api_copy_project():
 def api_move_project():
     data = request.json
     if projects.is_platformio(data.get('src_name', '')):
-        return jsonify({"success": False, "error": "Виртуальный проект PlatformIO нельзя перенести"}), 400
+        return jsonify({"success": False, "error": "Проект PlatformIO нельзя перенести"}), 400
     ok, msg = projects.move_project(
         data.get('src_cat', ''), data.get('src_name', ''),
         data.get('dst_cat', ''), data.get('dst_name', '')

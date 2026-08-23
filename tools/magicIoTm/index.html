@@ -37,7 +37,7 @@ body.dark{background:var(--bg);color:var(--text)}
 .tree-project:hover .proj-actions,.tree-project.active .proj-actions{visibility:visible;pointer-events:auto}
 .tree-project .proj-actions button{background:none;border:none;color:inherit;cursor:pointer;font-size:14px;padding:0 2px}
 
-/* Виртуальный защищённый проект PlatformIO (в стиле дерева, с разделителями) */
+/* Проект PlatformIO (в стиле дерева, с разделителями) */
 .platformio-sep{margin:2px 8px 0;border-top:2px solid var(--accent);border-bottom:2px solid var(--accent);padding:4px 2px}
 .platformio-sep .tree-project{padding:4px 8px;font-size:13px}
 .platformio-sep .proj-actions button{background:none;border:none;color:inherit;cursor:pointer;font-size:14px;padding:0 2px}
@@ -204,16 +204,15 @@ textarea{resize:vertical;min-height:60px;font-family:inherit}
 let configData = null;
 let currentProject = null;
 let collapsedCats = new Set();
+let projectAbout = {};
 let moduleCompat = {};
 
 // ==================== Init ====================
 document.addEventListener('DOMContentLoaded', () => {
   if (localStorage.getItem('magicIoTm_dark') === '1') document.body.classList.add('dark');
   loadProjects();
-  // Автооткрытие последнего проекта
-  fetch('/api/projects/last').then(r=>r.json()).then(d=>{
-    if(d.success && d.project) openProject(d.project.category, d.project.name);
-  });
+  // По умолчанию открываем проект PlatformIO
+  openProject('__virtual__', 'PlatformIO');
 });
 
 // ==================== Theme ====================
@@ -237,6 +236,7 @@ async function loadProjects(){
   const r = await fetch('/api/projects');
   const d = await r.json();
   if(!d.success) return;
+  projectAbout = d.about || {};
   renderTree(d.tree);
 }
 
@@ -259,7 +259,8 @@ function renderTree(tree){
       <div class="tree-projects"${collapsedCats.has(cat)?' style="display:none"':''}>`;
     for(const p of projs){
       const active = currentProject && currentProject.category===cat && currentProject.name===p;
-      html += `<div class="tree-project ${active?'active':''}" onclick="openProject('${esc(cat)}','${esc(p)}')">
+      const desc = projectAbout[cat+'/'+p] || '';
+      html += `<div class="tree-project ${active?'active':''}" onclick="openProject('${esc(cat)}','${esc(p)}')" title="${esc(desc)}">
         🔧 ${esc(p)}
         <div class="proj-actions">
           <button title="Переименовать" onclick="event.stopPropagation();showRename('${esc(cat)}','${esc(p)}')">✎</button>
@@ -288,7 +289,7 @@ function toggleCat(cat, el){
   }
 }
 
-// Обновление подсветки виртуального проекта PlatformIO
+// Обновление подсветки проекта PlatformIO
 function updatePlatformioActive(){
   const el = document.getElementById('platformioEntry');
   if(!el) return;
@@ -296,7 +297,7 @@ function updatePlatformioActive(){
 }
 
 async function openProject(cat, name){
-  // Виртуальный проект PlatformIO открывается через специальный endpoint
+  // Проект PlatformIO открывается через специальный endpoint
   let url;
   if(name === 'PlatformIO'){
     url = '/api/platformio/open';
@@ -322,7 +323,6 @@ async function openProject(cat, name){
   renderContent(d.about || '');
   updateGauge();
   loadProjects(); // обновить дерево (active)
-  toast(`Проект открыт: ${name}`, 'success');
 }
 
 // ==================== Platforms ====================
@@ -367,7 +367,7 @@ async function loadCompatibility(){
 // ==================== Content rendering ====================
 function renderContent(about){
   const el = document.getElementById('content');
-  // Для виртуального проекта PlatformIO поле описания скрыто
+  // Для проекта PlatformIO поле описания скрыто
   const isPio = !!(currentProject && currentProject.name === 'PlatformIO');
   const aboutSection = isPio ? '' : `
     <div class="content-section">
