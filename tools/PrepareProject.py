@@ -109,6 +109,10 @@ for opt, arg in opts:
         print('Создание профиля для платы:' + arg)
         selectDevice = arg
 
+# определяем каталог, в котором находится файл профиля,
+# чтобы читать и изменять platformio.ini в той же папке что и myProfile.json
+profileDir = str(Path(profile).parent)
+
 if Path(profile).is_file():
     # подтягиваем уже существующий профиль
     with open(profile, "r", encoding='utf-8') as read_file:
@@ -250,7 +254,7 @@ with open('src/modules/API.cpp', 'w') as f:
 
 # фиксируем изменения в platformio.ini
 config.clear()
-config.read("platformio.ini")
+config.read(os.path.join(profileDir, "platformio.ini"))
 config["env:" + deviceName + "_fromitems"]["lib_deps"] = allLibs
 config["env:" + deviceName + "_fromitems"]["build_src_filter"] = includeDirs
 config["env:" + deviceName + "_fromitems"]["build_flags"] = allDefs
@@ -258,7 +262,7 @@ config["platformio"]["default_envs"] = deviceName
 if "${env:" + deviceName + "_fromitems.build_flags}" not in config["env:" + deviceName]["build_flags"]:
     config["env:" + deviceName]["build_flags"] += "\n${env:" + deviceName + "_fromitems.build_flags}"
 # config["platformio"]["data_dir"] = profJson['projectProp']['platformio']['data_dir']
-with open("platformio.ini", 'w') as configFile:
+with open(os.path.join(profileDir, "platformio.ini"), 'w') as configFile:
     config.write(configFile)
     
     
