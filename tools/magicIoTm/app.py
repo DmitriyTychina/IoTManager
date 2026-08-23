@@ -278,6 +278,15 @@ def api_delete_category(name):
     return jsonify({"success": ok, "error": msg if not ok else None})
 
 
+@app.route('/api/projects/category/<name>/rename', methods=['POST'])
+def api_rename_category(name):
+    new_name = request.json.get('name', '').strip()
+    if not new_name:
+        return jsonify({"success": False, "error": "Новое имя не указано"}), 400
+    ok, msg = projects.rename_category(name, new_name)
+    return jsonify({"success": ok, "error": msg if not ok else None})
+
+
 @app.route('/api/projects/create', methods=['POST'])
 def api_create_project():
     data = request.json

@@ -35,12 +35,13 @@ body.dark{background:var(--bg);color:var(--text)}
 .tree-project.active{background:var(--accent);color:#fff}
 .tree-project .proj-actions{margin-left:auto;display:flex;gap:4px;visibility:hidden;pointer-events:none}
 .tree-project:hover .proj-actions,.tree-project.active .proj-actions{visibility:visible;pointer-events:auto}
-.tree-project .proj-actions button{background:none;border:none;color:inherit;cursor:pointer;font-size:14px;padding:0 2px}
+.tree-project .proj-actions button{cursor:pointer}
 
 /* Проект PlatformIO (в стиле дерева, с разделителями) */
 .platformio-sep{margin:2px 8px 0;border-top:2px solid var(--accent);border-bottom:2px solid var(--accent);padding:4px 2px}
 .platformio-sep .tree-project{padding:4px 8px;font-size:13px}
-.platformio-sep .proj-actions button{background:none;border:none;color:inherit;cursor:pointer;font-size:14px;padding:0 2px}
+.platformio-sep .proj-actions button{cursor:pointer;display:inline-flex;align-items:center;justify-content:center;line-height:1}
+.platformio-sep .proj-actions button span{transform:translate(1px,1px)}
 
 /* Main content */
 .topbar{padding:8px 16px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;z-index:50}
@@ -145,7 +146,7 @@ textarea{resize:vertical;min-height:60px;font-family:inherit}
       <div class="tree-project" id="platformioEntry" title="Проект PlatformIO" onclick="openProject('__virtual__','PlatformIO')">
         🔧 PlatformIO
         <div class="proj-actions">
-          <button title="Копировать в другой проект" onclick="event.stopPropagation();showCopy('__virtual__','PlatformIO')">⧉</button>
+          <button class="btn-sm" title="Копировать в другой проект" onclick="event.stopPropagation();showCopy('__virtual__','PlatformIO')"><span>⧉</span></button>
         </div>
       </div>
     </div>
@@ -253,6 +254,7 @@ function renderTree(tree){
         📁 ${esc(cat)}
         <div class="cat-actions">
           <button class="btn-sm" title="Создать проект в этой категории" onclick="event.stopPropagation();showCreateProject('${esc(cat)}')">+</button>
+          <button class="btn-sm" title="Переименовать категорию" onclick="event.stopPropagation();showRenameCategory('${esc(cat)}')">✎</button>
           <button class="btn-sm btn-danger" title="Удалить категорию со всеми проектами" onclick="event.stopPropagation();deleteCategory('${esc(cat)}')">✕</button>
         </div>
       </div>
@@ -263,10 +265,10 @@ function renderTree(tree){
       html += `<div class="tree-project ${active?'active':''}" onclick="openProject('${esc(cat)}','${esc(p)}')" title="${esc(desc)}">
         🔧 ${esc(p)}
         <div class="proj-actions">
-          <button title="Переименовать" onclick="event.stopPropagation();showRename('${esc(cat)}','${esc(p)}')">✎</button>
-          <button title="Копировать" onclick="event.stopPropagation();showCopy('${esc(cat)}','${esc(p)}')">⧉</button>
-          <button title="Перенести в другую категорию" onclick="event.stopPropagation();showMove('${esc(cat)}','${esc(p)}')">➔</button>
-          <button title="Удалить" onclick="event.stopPropagation();deleteProject('${esc(cat)}','${esc(p)}')">✕</button>
+          <button class="btn-sm" title="Переименовать" onclick="event.stopPropagation();showRename('${esc(cat)}','${esc(p)}')">✎</button>
+          <button class="btn-sm" title="Копировать" onclick="event.stopPropagation();showCopy('${esc(cat)}','${esc(p)}')">⧉</button>
+          <button class="btn-sm" title="Перенести в другую категорию" onclick="event.stopPropagation();showMove('${esc(cat)}','${esc(p)}')">➔</button>
+          <button class="btn-sm btn-danger" title="Удалить" onclick="event.stopPropagation();deleteProject('${esc(cat)}','${esc(p)}')">✕</button>
         </div>
       </div>`;
     }
@@ -606,6 +608,21 @@ async function createCategory(){
   const r = await fetch('/api/projects/category', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
   const d = await r.json();
   if(d.success){ closeModal(); loadProjects(); toast('Категория создана', 'success'); }
+  else toast(d.error||'Ошибка', 'error');
+}
+
+function showRenameCategory(cat){
+  showModal(`<h3>Переименовать категорию</h3>
+    <div class="form-row"><label>Новое имя:</label><input type="text" id="renameCatInput" value="${esc(cat)}"></div>
+    <div class="modal-actions"><button title="Закрыть без сохранения" onclick="closeModal()">Отмена</button><button class="btn-primary" title="Переименовать категорию" onclick="renameCategory('${esc(cat)}')">Переименовать</button></div>`);
+  setTimeout(()=>document.getElementById('renameCatInput')?.focus(), 50);
+}
+async function renameCategory(oldName){
+  const newName = document.getElementById('renameCatInput').value.trim();
+  if(!newName) return;
+  const r = await fetch(`/api/projects/category/${encodeURIComponent(oldName)}/rename`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:newName})});
+  const d = await r.json();
+  if(d.success){ closeModal(); loadProjects(); toast('Категория переименована', 'success'); }
   else toast(d.error||'Ошибка', 'error');
 }
 

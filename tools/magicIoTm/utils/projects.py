@@ -82,6 +82,32 @@ def delete_category(name):
     return True, "OK"
 
 
+def rename_category(old_name, new_name):
+    """Переименование категории (папки) с обновлением data.json всех проектов"""
+    old_path = os.path.join(PROJECTS_DIR, old_name)
+    new_path = os.path.join(PROJECTS_DIR, new_name)
+    if not os.path.exists(old_path):
+        return False, "Категория не найдена"
+    if os.path.exists(new_path):
+        return False, "Категория с таким именем уже существует"
+    os.rename(old_path, new_path)
+    # Обновляем поле category в data.json каждого проекта
+    for proj in sorted(os.listdir(new_path)):
+        proj_path = os.path.join(new_path, proj)
+        data_path = os.path.join(proj_path, 'data.json')
+        if os.path.isdir(proj_path) and os.path.exists(data_path):
+            try:
+                with open(data_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                data['category'] = new_name
+                with open(data_path, 'w', encoding='utf-8') as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+            except Exception as e:
+                logger.error(f"Ошибка обновления data.json при переименовании категории: {e}")
+    logger.info(f"Переименована категория: {old_name} -> {new_name}")
+    return True, "OK"
+
+
 def create_project(category, name, description=""):
     """Создание проекта внутри категории"""
     cat_path = os.path.join(PROJECTS_DIR, category)
