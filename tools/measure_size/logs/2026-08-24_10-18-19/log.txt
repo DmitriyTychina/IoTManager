@@ -1,0 +1,134 @@
+
+  ✓ Лог запуска сохранён: E:\GitHub\IoTManager\tools\measure_size\logs\2026-08-24_10-18-19
+  ● Режим: 1 модуль для всех платформ
+
+  Выбор модуля для измерения
+────────────────────────────────────────────────────────────
+
+  Выберите модуль:
+
+    1 — DwinI (src/modules/display/DwinI)
+    2 — GyverLAMP (src/modules/display/GyverLAMP) — в ошибке 16
+    3 — Lcd2004 (src/modules/display/Lcd2004)
+    4 — LedFX (src/modules/display/LedFX)
+    5 — Nextion (src/modules/display/Nextion) — в ошибке 10
+    6 — NextionUpload (src/modules/display/NextionUpload) — в ошибке 16
+    7 — Oled128 (src/modules/display/Oled128)
+    8 — Oled64 (src/modules/display/Oled64)
+    9 — Smi2_m (src/modules/display/Smi2_m)
+    10 — TM16XX (src/modules/display/TM16XX)
+    11 — U8g2lib (src/modules/display/U8g2lib)
+    12 — Ws2812b (src/modules/display/Ws2812b)
+    13 — AnalogBtn (src/modules/exec/AnalogBtn)
+    14 — BrokerMQTT (src/modules/exec/BrokerMQTT)
+    15 — ButtonIn (src/modules/exec/ButtonIn)
+    16 — ButtonOut (src/modules/exec/ButtonOut)
+    17 — Buzzer (src/modules/exec/Buzzer)
+    18 — EctoControlAdapter (src/modules/exec/EctoControlAdapter) — в ошибке 7
+    19 — Encoder (src/modules/exec/Enconder)
+    20 — EspCam (src/modules/exec/EspCam)
+    21 — FTPModule (src/modules/exec/Ftp)
+    22 — HttpGet (src/modules/exec/HttpGet)
+    23 — IoTServo (src/modules/exec/IoTServo) — в ошибке 2
+    24 — IRremote (src/modules/exec/IRremote)
+    25 — Mcp23008 (src/modules/exec/Mcp23008)
+    26 — Mcp23017 (src/modules/exec/Mcp23017)
+    27 — Mp3 (src/modules/exec/Mp3)
+    28 — Multitouch (src/modules/exec/Multitouch)
+    29 — MySensorsGate (src/modules/exec/MySensors) — в ошибке 2
+    30 — Pcf8574 (src/modules/exec/Pcf8574)
+    31 — Pwm32 (src/modules/exec/Pwm32)
+    32 — Pwm8266 (src/modules/exec/Pwm8266)
+    33 — SDcard (src/modules/exec/SDcard) — в ошибке 4
+    34 — SIM800 (src/modules/exec/SIM800)
+    35 — SmartBoiler (src/modules/exec/SmartBoiler)
+    36 — SysExt (src/modules/exec/SysExt)
+    37 — Tca9555 (src/modules/exec/Tca9555)
+    38 — Telegram (src/modules/exec/Telegram) — в ошибке 9
+    39 — TelegramLT (src/modules/exec/TelegramLT)
+    40 — Telegram_v2 (src/modules/exec/Telegram_v2)
+    41 — Thermostat (src/modules/exec/Thermostat)
+    42 — A02Distance (src/modules/sensors/A02Distance)
+    43 — Acs712 (src/modules/sensors/Acs712)
+    44 — Ads1115 (src/modules/sensors/Ads1115)
+    45 — AhtXX (src/modules/sensors/AhtXX)
+    46 — AnalogAdc (src/modules/sensors/AnalogAdc)
+    47 — Bh1750 (src/modules/sensors/BH_1750)
+    48 — BL0937 (src/modules/sensors/BL0937)
+    49 — BL0942 (src/modules/sensors/BL0942)
+    50 — Ble (src/modules/sensors/Ble) — в ошибке 4
+    51 — Ble_part1 (src/modules/sensors/Ble_part1) — в ошибке 4
+    52 — Ble_part2 (src/modules/sensors/Ble_part2) — в ошибке 4
+    53 — Bme280 (src/modules/sensors/Bme280)
+    54 — Bmp280 (src/modules/sensors/Bmp280)
+    55 — Dht1122 (src/modules/sensors/Dht1122)
+    56 — Ds18b20 (src/modules/sensors/Ds18b20)
+    57 — DS2401 (src/modules/sensors/DS2401) — в ошибке 16
+    58 — Ds2423 (src/modules/sensors/Ds2423) — в ошибке 2
+    59 — Emon (src/modules/sensors/Emon)
+    60 — EnergyMon485 (src/modules/sensors/EnergyMon485)
+    61 — ExampleModule (src/modules/sensors/ExampleModule)
+    62 — ExternalMQTT (src/modules/sensors/ExternalMQTT)
+    63 — FreqMeter (src/modules/sensors/FreqMeter)
+    64 — GY21 (src/modules/sensors/GY21)
+    65 — Hdc1080 (src/modules/sensors/Hdc1080)
+    66 — Hx710 (src/modules/sensors/Hx710)
+    67 — Hx711 (src/modules/sensors/Hx711)
+    68 — Impulse (src/modules/sensors/Impulse)
+    69 — Ina219 (src/modules/sensors/Ina219)
+    70 — Ina226 (src/modules/sensors/Ina226) — в ошибке 18
+    71 — IoTWiegand (src/modules/sensors/IoTWiegand) — в ошибке 8
+    72 — ld2410 (src/modules/sensors/ld2410)
+    73 — Max6675 (src/modules/sensors/Max6675)
+    74 — Mhz19 (src/modules/sensors/Mhz19)
+    75 — ModbusRTU (src/modules/sensors/ModbusRTU) — в ошибке 18
+    76 — ModbusRTUasync (src/modules/sensors/ModbusRTUasync)
+    77 — MQgas (src/modules/sensors/MQgas)
+    78 — Ntc (src/modules/sensors/Ntc)
+    79 — Pcf8591 (src/modules/sensors/Pcf8591)
+    80 — Pzem004 (src/modules/sensors/Pzem004t) — в ошибке 16
+    81 — Pzem004_v2 (src/modules/sensors/Pzem004t_v2)
+    82 — RCswitch (src/modules/sensors/RCswitch)
+    83 — RTC (src/modules/sensors/RTC)
+    84 — S8 (src/modules/sensors/S8)
+    85 — Scd40 (src/modules/sensors/Scd40)
+    86 — Sds011 (src/modules/sensors/Sds011)
+    87 — Sgp30 (src/modules/sensors/Sgp30)
+    88 — Sht20 (src/modules/sensors/Sht20)
+    89 — Sht30 (src/modules/sensors/Sht30)
+    90 — Sonar (src/modules/sensors/Sonar)
+    91 — UART (src/modules/sensors/UART)
+    92 — Benchmark (src/modules/virtual/Benchmark)
+    93 — Cron (src/modules/virtual/Cron)
+    94 — DiscoveryHA (src/modules/virtual/DiscoveryHA)
+    95 — DiscoveryHomeD (src/modules/virtual/DiscoveryHomeD)
+    96 — GoogleSheet (src/modules/virtual/GoogleSheet)
+    97 — Loging (src/modules/virtual/Loging)
+    98 — Loging2 (src/modules/virtual/Loging2)
+    99 — Loging3 (src/modules/virtual/Loging3)
+    100 — LogingDaily (src/modules/virtual/LogingDaily)
+    101 — LogingHourly (src/modules/virtual/LogingHourly)
+    102 — IoTMath (src/modules/virtual/Math)
+    103 — owmWeather (src/modules/virtual/owmWeather)
+    104 — Ping (src/modules/virtual/Ping)
+    105 — Timer (src/modules/virtual/Timer)
+    106 — UpdateServer (src/modules/virtual/UpdateServer)
+    107 — Variable (src/modules/virtual/Variable)
+    108 — VButton (src/modules/virtual/VButton)
+    109 — Weather (src/modules/virtual/Weather)
+
+  ✓ Выбран модуль: Ntc
+
+  Область измерения
+────────────────────────────────────────────────────────────
+
+  Модуль: Ntc
+
+  Для каких платформ измерять?
+    1 — для всех платформ (19)
+    2 — для платформ в ошибке (0)
+
+  ✗ Нет платформ в ошибке для этого модуля. Выберите 1.
+  ✗ Некорректный ввод. Введите 1 или 2.
+
+  ✗ Ввод прерван. Выход.

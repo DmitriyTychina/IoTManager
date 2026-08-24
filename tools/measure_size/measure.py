@@ -412,6 +412,7 @@ def show_menu(total_modules, profile_modules_count, modules_without_size_count):
       1 — обработать все модули
       2 — только модули из myProfile.json
       3 — только модули без информации о размере
+      0 — назад (None)
     """
     log_section("Выбор режима обработки")
     print()
@@ -419,14 +420,18 @@ def show_menu(total_modules, profile_modules_count, modules_without_size_count):
     print(style("    1", "green", bold=True) + f" — обработка ВСЕХ модулей ({total_modules})")
     print(style("    2", "green", bold=True) + f" — обработка только модулей из myProfile.json ({profile_modules_count})")
     print(style("    3", "green", bold=True) + f" — обработка только модулей без информации о размере ({modules_without_size_count})")
+    print(style("    0", "red", bold=True) + " — назад")
     print()
 
     while True:
         try:
-            choice = input(style("  Ваш выбор (1/2/3): ", "yellow")).strip()
+            choice = input(style("  Ваш выбор (0/1/2/3): ", "yellow")).strip()
+            if choice == "0":
+                log_info("Назад.")
+                return None
             if choice in ("1", "2", "3"):
                 return int(choice)
-            log_fail("Некорректный ввод. Введите 1, 2 или 3.")
+            log_fail("Некорректный ввод. Введите 0, 1, 2 или 3.")
         except (EOFError, KeyboardInterrupt):
             print()
             log_fail("Ввод прерван. Выход.")
@@ -464,6 +469,41 @@ def get_envs_from_platformio_ini():
     return envs
 
 
+def show_top_mode_menu():
+    """
+    Показывает глобальное меню выбора режима измерения:
+
+      1 — измерение ВСЕХ модулей для ОДНОЙ платформы
+      2 — измерение ОДНОГО модуля для ВСЕХ платформ
+      0 — выход из программы
+
+    Возвращает: выбранный режим (int: 1 или 2).
+    """
+    log_section("Выбор режима измерения")
+    print()
+    print(style("  Выберите режим измерения:", "cyan", bold=True))
+    print()
+    print(style("    1", "green", bold=True) + " — измерение всех модулей для одной платформы")
+    print(style("    2", "green", bold=True) + " — измерение одного модуля для всех платформ")
+    print(style("    0", "red", bold=True) + " — выход")
+    print()
+
+    while True:
+        try:
+            choice = input(style("  Ваш выбор (0/1/2): ", "yellow")).strip()
+            if choice == "0":
+                log_fail("Выход из программы.")
+                sys.exit(0)
+            if choice in ("1", "2"):
+                log_ok(f"Выбран режим {choice}")
+                return int(choice)
+            log_fail("Некорректный ввод. Введите 0, 1 или 2.")
+        except (EOFError, KeyboardInterrupt):
+            print()
+            log_fail("Ввод прерван. Выход.")
+            sys.exit(1)
+
+
 def show_platform_menu(modules):
     """
     Показывает список платформ из platformio.ini
@@ -477,9 +517,7 @@ def show_platform_menu(modules):
     Параметры:
       modules: список всех модулей (от collect_modules)
 
-    Возвращает: кортеж (envs, single_module_mode):
-      envs — список выбранных платформ (list[str]);
-      single_module_mode — True, если выбрана опция 0 (1 модуль для всех платформ).
+    Возвращает: список из одной выбранной платформы (list[str]).
     """
     # Извлекаем список платформ из platformio.ini
     platform_names = get_envs_from_platformio_ini()
@@ -496,14 +534,6 @@ def show_platform_menu(modules):
     log_section("Выбор платформы")
     print()
     print(style("  Выберите платформу:", "cyan", bold=True))
-    print()
-
-    # Пункт 0 — измерение одного модуля на всех платформах
-    print(
-        style("    0", "green", bold=True) +
-        " — " +
-        style("1 модуль для всех платформ", "cyan")
-    )
     print()
 
     for i, name in enumerate(platform_names):
@@ -536,18 +566,20 @@ def show_platform_menu(modules):
         )
 
     print()
+    print(style("    0", "red", bold=True) + " — назад")
+    print()
 
     while True:
         try:
             choice = input(style("  Ваш выбор: ", "yellow")).strip()
             if choice == "0":
-                log_ok("Выбрано: 1 модуль для всех платформ")
-                return (platform_names, True)
+                log_info("Назад.")
+                return None
             idx = int(choice) - 1
             if 0 <= idx < len(platform_names):
                 selected = platform_names[idx]
                 log_ok(f"Выбрана платформа: {selected}")
-                return ([selected], False)
+                return [selected]
             log_fail("Некорректный номер. Попробуйте снова.")
         except (EOFError, KeyboardInterrupt):
             print()
@@ -599,10 +631,15 @@ def show_module_menu(modules, envs):
         )
 
     print()
+    print(style("    0", "red", bold=True) + " — назад")
+    print()
 
     while True:
         try:
             choice = input(style("  Ваш выбор: ", "yellow")).strip()
+            if choice == "0":
+                log_info("Назад.")
+                return None
             idx = int(choice) - 1
             if 0 <= idx < len(modules):
                 selected = modules[idx]
@@ -615,6 +652,61 @@ def show_module_menu(modules, envs):
             sys.exit(1)
         except ValueError:
             log_fail("Введите номер модуля.")
+
+
+def select_measure_scope(module, envs):
+    """
+    Спрашивает пользователя, для каких платформ измерять выбранный модуль:
+      1 — для всех платформ (количество)
+      2 — только для платформ в ошибке (количество)
+
+    «В ошибке» означает, что модуль записан в failed_modules платформы
+    в platforms.json (не удалось собрать/распарсить ранее).
+
+    Параметры:
+      module: словарь выбранного модуля (из show_module_menu)
+      envs:   список всех платформ
+
+    Возвращает: отфильтрованный список платформ (list[str]).
+    """
+    # Определяем платформы, где модуль числится в failed_modules
+    platforms_data = load_platforms_data()
+    failed_envs = []
+    for env in envs:
+        failed = platforms_data.get(env, {}).get("failed_modules", [])
+        if module["moduleName"] in failed:
+            failed_envs.append(env)
+
+    log_section("Область измерения")
+    print()
+    print(style("  Модуль: ", "cyan", bold=True) + style(module["moduleName"], "yellow"))
+    print()
+    print(style("  Для каких платформ измерять?", "cyan", bold=True))
+    print(style("    1", "green", bold=True) + f" — для всех платформ ({len(envs)})")
+    print(style("    2", "green", bold=True) + f" — для платформ в ошибке ({len(failed_envs)})")
+    print(style("    0", "red", bold=True) + " — назад")
+    print()
+
+    while True:
+        try:
+            choice = input(style("  Ваш выбор (0/1/2): ", "yellow")).strip()
+            if choice == "0":
+                log_info("Назад.")
+                return None
+            if choice == "1":
+                log_ok(f"Измерение для всех платформ ({len(envs)})")
+                return envs
+            if choice == "2":
+                if not failed_envs:
+                    log_fail("Нет платформ в ошибке для этого модуля. Выберите 1.")
+                else:
+                    log_ok(f"Измерение только для платформ в ошибке: {', '.join(failed_envs)}")
+                    return failed_envs
+            log_fail("Некорректный ввод. Введите 0, 1 или 2.")
+        except (EOFError, KeyboardInterrupt):
+            print()
+            log_fail("Ввод прерван. Выход.")
+            sys.exit(1)
 
 
 # ----------------------------------------------------------------------------
@@ -1004,6 +1096,59 @@ def remove_failed_module(module_name, env):
     save_json(PLATFORMS_JSON, platforms)
 
 
+def select_interactive_config(modules, prof_template):
+    """
+    Интерактивный выбор конфигурации измерения с поддержкой «назад» в меню.
+
+    Первое меню (выбор режима) — «0» = выход из программы.
+    Остальные меню — «0» = назад к предыдущему.
+
+    Возвращает кортеж (envs, single_module_mode, modules, done):
+      envs               — список выбранных платформ
+      single_module_mode — True, если выбран режим 2 (один модуль для всех платформ)
+      modules            — итоговый список модулей для измерения
+      done               — True (интерактивный выбор завершён)
+    """
+    while True:
+        # Первое меню — «0» = выход
+        top_mode = show_top_mode_menu()
+
+        if top_mode == 2:
+            # Режим 2: один модуль для всех платформ
+            envs = get_envs_from_platformio_ini()
+            while True:
+                chosen = show_module_menu(modules, envs)           # 0 = назад
+                if chosen is None:
+                    break  # назад -> первое меню
+                scope_envs = select_measure_scope(chosen[0], envs)  # 0 = назад
+                if scope_envs is None:
+                    continue  # назад -> перечень модулей
+                return scope_envs, True, chosen, True
+
+        # Режим 1: все модули для одной платформы
+        while True:
+            envs = show_platform_menu(modules)                     # 0 = назад
+            if envs is None:
+                break  # назад -> первое меню
+
+            profile_modules = filter_modules_by_profile(modules, prof_template)
+            without_size = filter_modules_without_size(modules, envs)
+            all_count = count_modules_for_envs(modules, envs)
+            profile_count = count_modules_for_envs(profile_modules, envs)
+            without_size_count = count_modules_for_envs(without_size, envs)
+
+            while True:
+                choice = show_menu(all_count, profile_count, without_size_count)  # 0 = назад
+                if choice is None:
+                    break  # назад -> меню платформы
+                chosen = modules
+                if choice == 2:
+                    chosen = profile_modules
+                elif choice == 3:
+                    chosen = without_size
+                return envs, False, chosen, True
+
+
 # ----------------------------------------------------------------------------
 # ОСНОВНАЯ ФУНКЦИЯ
 # ----------------------------------------------------------------------------
@@ -1045,51 +1190,47 @@ def main():
     baseline_paths = set(BASELINE_MODULE_PATHS)  # пустое множество — без модулей
 
     # -------------------------------------------------------------------------
-    # ОПРЕДЕЛЕНИЕ ПЛАТФОРМ:
-    #   1. Если указан --env — используем его.
-    #   2. Если DEFAULT_ENVS не пуст — используем его.
-    #   3. Иначе — показываем меню выбора платформы из platformio.ini.
-    # -------------------------------------------------------------------------
-    single_module_mode = False
-    if args.env:
-        envs = args.env
-    elif DEFAULT_ENVS:
-        envs = DEFAULT_ENVS
-    else:
-        envs, single_module_mode = show_platform_menu(modules)
-
-    # -------------------------------------------------------------------------
     # ЗАПУСК ЛОГИРОВАНИЯ В ФАЙЛ:
     #   Создаём папку measure_size/logs/[дата_время] и пишем туда весь вывод.
+    #   Логирование запускается ДО интерактивных меню, чтобы весь выбор попал в лог.
     # -------------------------------------------------------------------------
     log_dir = start_logging()
     print()
     log_ok(f"Лог запуска сохранён: {log_dir}")
 
     # -------------------------------------------------------------------------
-    # МЕНЮ ВЫБОРА РЕЖИМА ОБРАБОТКИ:
-    #   1 — обработка ВСЕХ модулей
-    #   2 — обработка только модулей из myProfile.json (active=true)
-    #   3 — обработка только модулей без информации о размере
+    # ОПРЕДЕЛЕНИЕ ПЛАТФОРМ И ИНТЕРАКТИВНЫЙ ВЫБОР:
+    #   1. Если указан --env — используем его.
+    #   2. Если DEFAULT_ENVS не пуст — используем его.
+    #   3. Иначе — глобальное меню режима с навигацией «назад».
     # -------------------------------------------------------------------------
-    # Подсчёт с учётом поддержки платформы:
-    #   Модуль учитывается, если он поддерживает хотя бы одну из платформ envs.
-    profile_modules = filter_modules_by_profile(modules, prof_template)
-    without_size = filter_modules_without_size(modules, envs)
+    single_module_mode = False
+    interactive_done = False
+    if args.env:
+        envs = args.env
+    elif DEFAULT_ENVS:
+        envs = DEFAULT_ENVS
+    else:
+        envs, single_module_mode, modules, interactive_done = select_interactive_config(
+            modules, prof_template
+        )
 
     # -------------------------------------------------------------------------
     # МЕНЮ ВЫБОРА РЕЖИМА ОБРАБОТКИ:
-    #   В режиме «1 модуль для всех платформ» (single_module_mode) меню пропускается —
-    #   сразу показывается перечень всех модулей.
+    #   Показывается только при задании платформы через --env / DEFAULT_ENVS,
+    #   т.к. при интерактивном выборе режим уже выбран внутри select_interactive_config.
     # -------------------------------------------------------------------------
-    if single_module_mode:
-        log_step("Режим: 1 модуль для всех платформ")
-    else:
+    if not interactive_done and not single_module_mode:
+        profile_modules = filter_modules_by_profile(modules, prof_template)
+        without_size = filter_modules_without_size(modules, envs)
+
         all_count = count_modules_for_envs(modules, envs)
         profile_count = count_modules_for_envs(profile_modules, envs)
         without_size_count = count_modules_for_envs(without_size, envs)
 
         choice = show_menu(all_count, profile_count, without_size_count)
+        if choice is None:
+            choice = 1  # «назад» без предыдущего меню — берём все модули
 
         if choice == 1:
             # Все модули — ничего не фильтруем
@@ -1104,12 +1245,10 @@ def main():
             log_step(f"Режим 3: обработка модулей без информации о размере ({len(modules)})")
 
     # -------------------------------------------------------------------------
-    # Если выбрана опция 0 «1 модуль для всех платформ» —
-    # показать перечень всех модулей и предложить выбрать один.
+    # Если выбран режим 2 «один модуль для всех платформ» — логируем итоговый выбор.
     # -------------------------------------------------------------------------
     if single_module_mode:
-        modules = show_module_menu(modules, envs)
-        log_step(f"Режим: 1 модуль ({modules[0]['moduleName']}) на всех платформах")
+        log_step(f"Режим: 1 модуль ({modules[0]['moduleName']}) — платформы: {', '.join(envs)}")
 
     # -------------------------------------------------------------------------
     # ГРУППИРОВКА МОДУЛЕЙ ПО ПЛАТФОРМАМ:
