@@ -1,444 +1,444 @@
 {
     "projectProp": {
         "platformio": {
-            "default_envs": "esp32_wifirep"
+            "default_envs": "esp8266_4mb"
         }
     },
     "modules": {
-        "virtual_elments": [
-            {
-                "path": "src/modules/virtual/Benchmark",
-                "active": false
-            },
-            {
-                "path": "src/modules/virtual/Cron",
-                "active": false
-            },
-            {
-                "path": "src/modules/virtual/DiscoveryHA",
-                "active": false
-            },
-            {
-                "path": "src/modules/virtual/DiscoveryHomeD",
-                "active": false
-            },
-            {
-                "path": "src/modules/virtual/GoogleSheet",
-                "active": false
-            },
-            {
-                "path": "src/modules/virtual/Loging",
-                "active": false
-            },
-            {
-                "path": "src/modules/virtual/Loging2",
-                "active": false
-            },
-            {
-                "path": "src/modules/virtual/Loging3",
-                "active": false
-            },
-            {
-                "path": "src/modules/virtual/LogingDaily",
-                "active": false
-            },
-            {
-                "path": "src/modules/virtual/LogingHourly",
-                "active": false
-            },
-            {
-                "path": "src/modules/virtual/Math",
-                "active": false
-            },
-            {
-                "path": "src/modules/virtual/owmWeather",
-                "active": false
-            },
-            {
-                "path": "src/modules/virtual/Ping",
-                "active": false
-            },
-            {
-                "path": "src/modules/virtual/Timer",
-                "active": false
-            },
-            {
-                "path": "src/modules/virtual/UpdateServer",
-                "active": false
-            },
-            {
-                "path": "src/modules/virtual/Variable",
-                "active": false
-            },
-            {
-                "path": "src/modules/virtual/VButton",
-                "active": false
-            },
-            {
-                "path": "src/modules/virtual/Weather",
-                "active": false
-            }
-        ],
-        "sensors": [
-            {
-                "path": "src/modules/exec/Pcf8591",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/A02Distance",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/Acs712",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/Ads1115",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/AhtXX",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/AnalogAdc",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/BH_1750",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/BL0937",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/BL0942",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/Ble",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/Ble_part1",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/Ble_part2",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/Bme280",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/Bmp280",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/Dht1122",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/Ds18b20",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/DS2401",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/Emon",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/EnergyMon485",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/ExampleModule",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/ExternalMQTT",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/FreqMeter",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/GY21",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/Hdc1080",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/Hx710",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/Hx711",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/Impulse",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/Ina219",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/Ina226",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/IoTWiegand",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/ld2410",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/Max6675",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/Mhz19",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/ModbusRTU",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/ModbusRTUasync",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/MQgas",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/Ntc",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/Pzem004t",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/Pzem004t_v2",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/RCswitch",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/RTC",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/S8",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/Scd40",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/Sds011",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/Sgp30",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/Sht20",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/Sht30",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/Sonar",
-                "active": false
-            },
-            {
-                "path": "src/modules/sensors/UART",
-                "active": false
-            }
-        ],
         "executive_devices": [
             {
-                "path": "src/modules/exec/AnalogBtn",
-                "active": true
+                "active": false,
+                "path": "src/modules/exec/AnalogBtn"
             },
             {
-                "path": "src/modules/exec/BrokerMQTT",
-                "active": false
+                "active": false,
+                "path": "src/modules/exec/BrokerMQTT"
             },
             {
-                "path": "src/modules/exec/ButtonIn",
-                "active": false
+                "active": false,
+                "path": "src/modules/exec/ButtonIn"
             },
             {
-                "path": "src/modules/exec/ButtonOut",
-                "active": false
+                "active": false,
+                "path": "src/modules/exec/ButtonOut"
             },
             {
-                "path": "src/modules/exec/Buzzer",
-                "active": false
+                "active": false,
+                "path": "src/modules/exec/Buzzer"
             },
             {
-                "path": "src/modules/exec/EctoControlAdapter",
-                "active": false
+                "active": false,
+                "path": "src/modules/exec/EctoControlAdapter"
             },
             {
-                "path": "src/modules/exec/Enconder",
-                "active": false
+                "active": false,
+                "path": "src/modules/exec/Enconder"
             },
             {
-                "path": "src/modules/exec/EspCam",
-                "active": false
+                "active": false,
+                "path": "src/modules/exec/EspCam"
             },
             {
-                "path": "src/modules/exec/Ftp",
-                "active": false
+                "active": false,
+                "path": "src/modules/exec/Ftp"
             },
             {
-                "path": "src/modules/exec/HttpGet",
-                "active": false
+                "active": false,
+                "path": "src/modules/exec/HttpGet"
             },
             {
-                "path": "src/modules/exec/IoTServo",
-                "active": false
+                "active": false,
+                "path": "src/modules/exec/IoTServo"
             },
             {
-                "path": "src/modules/exec/IRremote",
-                "active": false
+                "active": false,
+                "path": "src/modules/exec/IRremote"
             },
             {
-                "path": "src/modules/exec/Mcp23008",
-                "active": false
+                "active": false,
+                "path": "src/modules/exec/Mcp23008"
             },
             {
-                "path": "src/modules/exec/Mcp23017",
-                "active": false
+                "active": false,
+                "path": "src/modules/exec/Mcp23017"
             },
             {
-                "path": "src/modules/exec/Mp3",
-                "active": false
+                "active": false,
+                "path": "src/modules/exec/Mp3"
             },
             {
-                "path": "src/modules/exec/Multitouch",
-                "active": false
+                "active": false,
+                "path": "src/modules/exec/Multitouch"
             },
             {
-                "path": "src/modules/exec/MySensors",
-                "active": false
+                "active": false,
+                "path": "src/modules/exec/MySensors"
             },
             {
-                "path": "src/modules/exec/Pcf8574",
-                "active": false
+                "active": false,
+                "path": "src/modules/exec/Pcf8574"
             },
             {
-                "path": "src/modules/exec/Pwm32",
-                "active": false
+                "active": false,
+                "path": "src/modules/exec/Pwm32"
             },
             {
-                "path": "src/modules/exec/Pwm8266",
-                "active": false
+                "active": false,
+                "path": "src/modules/exec/Pwm8266"
             },
             {
-                "path": "src/modules/exec/SDcard",
-                "active": false
+                "active": false,
+                "path": "src/modules/exec/SDcard"
             },
             {
-                "path": "src/modules/exec/SIM800",
-                "active": false
+                "active": false,
+                "path": "src/modules/exec/SIM800"
             },
             {
-                "path": "src/modules/exec/SmartBoiler",
-                "active": false
+                "active": false,
+                "path": "src/modules/exec/SmartBoiler"
             },
             {
-                "path": "src/modules/exec/SysExt",
-                "active": false
+                "active": false,
+                "path": "src/modules/exec/SysExt"
             },
             {
-                "path": "src/modules/exec/Tca9555",
-                "active": false
+                "active": false,
+                "path": "src/modules/exec/Tca9555"
             },
             {
-                "path": "src/modules/exec/Telegram",
-                "active": false
+                "active": false,
+                "path": "src/modules/exec/Telegram"
             },
             {
-                "path": "src/modules/exec/TelegramLT",
-                "active": false
+                "active": false,
+                "path": "src/modules/exec/TelegramLT"
             },
             {
-                "path": "src/modules/exec/Telegram_v2",
-                "active": false
+                "active": false,
+                "path": "src/modules/exec/Telegram_v2"
             },
             {
-                "path": "src/modules/exec/Thermostat",
-                "active": false
+                "active": false,
+                "path": "src/modules/exec/Thermostat"
             },
             {
-                "path": "src/modules/sensors/Ds2423",
-                "active": false
+                "active": false,
+                "path": "src/modules/sensors/Ds2423"
             }
         ],
         "screens": [
             {
-                "path": "src/modules/display/DwinI",
-                "active": false
+                "active": false,
+                "path": "src/modules/display/DwinI"
             },
             {
-                "path": "src/modules/display/GyverLAMP",
-                "active": false
+                "active": false,
+                "path": "src/modules/display/GyverLAMP"
             },
             {
-                "path": "src/modules/display/Lcd2004",
-                "active": false
+                "active": false,
+                "path": "src/modules/display/Lcd2004"
             },
             {
-                "path": "src/modules/display/Nextion",
-                "active": false
+                "active": false,
+                "path": "src/modules/display/Nextion"
             },
             {
-                "path": "src/modules/display/NextionUpload",
-                "active": false
+                "active": false,
+                "path": "src/modules/display/NextionUpload"
             },
             {
-                "path": "src/modules/display/Oled128",
-                "active": false
+                "active": false,
+                "path": "src/modules/display/Oled128"
             },
             {
-                "path": "src/modules/display/Oled64",
-                "active": false
+                "active": false,
+                "path": "src/modules/display/Oled64"
             },
             {
-                "path": "src/modules/display/Smi2_m",
-                "active": false
+                "active": false,
+                "path": "src/modules/display/Smi2_m"
             },
             {
-                "path": "src/modules/display/TM16XX",
-                "active": false
+                "active": false,
+                "path": "src/modules/display/TM16XX"
             },
             {
-                "path": "src/modules/display/Ws2812b",
-                "active": false
+                "active": false,
+                "path": "src/modules/display/Ws2812b"
+            }
+        ],
+        "sensors": [
+            {
+                "active": true,
+                "path": "src/modules/sensors/Pcf8591"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/A02Distance"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/Acs712"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/Ads1115"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/AhtXX"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/AnalogAdc"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/BH_1750"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/BL0937"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/BL0942"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/Ble"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/Ble_part1"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/Ble_part2"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/Bme280"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/Bmp280"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/Dht1122"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/Ds18b20"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/DS2401"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/Emon"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/EnergyMon485"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/ExampleModule"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/ExternalMQTT"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/FreqMeter"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/GY21"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/Hdc1080"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/Hx710"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/Hx711"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/Impulse"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/Ina219"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/Ina226"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/IoTWiegand"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/ld2410"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/Max6675"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/Mhz19"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/ModbusRTU"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/ModbusRTUasync"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/MQgas"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/Ntc"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/Pzem004t"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/Pzem004t_v2"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/RCswitch"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/RTC"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/S8"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/Scd40"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/Sds011"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/Sgp30"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/Sht20"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/Sht30"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/Sonar"
+            },
+            {
+                "active": false,
+                "path": "src/modules/sensors/UART"
+            }
+        ],
+        "virtual_elments": [
+            {
+                "active": false,
+                "path": "src/modules/virtual/Benchmark"
+            },
+            {
+                "active": false,
+                "path": "src/modules/virtual/Cron"
+            },
+            {
+                "active": false,
+                "path": "src/modules/virtual/DiscoveryHA"
+            },
+            {
+                "active": false,
+                "path": "src/modules/virtual/DiscoveryHomeD"
+            },
+            {
+                "active": false,
+                "path": "src/modules/virtual/GoogleSheet"
+            },
+            {
+                "active": false,
+                "path": "src/modules/virtual/Loging"
+            },
+            {
+                "active": false,
+                "path": "src/modules/virtual/Loging2"
+            },
+            {
+                "active": false,
+                "path": "src/modules/virtual/Loging3"
+            },
+            {
+                "active": false,
+                "path": "src/modules/virtual/LogingDaily"
+            },
+            {
+                "active": false,
+                "path": "src/modules/virtual/LogingHourly"
+            },
+            {
+                "active": false,
+                "path": "src/modules/virtual/Math"
+            },
+            {
+                "active": false,
+                "path": "src/modules/virtual/owmWeather"
+            },
+            {
+                "active": false,
+                "path": "src/modules/virtual/Ping"
+            },
+            {
+                "active": false,
+                "path": "src/modules/virtual/Timer"
+            },
+            {
+                "active": false,
+                "path": "src/modules/virtual/UpdateServer"
+            },
+            {
+                "active": false,
+                "path": "src/modules/virtual/Variable"
+            },
+            {
+                "active": false,
+                "path": "src/modules/virtual/VButton"
+            },
+            {
+                "active": false,
+                "path": "src/modules/virtual/Weather"
             }
         ]
     }

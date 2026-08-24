@@ -168,8 +168,7 @@
             "IoTWiegand",
             "ModbusRTU",
             "Pzem004",
-            "Ina226",
-            "Ntc"
+            "Ina226"
         ]
     },
     "esp8266_2mb": {

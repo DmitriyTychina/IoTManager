@@ -106,6 +106,7 @@ body.dark .gauge-track{background:#2a2a4a}
 /* Buttons */
 button{padding:6px 12px;border:1px solid var(--border);border-radius:4px;background:var(--panel);color:var(--text);cursor:pointer;font-size:13px;transition:0.15s}
 button:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+#buildCloseBtn:disabled,#buildCloseBtn:disabled:hover{background:#555;color:#999;border-color:#666;opacity:.55;box-shadow:none}
 button.btn-danger:hover{background:var(--danger);border-color:var(--danger)}
 button.btn-sm{padding:2px 6px;font-size:11px}
 button.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
@@ -117,6 +118,31 @@ button.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent
 .modal h3{margin-bottom:12px}
 .modal .form-row{margin-bottom:10px}
 .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+
+/* Build modal */
+.build-modal{min-width:640px;max-width:860px;width:90%}
+.build-modal h3{margin:0 0 8px}
+.build-modal .build-sub{color:var(--muted);font-size:12px;margin-bottom:12px}
+.build-steps{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.build-step{flex:1;min-width:150px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--panel)}
+.build-step .bs-name{display:block;margin-bottom:4px;font-weight:600}
+.build-step.pending{opacity:.55}
+.build-step.running{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.build-step.running .bs-badge::after{content:"…";animation:blink 1s infinite}
+.build-step.done{border-color:#4caf50;color:#4caf50}
+.build-step.error{border-color:var(--danger);color:var(--danger)}
+.build-log{background:#0d1117;color:#c9d1d9;font-family:Consolas,'Courier New',monospace;font-size:12px;line-height:1.45;height:300px;overflow-y:auto;padding:10px;border-radius:6px;white-space:pre-wrap;word-break:break-word;margin-bottom:12px}
+.build-sizes{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-bottom:12px}
+.size-card{border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px}
+.size-card .sc-title{display:block;margin-bottom:4px;color:var(--muted)}
+.size-card .sc-val{font-weight:600;font-size:13px}
+.size-card .sc-bar{height:6px;background:var(--border);border-radius:3px;margin-top:6px;overflow:hidden}
+.size-card .sc-fill{height:100%;background:#4caf50}
+.size-card.warn .sc-fill{background:#ff9800}
+.size-card.danger .sc-fill{background:#f44336}
+@keyframes blink{50%{opacity:.3}}
+.build-error{background:rgba(244,67,54,.1);border:1px solid var(--danger);color:var(--danger);border-radius:6px;padding:8px 10px;font-size:12px;margin-bottom:12px}
+.build-success-msg{color:#4caf50;font-weight:600;margin-bottom:12px}
 
 /* Toast */
 .toast-container{position:fixed;bottom:20px;right:20px;z-index:2000;display:flex;flex-direction:column;gap:8px}
@@ -174,7 +200,7 @@ textarea{resize:vertical;min-height:60px;font-family:inherit}
         <select id="platformSelect" onchange="changePlatform()"></select>
       </div>
       <div class="build-upload">
-        <button class="btn-sm btn-build" title="Сборка (Build)" onclick="event.stopPropagation()">🔨</button>
+        <button class="btn-sm btn-build" title="Сборка (Build)" onclick="startBuild()">🔨</button>
         <button class="btn-upload" title="Загрузка (Upload)" onclick="event.stopPropagation()">🚀</button>
         <button class="btn-upload" title="OTA (обновление по воздуху)" onclick="event.stopPropagation()">📡</button>
       </div>
@@ -205,6 +231,22 @@ textarea{resize:vertical;min-height:60px;font-family:inherit}
 <!-- Modal container -->
 <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
   <div class="modal" id="modalContent"></div>
+</div>
+
+<!-- Build modal -->
+<div class="modal-overlay" id="buildOverlay">
+  <div class="modal build-modal">
+    <h3>🔨 Сборка прошивки</h3>
+    <div class="build-sub" id="buildSub">Проект: —</div>
+    <div class="build-steps" id="buildSteps"></div>
+    <div class="build-log" id="buildLog"></div>
+    <div class="build-sizes" id="buildSizes" style="display:none"></div>
+    <div class="build-error" id="buildError" style="display:none"></div>
+    <div class="build-success-msg" id="buildSuccessMsg" style="display:none"></div>
+    <div class="modal-actions">
+      <button id="buildCloseBtn" onclick="closeBuildModal()" disabled title="Кнопка станет активной после завершения сборки">Закрыть</button>
+    </div>
+  </div>
 </div>
 
 <!-- Toast container -->
@@ -590,6 +632,132 @@ function formatBytes(b){
   if(b >= 1048576) return (b/1048576).toFixed(1)+' МБ';
   if(b >= 1024) return (b/1024).toFixed(1)+' КБ';
   return b+' б';
+}
+
+// ==================== Build ====================
+const BUILD_STEPS = [
+  {id:1, name:'Подготовка профиля'},
+  {id:2, name:'Файловая система (buildfs)'},
+  {id:3, name:'Сборка прошивки'}
+];
+let buildStream = null;
+let buildDone = false;
+
+function openBuildModal(){
+  document.getElementById('buildSteps').innerHTML = BUILD_STEPS.map(s=>
+    `<div class="build-step pending" id="bst_${s.id}"><span class="bs-badge"></span><span class="bs-name">${s.name}</span></div>`
+  ).join('');
+  document.getElementById('buildLog').textContent = '';
+  document.getElementById('buildSizes').style.display = 'none';
+  document.getElementById('buildSizes').innerHTML = '';
+  document.getElementById('buildError').style.display = 'none';
+  document.getElementById('buildSuccessMsg').style.display = 'none';
+  document.getElementById('buildCloseBtn').disabled = true;
+  buildDone = false;
+  document.getElementById('buildOverlay').classList.add('active');
+}
+
+function closeBuildModal(){
+  if(buildStream){ buildStream.close(); buildStream = null; }
+  buildDone = true;
+  document.getElementById('buildOverlay').classList.remove('active');
+  const btn = document.querySelector('.btn-build');
+  if(btn){ btn.disabled = false; btn.style.opacity = ''; }
+}
+
+function setBuildStep(id, status){
+  const el = document.getElementById('bst_'+id);
+  if(!el) return;
+  el.className = 'build-step ' + status;
+}
+
+function appendBuildLog(text){
+  const el = document.getElementById('buildLog');
+  el.textContent += text + '\n';
+  el.scrollTop = el.scrollHeight;
+}
+
+function sizeClass(pct){
+  if(pct > 90) return 'danger';
+  if(pct > 70) return 'warn';
+  return '';
+}
+
+function renderBuildSizes(s){
+  const cards = [
+    {t:'Прошивка (FLASH)', u:s.flash_used, to:s.flash_total, pct:s.flash_pct},
+    {t:'Оперативная память (RAM)', u:s.ram_used, to:s.ram_total, pct:s.ram_pct},
+    {t:'Файлы FS', u:s.fs_used, to:s.fs_total, pct:s.fs_pct}
+  ];
+  document.getElementById('buildSizes').innerHTML = cards.map(c=>
+    `<div class="size-card ${sizeClass(c.pct)}">
+       <span class="sc-title">${c.t}</span>
+       <span class="sc-val">${formatBytes(c.u)} / ${formatBytes(c.to)} (${c.pct}%)</span>
+       <div class="sc-bar"><div class="sc-fill" style="width:${Math.min(c.pct,100)}%"></div></div>
+     </div>`
+  ).join('');
+  document.getElementById('buildSizes').style.display = 'grid';
+}
+
+function buildFinish(){
+  const btn = document.getElementById('buildCloseBtn');
+  btn.disabled = false;
+  btn.title = 'Закрыть';
+  const hbtn = document.querySelector('.btn-build');
+  if(hbtn){ hbtn.disabled = false; hbtn.style.opacity = ''; }
+  if(buildStream){ buildStream.close(); buildStream = null; }
+  buildDone = true;
+}
+
+async function startBuild(){
+  if(!currentProject){ toast('Сначала откройте проект', 'error'); return; }
+  // Сохраняем текущий конфиг перед сборкой
+  if(configData){
+    await fetch('/api/config/save', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(configData)});
+  }
+  const r = await fetch('/api/build/start', {method:'POST'});
+  const d = await r.json();
+  if(!d.success){ toast(d.error || 'Ошибка запуска сборки', 'error'); return; }
+
+  openBuildModal();
+  document.getElementById('buildSub').textContent =
+    'Проект: ' + (currentProject.name === 'PlatformIO' ? 'PlatformIO' : `${currentProject.category} / ${currentProject.name}`);
+
+  const hbtn = document.querySelector('.btn-build');
+  if(hbtn){ hbtn.disabled = true; hbtn.style.opacity = '0.5'; }
+
+  buildStream = new EventSource('/api/build/stream');
+  buildStream.addEventListener('log', e => appendBuildLog(JSON.parse(e.data).text));
+  buildStream.addEventListener('step', e => {
+    const d = JSON.parse(e.data);
+    setBuildStep(d.id, d.status);
+  });
+  buildStream.addEventListener('done', e => {
+    const d = JSON.parse(e.data);
+    if(d.sizes) renderBuildSizes(d.sizes);
+    const msg = document.getElementById('buildSuccessMsg');
+    msg.style.display = 'block';
+    msg.textContent = '✅ Прошивка успешно собрана.';
+    buildFinish();
+  });
+  buildStream.addEventListener('error', e => {
+    const d = JSON.parse(e.data);
+    let txt = 'Ошибка';
+    if(d.step) txt += ' на шаге «' + (BUILD_STEPS.find(s=>s.id===d.step)?.name || '') + '»';
+    if(d.error) txt += ': ' + d.error;
+    document.getElementById('buildError').style.display = 'block';
+    document.getElementById('buildError').textContent = '❌ ' + txt;
+    buildFinish();
+  });
+  buildStream.addEventListener('finish', () => {
+    if(buildStream){ buildStream.close(); buildStream = null; }
+  });
+  buildStream.onerror = () => {
+    if(!buildDone){
+      document.getElementById('buildError').style.display = 'block';
+      document.getElementById('buildError').textContent = '⚠️ Соединение со сборкой потеряно. Если сборка ещё идёт, обновите страницу.';
+    }
+  };
 }
 
 // ==================== Copy values (settings) ====================

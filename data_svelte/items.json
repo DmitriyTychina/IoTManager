@@ -4,30 +4,35 @@
         "num": 0
     },
     {
-        "header": "virtual_elments"
+        "header": "executive_devices"
+    },
+    {
+        "header": "screens"
     },
     {
         "header": "sensors"
     },
     {
-        "header": "executive_devices"
-    },
-    {
         "global": 0,
-        "name": "1. Аналоговая кнопка",
+        "name": "1. Расширитель портов PCF8591",
         "type": "Reading",
-        "subtype": "AnalogBtn",
-        "id": "abtn",
-        "widget": "toggle",
-        "page": "Кнопки",
-        "descr": "Освещение",
-        "pin": 34,
-        "aValue": -1,
-        "delta": 50,
+        "subtype": "Pcf8591",
+        "id": "Pcf85",
+        "widget": "anydataVlt",
+        "page": "PCF8591",
+        "descr": "PCF_0",
+        "pin": "0",
+        "mode": "volt",
+        "adc_ref": 5.0,
+        "map": "1,255,1,100",
+        "plus": 0,
+        "multiply": 1,
+        "round": 2,
+        "int": 7,
         "num": 1,
-        "moduleName": "AnalogBtn"
+        "moduleName": "Pcf8591"
     },
     {
-        "header": "screens"
+        "header": "virtual_elments"
     }
 ]

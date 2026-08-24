@@ -4,12 +4,6 @@
         "num": 0
     },
     {
-        "header": "virtual_elments"
-    },
-    {
-        "header": "sensors"
-    },
-    {
         "header": "executive_devices"
     },
     {
@@ -29,5 +23,11 @@
     },
     {
         "header": "screens"
+    },
+    {
+        "header": "sensors"
+    },
+    {
+        "header": "virtual_elments"
     }
 ]

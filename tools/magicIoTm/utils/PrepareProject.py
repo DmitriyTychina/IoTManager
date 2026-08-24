@@ -1,6 +1,13 @@
 # PrepareProject.py - инструмент для подготовки проекта к компиляции.
 # Необходимо вызвать при изменении персональных настроек или состава модулей.
 # 
+# Скрипт выполняется из корня репозитория IoTManager (cwd = PROJECT_ROOT),
+# поэтому относительные пути src/modules, data_full, data_lite и пути модулей
+# из профиля разрешаются относительно корня.
+#
+# Папка data_svelte используется из каталога, в котором находится myProfile.json
+# (profileDir) — то есть у каждого проекта своя data_svelte.
+#
 # При отсутствии файла с персональными настройками, myProfile.json будет создан автоматически
 # python PrepareProject.py
 # 
@@ -80,6 +87,26 @@ def updateModulesInProfile(profJson):
                     })
 
 
+def copy_missing(src_dir, dst_dir):
+    """Копирует файлы из src_dir в dst_dir, НЕ перезаписывая существующие.
+
+    Нужно, чтобы папка data_svelte проекта была полной (settings.json и пр.),
+    но при этом сохранялись уже имеющиеся данные проекта.
+    """
+    if not os.path.isdir(src_dir):
+        return
+    os.makedirs(dst_dir, exist_ok=True)
+    for root, dirs, files in os.walk(src_dir):
+        rel = os.path.relpath(root, src_dir)
+        target = dst_dir if rel == "." else os.path.join(dst_dir, rel)
+        os.makedirs(target, exist_ok=True)
+        for fname in files:
+            sp = os.path.join(root, fname)
+            dp = os.path.join(target, fname)
+            if not os.path.exists(dp):
+                shutil.copy2(sp, dp)
+
+
 
 
 
@@ -112,6 +139,12 @@ for opt, arg in opts:
 # определяем каталог, в котором находится файл профиля,
 # чтобы читать и изменять platformio.ini в той же папке что и myProfile.json
 profileDir = str(Path(profile).parent)
+# папка данных прошивки — data_svelte, лежащая в папке проекта (там же, где myProfile.json)
+DATA_DIR = os.path.join(profileDir, "data_svelte")
+
+# Заполняем data_svelte проекта недостающими файлами из корневой data_svelte
+# (settings.json, items.json, flashProfile.json и пр.), сохраняя существующие данные проекта.
+copy_missing("data_svelte", DATA_DIR)
 
 if Path(profile).is_file():
     # подтягиваем уже существующий профиль
@@ -133,7 +166,7 @@ else:
     # если файла нет - создаем по образу настроек из проекта
     profJson = json.loads('{}')
     # копируем параметры IOTM из settings.json в новый профиль
-    with open("data_svelte/settings.json", "r", encoding='utf-8') as read_file:
+    with open(os.path.join(DATA_DIR, "settings.json"), "r", encoding='utf-8') as read_file:
         profJson['iotmSettings'] = json.load(read_file)
     # устанавливаем параметры сборки
     profJson['projectProp'] = {
@@ -161,9 +194,9 @@ else:
 
 # заполняем папку /data файлами прошивки в зависимости от устройства
 if deviceName == 'esp8266_1mb_ota' or deviceName == 'esp8285_1mb_ota' or deviceName == 'esp8266_2mb_ota': 
-    shutil.copytree("data_lite", "data_svelte", symlinks=False, ignore=None, ignore_dangling_symlinks=False, dirs_exist_ok=True)
+    shutil.copytree("data_lite", DATA_DIR, symlinks=False, ignore=None, ignore_dangling_symlinks=False, dirs_exist_ok=True)
 else:
-    shutil.copytree("data_full", "data_svelte", symlinks=False, ignore=None, ignore_dangling_symlinks=False, dirs_exist_ok=True)
+    shutil.copytree("data_full", DATA_DIR, symlinks=False, ignore=None, ignore_dangling_symlinks=False, dirs_exist_ok=True)
 
 deviceType = 'esp32*'
 if not 'esp32' in deviceName:
@@ -172,11 +205,11 @@ if 'bk72' in deviceName:
     deviceType = 'bk72*'
 # генерируем файлы проекта на основе подготовленного профиля
 # заполняем конфигурационный файл прошивки параметрами из профиля
-with open("data_svelte/settings.json", "r", encoding='utf-8') as read_file:
+with open(os.path.join(DATA_DIR, "settings.json"), "r", encoding='utf-8') as read_file:
     iotmJson = json.load(read_file)
 for key, value in profJson['iotmSettings'].items():
     iotmJson[key] = value
-with open("data_svelte/settings.json", "w", encoding='utf-8') as write_file:
+with open(os.path.join(DATA_DIR, "settings.json"), "w", encoding='utf-8') as write_file:
     json.dump(iotmJson, write_file, ensure_ascii=False, indent=4, sort_keys=False)
 
 
@@ -194,7 +227,11 @@ for section, modules in profJson['modules'].items():
     itemsJson.append({"header": section})
     for module in modules:
         if module['active']:
-            with open(module['path'] + "/modinfo.json", "r", encoding='utf-8') as read_file:
+            modinfo_path = module['path'] + "/modinfo.json"
+            if not os.path.isfile(modinfo_path):
+                print(f"Пропуск отсутствующего модуля (нет {modinfo_path}): путь в профиле устарел")
+                continue
+            with open(modinfo_path, "r", encoding='utf-8') as read_file:
                 moduleJson = json.load(read_file)
                 if 'moduleDefines' in moduleJson['about']:
                     allDefs = allDefs + "\n".join("-D" + d for d in moduleJson['about']['moduleDefines'])
@@ -223,7 +260,7 @@ for section, modules in profJson['modules'].items():
                             itemsJson.append(configItemsJson)
                             configItemsJson['moduleName'] = moduleJson['about']['moduleName']     
 
-with open("data_svelte/items.json", "w", encoding='utf-8') as write_file:
+with open(os.path.join(DATA_DIR, "items.json"), "w", encoding='utf-8') as write_file:
     json.dump(itemsJson, write_file, ensure_ascii=False, indent=4, sort_keys=False)
 
 
@@ -253,21 +290,38 @@ with open('src/modules/API.cpp', 'w') as f:
 #                     excludeDirs = excludeDirs + "\n-<" + root.replace("src\\", "") + ">"
 
 # фиксируем изменения в platformio.ini
+ini_path = os.path.join(profileDir, "platformio.ini")
+# Если у проекта нет platformio.ini — создаём его из корневого шаблона
+if not os.path.isfile(ini_path):
+    if os.path.isfile("platformio.ini"):
+        shutil.copy("platformio.ini", ini_path)
+        print(f"Создан platformio.ini проекта из корневого шаблона: {ini_path}")
+    else:
+        open(ini_path, "w", encoding="utf-8").close()
 config.clear()
-config.read(os.path.join(profileDir, "platformio.ini"))
-config["env:" + deviceName + "_fromitems"]["lib_deps"] = allLibs
-config["env:" + deviceName + "_fromitems"]["build_src_filter"] = includeDirs
-config["env:" + deviceName + "_fromitems"]["build_flags"] = allDefs
+config.read(ini_path)
+# Защитно добавляем недостающие секции
+fromitems_sec = "env:" + deviceName + "_fromitems"
+if not config.has_section("platformio"):
+    config.add_section("platformio")
+if not config.has_section(fromitems_sec):
+    config.add_section(fromitems_sec)
+if not config.has_section("env:" + deviceName):
+    config.add_section("env:" + deviceName)
+    config.set("env:" + deviceName, "build_flags", "")
+config[fromitems_sec]["lib_deps"] = allLibs
+config[fromitems_sec]["build_src_filter"] = includeDirs
+config[fromitems_sec]["build_flags"] = allDefs
 config["platformio"]["default_envs"] = deviceName
 if "${env:" + deviceName + "_fromitems.build_flags}" not in config["env:" + deviceName]["build_flags"]:
     config["env:" + deviceName]["build_flags"] += "\n${env:" + deviceName + "_fromitems.build_flags}"
 # config["platformio"]["data_dir"] = profJson['projectProp']['platformio']['data_dir']
-with open(os.path.join(profileDir, "platformio.ini"), 'w') as configFile:
+with open(ini_path, 'w') as configFile:
     config.write(configFile)
     
     
 # сохраняем часть применяемого профиля в папку data_svelte для загрузки на контроллер и дальнейшего переиспользования
-print(f"Saving profile {profile} in /data_svelte/flashProfile.json")
+print(f"Saving profile {profile} in {DATA_DIR}/flashProfile.json")
 shortProfJson = json.loads('{}')
 shortProfJson['projectProp'] = {
         'platformio': {
@@ -275,7 +329,7 @@ shortProfJson['projectProp'] = {
         }
     }
 shortProfJson['modules'] = profJson['modules']
-with open("data_svelte/flashProfile.json", "w", encoding='utf-8') as write_file:
+with open(os.path.join(DATA_DIR, "flashProfile.json"), "w", encoding='utf-8') as write_file:
     json.dump(shortProfJson, write_file, ensure_ascii=False, indent=4, sort_keys=False)
     
     
@@ -293,5 +347,3 @@ else:
     print(f"\x1b[1;31;42m Profile ", profile, " applied, you can run compilation and firmware.\x1b[0m")
 
 # print(f"\x1b[1;32;41m Операция завершена. \x1b[0m")
-
-        
