@@ -477,7 +477,9 @@ def show_platform_menu(modules):
     Параметры:
       modules: список всех модулей (от collect_modules)
 
-    Возвращает: список из одной выбранной платформы (list[str]).
+    Возвращает: кортеж (envs, single_module_mode):
+      envs — список выбранных платформ (list[str]);
+      single_module_mode — True, если выбрана опция 0 (1 модуль для всех платформ).
     """
     # Извлекаем список платформ из platformio.ini
     platform_names = get_envs_from_platformio_ini()
@@ -494,6 +496,14 @@ def show_platform_menu(modules):
     log_section("Выбор платформы")
     print()
     print(style("  Выберите платформу:", "cyan", bold=True))
+    print()
+
+    # Пункт 0 — измерение одного модуля на всех платформах
+    print(
+        style("    0", "green", bold=True) +
+        " — " +
+        style("1 модуль для всех платформ", "cyan")
+    )
     print()
 
     for i, name in enumerate(platform_names):
@@ -530,11 +540,14 @@ def show_platform_menu(modules):
     while True:
         try:
             choice = input(style("  Ваш выбор: ", "yellow")).strip()
+            if choice == "0":
+                log_ok("Выбрано: 1 модуль для всех платформ")
+                return (platform_names, True)
             idx = int(choice) - 1
             if 0 <= idx < len(platform_names):
                 selected = platform_names[idx]
                 log_ok(f"Выбрана платформа: {selected}")
-                return [selected]
+                return ([selected], False)
             log_fail("Некорректный номер. Попробуйте снова.")
         except (EOFError, KeyboardInterrupt):
             print()
@@ -542,6 +555,66 @@ def show_platform_menu(modules):
             sys.exit(1)
         except ValueError:
             log_fail("Введите номер платформы.")
+
+
+def show_module_menu(modules, envs):
+    """
+    Показывает перечень всех модулей (независимо от платформы)
+    и ждёт выбора пользователя по номеру.
+
+    Используется при выборе опции 0 «1 модуль для всех платформ»:
+    меню выбора режима обработки пропускается, а здесь пользователю
+    предлагается выбрать ОДИН модуль для измерения на всех платформах.
+
+    Для каждого модуля выводится:
+      номер - имя_модуля (путь) — красным: количество платформ, где модуль в ошибке
+
+    Параметры:
+      modules: список всех модулей (от collect_modules)
+      envs:    список платформ
+
+    Возвращает: список из одного выбранного модуля (list[dict]).
+    """
+    platforms_data = load_platforms_data()
+
+    log_section("Выбор модуля для измерения")
+    print()
+    print(style("  Выберите модуль:", "cyan", bold=True))
+    print()
+
+    for i, mod in enumerate(modules):
+        # Считаем количество платформ, где этот модуль записан в failed_modules
+        failed_count = 0
+        for env in envs:
+            failed = platforms_data.get(env, {}).get("failed_modules", [])
+            if mod["moduleName"] in failed:
+                failed_count += 1
+        err_str = style(f"в ошибке {failed_count}", "red") if failed_count else ""
+        print(
+            style(f"    {i + 1}", "green", bold=True) +
+            " — " +
+            style(f"{mod['moduleName']}", "cyan") +
+            f" ({mod['path']})" +
+            (f" — {err_str}" if err_str else "")
+        )
+
+    print()
+
+    while True:
+        try:
+            choice = input(style("  Ваш выбор: ", "yellow")).strip()
+            idx = int(choice) - 1
+            if 0 <= idx < len(modules):
+                selected = modules[idx]
+                log_ok(f"Выбран модуль: {selected['moduleName']}")
+                return [selected]
+            log_fail("Некорректный номер. Попробуйте снова.")
+        except (EOFError, KeyboardInterrupt):
+            print()
+            log_fail("Ввод прерван. Выход.")
+            sys.exit(1)
+        except ValueError:
+            log_fail("Введите номер модуля.")
 
 
 # ----------------------------------------------------------------------------
@@ -977,12 +1050,13 @@ def main():
     #   2. Если DEFAULT_ENVS не пуст — используем его.
     #   3. Иначе — показываем меню выбора платформы из platformio.ini.
     # -------------------------------------------------------------------------
+    single_module_mode = False
     if args.env:
         envs = args.env
     elif DEFAULT_ENVS:
         envs = DEFAULT_ENVS
     else:
-        envs = show_platform_menu(modules)
+        envs, single_module_mode = show_platform_menu(modules)
 
     # -------------------------------------------------------------------------
     # ЗАПУСК ЛОГИРОВАНИЯ В ФАЙЛ:
@@ -1003,23 +1077,39 @@ def main():
     profile_modules = filter_modules_by_profile(modules, prof_template)
     without_size = filter_modules_without_size(modules, envs)
 
-    all_count = count_modules_for_envs(modules, envs)
-    profile_count = count_modules_for_envs(profile_modules, envs)
-    without_size_count = count_modules_for_envs(without_size, envs)
+    # -------------------------------------------------------------------------
+    # МЕНЮ ВЫБОРА РЕЖИМА ОБРАБОТКИ:
+    #   В режиме «1 модуль для всех платформ» (single_module_mode) меню пропускается —
+    #   сразу показывается перечень всех модулей.
+    # -------------------------------------------------------------------------
+    if single_module_mode:
+        log_step("Режим: 1 модуль для всех платформ")
+    else:
+        all_count = count_modules_for_envs(modules, envs)
+        profile_count = count_modules_for_envs(profile_modules, envs)
+        without_size_count = count_modules_for_envs(without_size, envs)
 
-    choice = show_menu(all_count, profile_count, without_size_count)
+        choice = show_menu(all_count, profile_count, without_size_count)
 
-    if choice == 1:
-        # Все модули — ничего не фильтруем
-        log_step("Режим 1: обработка ВСЕХ модулей")
-    elif choice == 2:
-        # Только модули из профиля
-        modules = profile_modules
-        log_step(f"Режим 2: обработка модулей из myProfile.json ({len(modules)})")
-    elif choice == 3:
-        # Только модули без размера
-        modules = without_size
-        log_step(f"Режим 3: обработка модулей без информации о размере ({len(modules)})")
+        if choice == 1:
+            # Все модули — ничего не фильтруем
+            log_step("Режим 1: обработка ВСЕХ модулей")
+        elif choice == 2:
+            # Только модули из профиля
+            modules = profile_modules
+            log_step(f"Режим 2: обработка модулей из myProfile.json ({len(modules)})")
+        elif choice == 3:
+            # Только модули без размера
+            modules = without_size
+            log_step(f"Режим 3: обработка модулей без информации о размере ({len(modules)})")
+
+    # -------------------------------------------------------------------------
+    # Если выбрана опция 0 «1 модуль для всех платформ» —
+    # показать перечень всех модулей и предложить выбрать один.
+    # -------------------------------------------------------------------------
+    if single_module_mode:
+        modules = show_module_menu(modules, envs)
+        log_step(f"Режим: 1 модуль ({modules[0]['moduleName']}) на всех платформах")
 
     # -------------------------------------------------------------------------
     # ГРУППИРОВКА МОДУЛЕЙ ПО ПЛАТФОРМАМ:
@@ -1078,40 +1168,69 @@ def main():
         #   total_ram      = ram_total   (общая RAM платформы)
         # -------------------------------------------------------------------------
         baseline_sizes = {}
-        log_section("Базовая сборка (без модулей)")
-        for env in envs:
-            prof = build_profile_with_modules(prof_template, baseline_paths, env)
-            with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-                save_json(f.name, prof)
-                ok = run_prepare_project(f.name, env)
-            os.unlink(f.name)
-            if not ok:
-                log_fail(f"PrepareProject не удался для baseline env={env}")
-                continue
-            sizes = get_size_from_output(env)
-            if sizes is None:
-                log_fail(f"Не удалось получить размер для baseline env={env}")
-                continue
-            baseline_sizes[env] = {
-                "baseline_flash": sizes["flash_used"],
-                "baseline_ram": sizes["ram_used"],
-                "total_flash": sizes["flash_total"],
-                "total_ram": sizes["ram_total"],
-            }
-            log_ok(
-                f"{env}: baseline Flash={sizes['flash_used']:,} B, "
-                f"baseline RAM={sizes['ram_used']:,} B, "
-                f"total Flash={sizes['flash_total']:,} B, "
-                f"total RAM={sizes['ram_total']:,} B"
-            )
+        platforms_data = load_platforms_data()
+
+        if single_module_mode:
+            # -----------------------------------------------------------------
+            # РЕЖИМ «1 МОДУЛЬ ДЛЯ ВСЕХ ПЛАТФОРМ»:
+            #   Базовая сборка (без модулей) НЕ выполняется.
+            #   Размеры базовых прошивок берутся напрямую из platforms.json.
+            # -----------------------------------------------------------------
+            log_section("Базовые размеры (из platforms.json)")
+            for env in envs:
+                pdata = platforms_data.get(env, {})
+                baseline_sizes[env] = {
+                    "baseline_flash": int(pdata.get("baseline_flash") or 0),
+                    "baseline_ram": int(pdata.get("baseline_ram") or 0),
+                    "total_flash": int(pdata.get("total_flash") or 0),
+                    "total_ram": int(pdata.get("total_ram") or 0),
+                }
+                log_ok(
+                    f"{env}: baseline взят из platforms.json "
+                    f"(Flash={baseline_sizes[env]['baseline_flash']:,} B, "
+                    f"RAM={baseline_sizes[env]['baseline_ram']:,} B)"
+                )
+        else:
+            # -----------------------------------------------------------------
+            # ОБЫЧНЫЙ РЕЖИМ: выполняется базовая сборка БЕЗ МОДУЛЕЙ.
+            # -----------------------------------------------------------------
+            log_section("Базовая сборка (без модулей)")
+            for env in envs:
+                prof = build_profile_with_modules(prof_template, baseline_paths, env)
+                with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+                    save_json(f.name, prof)
+                    ok = run_prepare_project(f.name, env)
+                os.unlink(f.name)
+                if not ok:
+                    log_fail(f"PrepareProject не удался для baseline env={env}")
+                    continue
+                sizes = get_size_from_output(env)
+                if sizes is None:
+                    log_fail(f"Не удалось получить размер для baseline env={env}")
+                    continue
+                baseline_sizes[env] = {
+                    "baseline_flash": sizes["flash_used"],
+                    "baseline_ram": sizes["ram_used"],
+                    "total_flash": sizes["flash_total"],
+                    "total_ram": sizes["ram_total"],
+                }
+                log_ok(
+                    f"{env}: baseline Flash={sizes['flash_used']:,} B, "
+                    f"baseline RAM={sizes['ram_used']:,} B, "
+                    f"total Flash={sizes['flash_total']:,} B, "
+                    f"total RAM={sizes['ram_total']:,} B"
+                )
 
         # -------------------------------------------------------------------------
         # СОХРАНЕНИЕ platforms.json сразу после базовой сборки
         # -------------------------------------------------------------------------
-        # Точечно обновляем поля платформы, не перезаписывая весь файл
-        for env in envs:
-            update_platforms_data(env, baseline_sizes[env])
-        log_ok(f"platforms.json обновлён: {PLATFORMS_JSON}")
+        # В режиме «1 модуль для всех платформ» обновление не имеет смысла:
+        # размеры уже взяты из platforms.json, перезаписывать их не нужно.
+        if not single_module_mode:
+            for env in envs:
+                if env in baseline_sizes:
+                    update_platforms_data(env, baseline_sizes[env])
+            log_ok(f"platforms.json обновлён: {PLATFORMS_JSON}")
 
         # -------------------------------------------------------------------------
         # ЭТАП 2: ИЗМЕРЕНИЕ МОДУЛЕЙ

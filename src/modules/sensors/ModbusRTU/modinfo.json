@@ -170,7 +170,9 @@
                 "esp8285_1mb": "-",
                 "esp8285_1mb_ota": "-",
                 "esp32c6_4mb": "-",
-                "esp32c6_8mb": "-"
+                "esp32c6_8mb": "-",
+                "esp32_16mb": "-",
+                "esp32_wifirep": "-"
             },
             "usedRAM": {
                 "esp8266_1mb": "-",
@@ -188,7 +190,9 @@
                 "esp8285_1mb": "-",
                 "esp8285_1mb_ota": "-",
                 "esp32c6_4mb": "-",
-                "esp32c6_8mb": "-"
+                "esp32c6_8mb": "-",
+                "esp32_16mb": "-",
+                "esp32_wifirep": "-"
             }
         }
     ]
