@@ -47,6 +47,7 @@ body.dark{background:var(--bg);color:var(--text)}
 .topbar{padding:8px 16px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;z-index:50}
 .topbar .project-name{font-weight:600;font-size:14px}
 .topbar .platform-select{display:flex;align-items:center;gap:6px}
+.topbar .baseline-size{font-size:12px;color:var(--muted);white-space:nowrap}
 .topbar select{padding:4px 8px;border:1px solid var(--border);border-radius:4px;background:var(--panel);color:var(--text)}
 .build-upload{margin-left:auto;display:flex;align-items:center;gap:8px}
 .build-upload .btn-build,
@@ -86,6 +87,7 @@ body.dark .gauge-track{background:#2a2a4a}
 .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
 .section-header h2{font-size:15px;margin:0;padding:0;border:none}
 .section-header button{font-size:12px;white-space:nowrap}
+.section-tools{display:flex;gap:8px;margin-left:auto}
 
 /* Modules */
 .module-list{max-height:500px;overflow-y:auto}
@@ -143,6 +145,7 @@ button.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent
 @keyframes blink{50%{opacity:.3}}
 .build-error{background:rgba(244,67,54,.1);border:1px solid var(--danger);color:var(--danger);border-radius:6px;padding:8px 10px;font-size:12px;margin-bottom:12px}
 .build-success-msg{color:#4caf50;font-weight:600;margin-bottom:12px}
+.modal-actions .build-success-msg{margin-bottom:0;align-self:center;margin-right:auto}
 .measure-scope-list{display:flex;flex-direction:column;gap:8px}
 .measure-scope-list button{text-align:left;padding:8px 10px;font-size:13px}
 .measure-scope-list button .ms-desc{display:block;color:var(--muted);font-size:11px;margin-top:2px}
@@ -202,6 +205,7 @@ textarea{resize:vertical;min-height:60px;font-family:inherit}
         <label>Платформа:</label>
         <select id="platformSelect" onchange="changePlatform()"></select>
         <button class="btn-sm" title="Замер размера прошивки без модулей" onclick="startMeasure('baseline','')">⚖️ Замер базы</button>
+        <span id="baselineSize" class="baseline-size"></span>
       </div>
       <div class="build-upload">
         <button class="btn-sm btn-build" title="Сборка (Build)" onclick="startBuild()">🔨</button>
@@ -246,8 +250,8 @@ textarea{resize:vertical;min-height:60px;font-family:inherit}
     <div class="build-log" id="buildLog"></div>
     <div class="build-sizes" id="buildSizes" style="display:none"></div>
     <div class="build-error" id="buildError" style="display:none"></div>
-    <div class="build-success-msg" id="buildSuccessMsg" style="display:none"></div>
     <div class="modal-actions">
+      <div class="build-success-msg" id="buildSuccessMsg" style="display:none"></div>
       <button id="buildCloseBtn" onclick="closeBuildModal()" disabled title="Кнопка станет активной после завершения сборки">Закрыть</button>
     </div>
   </div>
@@ -260,8 +264,8 @@ textarea{resize:vertical;min-height:60px;font-family:inherit}
     <div class="build-sub" id="measureSub">—</div>
     <div class="build-log" id="measureLog"></div>
     <div class="build-error" id="measureError" style="display:none"></div>
-    <div class="build-success-msg" id="measureSuccessMsg" style="display:none"></div>
     <div class="modal-actions">
+      <div class="build-success-msg" id="measureSuccessMsg" style="display:none"></div>
       <button id="measureCloseBtn" onclick="closeMeasureModal()" disabled title="Кнопка станет активной после завершения замера">Закрыть</button>
     </div>
   </div>
@@ -404,12 +408,28 @@ async function loadPlatforms(){
     d.platforms.forEach(p=>{
       const o = document.createElement('option');
       o.value = p.name; o.textContent = p.name;
+      o.dataset.baseline = p.baseline_flash || 0;
       sel.appendChild(o);
     });
   }
   // Установить текущую
   const de = configData?.projectProp?.platformio?.default_envs;
   if(de) sel.value = de;
+  renderBaselineSize();
+}
+
+function renderBaselineSize(){
+  const sel = document.getElementById('platformSelect');
+  const el = document.getElementById('baselineSize');
+  if(!el) return;
+  const opt = sel.selectedOptions[0];
+  const b = opt ? parseInt(opt.dataset.baseline||0, 10) : 0;
+  if(b > 0){
+    el.style.display = 'inline';
+    el.textContent = 'Базовый размер ' + formatBytes(b);
+  } else {
+    el.style.display = 'none';
+  }
 }
 
 async function changePlatform(){
@@ -422,6 +442,7 @@ async function changePlatform(){
     await loadCompatibility();
     renderModules();
     updateGauge();
+    renderBaselineSize();
     if(d.disabled_count > 0) toast(`Отключено модулей: ${d.disabled_count}`, 'warning');
   }
 }
@@ -454,8 +475,10 @@ function renderContent(about){
     <div class="content-section">
       <div class="section-header">
         <h2>📦 Модули прошивки</h2>
-        <button class="btn-sm" title="Скопировать состав модулей из другого проекта" onclick="showCopyModules()">⧉ Из другого проекта</button>
-        <button class="btn-sm" title="Замер размера" onclick="showMeasureScope()">⚖️ Замер размера</button>
+        <div class="section-tools">
+          <button class="btn-sm" title="Замер размера модулей для этой платформы" onclick="showMeasureScope()">⚖️ Замер размера</button>
+          <button class="btn-sm" title="Скопировать состав модулей из другого проекта" onclick="showCopyModules()">⧉ Из другого проекта</button>
+        </div>
       </div>
       <div class="module-list" id="moduleList"></div>
     </div>
@@ -864,7 +887,7 @@ async function startMeasure(scope, modulePath, label){
 
   measureStream = new EventSource('/api/measure/stream');
   measureStream.addEventListener('log', e => appendMeasureLog(JSON.parse(e.data).text));
-  measureStream.addEventListener('done', e => {
+  measureStream.addEventListener('done', async e => {
     let failed = false;
     try{ failed = !!(JSON.parse(e.data).failed); }catch(_){}
     const msg = document.getElementById('measureSuccessMsg');
@@ -877,10 +900,12 @@ async function startMeasure(scope, modulePath, label){
       msg.textContent = '✅ Замер размера завершён.';
     }
     measureFinish();
-    // Обновляем размеры модулей и индикаторы
-    loadCompatibility();
+    // Перечитываем модифицированные modinfo.json и обновляем размеры модулей и индикаторы
+    await fetch('/api/modules/reload', {method:'POST'});
+    await loadCompatibility();
     renderModules();
     updateGauge();
+    if(measureScope === 'baseline'){ loadPlatforms(); }
   });
   measureStream.addEventListener('error', e => {
     let aborted = false, txt = 'Ошибка замера';

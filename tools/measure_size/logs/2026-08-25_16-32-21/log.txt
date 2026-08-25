@@ -1,0 +1,34 @@
+
+  ✓ Лог запуска сохранён: E:\GitHub\IoTManager\tools\measure_size\logs\2026-08-25_16-32-21
+  ● Режим: 1 модуль (TM16XX) — платформы: esp8266_4mb
+
+  Измерение размера Flash/RAM модулей
+────────────────────────────────────────────────────────────
+  ● Профиль: myProfile.json
+  ● Платформы: esp8266_4mb
+  ● Всего сборок: baseline × 1 + 1 модулей 
+
+  Базовые размеры (из platforms.json)
+────────────────────────────────────────────────────────────
+  ✓ esp8266_4mb: baseline взят из platforms.json (Flash=448,747 B, RAM=37,244 B)
+
+  Измерение модулей — esp8266_4mb
+────────────────────────────────────────────────────────────
+Processing esp8266_4mb (framework: arduino; board: nodemcuv2; platform: espressif8266 @4.0.1)
+--------------------------------------------------------------------------------
+Removing unused dependencies...
+Library Manager: Installing git+https://github.com/maxint-rd/TM16xx
+git version 2.51.2.windows.1
+Cloning into 'C:\Users\Admin\.platformio\.cache\tmp\pkg-installing-htx2lj3m'...
+fatal: unable to access 'https://github.com/maxint-rd/TM16xx/': Failed to connect to github.com port 443 after 20671 ms: Could not connect to server
+VCSBaseException: VCS: Could not process command ['git', 'clone', '--recursive', '--depth', '1', 'https://github.com/maxint-rd/TM16xx', 'C:\\Users\\Admin\\.platformio\\.cache\\tmp\\pkg-installing-htx2lj3m']
+  ✗ [1/1] TM16XX — не удалось распарсить размер
+
+  Итог
+────────────────────────────────────────────────────────────
+  ✓ Файлов modinfo.json обновлено: 0
+  ✓ platformio.ini восстановлен.
+
+  Восстановление состояния проекта
+────────────────────────────────────────────────────────────
+  ✓ PrepareProject применён: myProfile.json (env=esp8266_4mb)

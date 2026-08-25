@@ -142,9 +142,12 @@ def event_stream():
             if finished and not done_sent:
                 done_sent = True
                 if _state["success"]:
-                    yield _sse("done", {})
+                    yield _sse("done", {"failed": _state["failed"]})
                 else:
-                    yield _sse("error", {"error": _state["error"]})
+                    yield _sse("error", {
+                        "error": _state["error"],
+                        "aborted": _state["aborted"],
+                    })
                 yield _sse("finish", {})
             if finished:
                 break
@@ -168,6 +171,9 @@ def _worker(cfg):
         env = os.environ.copy()
         env["PYTHONIOENCODING"] = "utf-8"
         env["PYTHONUTF8"] = "1"
+        # Отключаем блочную буферизацию stdout у дочернего процесса, иначе вывод
+        # measure.py (и вложенного pio) не появляется в модальном окне в реальном времени.
+        env["PYTHONUNBUFFERED"] = "1"
         p = subprocess.Popen(
             cmd,
             cwd=cwd,

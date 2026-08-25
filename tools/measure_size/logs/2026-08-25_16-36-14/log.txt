@@ -1,0 +1,254 @@
+
+  ✓ Лог запуска сохранён: E:\GitHub\IoTManager\tools\measure_size\logs\2026-08-25_16-36-14
+
+  Выбор режима измерения
+────────────────────────────────────────────────────────────
+
+  Выберите режим измерения:
+
+    1 — измерение всех модулей для одной платформы
+    2 — измерение одного модуля для всех платформ
+    3 — измерение одного модуля для одной платформы
+    4 — измерение всех модулей для всех платформ
+    0 — выход
+
+  ✓ Выбран режим 3
+
+  Выбор платформы
+────────────────────────────────────────────────────────────
+
+  Выберите платформу:
+
+    1 — esp8266_1mb_ota обработано 87 из 94, в ошибке 7
+    2 — esp8266_1mb обработано 87 из 94, в ошибке 6
+    3 — esp8285_1mb_ota обработано 87 из 94, в ошибке 6
+    4 — esp8266_2mb обработано 87 из 94, в ошибке 6
+    5 — esp8266_2mb_ota обработано 87 из 94, в ошибке 6
+    6 — esp8285_1mb обработано 87 из 94, в ошибке 6
+    7 — esp8266_4mb обработано 78 из 97, в ошибке 19
+    8 — esp8266_16mb обработано 87 из 94, в ошибке 6
+    9 — esp32_4mb обработано 94 из 107, в ошибке 11
+    10 — esp32_4mb3f обработано 97 из 107, в ошибке 8
+    11 — esp32cam_4mb обработано 95 из 108, в ошибке 11
+    12 — esp32s2_4mb обработано 95 из 107, в ошибке 10
+    13 — esp32c3m_4mb обработано 95 из 107, в ошибке 10
+    14 — esp32s3_16mb обработано 97 из 107, в ошибке 8
+    15 — esp32_16mb обработано 54 из 107, в ошибке 53
+    16 — esp32_wifirep обработано 1 из 107, в ошибке 2
+    17 — esp32c6_4mb обработано 89 из 106, в ошибке 15
+    18 — esp32c6_8mb обработано 89 из 106, в ошибке 15
+    19 — bk7231n обработано 18 из 18, в ошибке 0
+
+    0 — назад
+
+  ✓ Выбрана платформа: esp8266_4mb
+
+  Выбор модуля для измерения
+────────────────────────────────────────────────────────────
+
+  Выберите модуль:
+
+    1 — DwinI (src/modules/display/DwinI) — в ошибке 1
+    2 — GyverLAMP (src/modules/display/GyverLAMP) — в ошибке 1
+    3 — Lcd2004 (src/modules/display/Lcd2004) — в ошибке 1
+    4 — LedFX (src/modules/display/LedFX)
+    5 — Nextion (src/modules/display/Nextion) — в ошибке 1
+    6 — NextionUpload (src/modules/display/NextionUpload) — в ошибке 1
+    7 — Oled128 (src/modules/display/Oled128) — в ошибке 1
+    8 — Oled64 (src/modules/display/Oled64) — в ошибке 1
+    9 — Smi2_m (src/modules/display/Smi2_m)
+    10 — TM16XX (src/modules/display/TM16XX) — в ошибке 1
+    11 — U8g2lib (src/modules/display/U8g2lib)
+    12 — Ws2812b (src/modules/display/Ws2812b) — в ошибке 1
+    13 — AnalogBtn (src/modules/exec/AnalogBtn)
+    14 — BrokerMQTT (src/modules/exec/BrokerMQTT)
+    15 — ButtonIn (src/modules/exec/ButtonIn)
+    16 — ButtonOut (src/modules/exec/ButtonOut)
+    17 — Buzzer (src/modules/exec/Buzzer)
+    18 — EctoControlAdapter (src/modules/exec/EctoControlAdapter)
+    19 — Encoder (src/modules/exec/Enconder) — в ошибке 1
+    20 — EspCam (src/modules/exec/EspCam)
+    21 — FTPModule (src/modules/exec/Ftp)
+    22 — HttpGet (src/modules/exec/HttpGet)
+    23 — IoTServo (src/modules/exec/IoTServo)
+    24 — IRremote (src/modules/exec/IRremote) — в ошибке 1
+    25 — Mcp23008 (src/modules/exec/Mcp23008) — в ошибке 1
+    26 — Mcp23017 (src/modules/exec/Mcp23017) — в ошибке 1
+    27 — Mp3 (src/modules/exec/Mp3) — в ошибке 1
+    28 — Multitouch (src/modules/exec/Multitouch)
+    29 — MySensorsGate (src/modules/exec/MySensors)
+    30 — Pcf8574 (src/modules/exec/Pcf8574)
+    31 — Pwm32 (src/modules/exec/Pwm32)
+    32 — Pwm8266 (src/modules/exec/Pwm8266)
+    33 — SDcard (src/modules/exec/SDcard)
+    34 — SIM800 (src/modules/exec/SIM800)
+    35 — SmartBoiler (src/modules/exec/SmartBoiler)
+    36 — SysExt (src/modules/exec/SysExt)
+    37 — Tca9555 (src/modules/exec/Tca9555)
+    38 — Telegram (src/modules/exec/Telegram) — в ошибке 1
+    39 — TelegramLT (src/modules/exec/TelegramLT)
+    40 — Telegram_v2 (src/modules/exec/Telegram_v2)
+    41 — Thermostat (src/modules/exec/Thermostat)
+    42 — A02Distance (src/modules/sensors/A02Distance)
+    43 — Acs712 (src/modules/sensors/Acs712)
+    44 — Ads1115 (src/modules/sensors/Ads1115)
+    45 — AhtXX (src/modules/sensors/AhtXX)
+    46 — AnalogAdc (src/modules/sensors/AnalogAdc)
+    47 — Bh1750 (src/modules/sensors/BH_1750)
+    48 — BL0937 (src/modules/sensors/BL0937)
+    49 — BL0942 (src/modules/sensors/BL0942)
+    50 — Ble (src/modules/sensors/Ble)
+    51 — Ble_part1 (src/modules/sensors/Ble_part1)
+    52 — Ble_part2 (src/modules/sensors/Ble_part2)
+    53 — Bme280 (src/modules/sensors/Bme280) — в ошибке 1
+    54 — Bmp280 (src/modules/sensors/Bmp280)
+    55 — Dht1122 (src/modules/sensors/Dht1122)
+    56 — Ds18b20 (src/modules/sensors/Ds18b20)
+    57 — DS2401 (src/modules/sensors/DS2401) — в ошибке 1
+    58 — Ds2423 (src/modules/sensors/Ds2423)
+    59 — Emon (src/modules/sensors/Emon)
+    60 — EnergyMon485 (src/modules/sensors/EnergyMon485)
+    61 — ExampleModule (src/modules/sensors/ExampleModule)
+    62 — ExternalMQTT (src/modules/sensors/ExternalMQTT)
+    63 — FreqMeter (src/modules/sensors/FreqMeter)
+    64 — GY21 (src/modules/sensors/GY21)
+    65 — Hdc1080 (src/modules/sensors/Hdc1080)
+    66 — Hx710 (src/modules/sensors/Hx710)
+    67 — Hx711 (src/modules/sensors/Hx711)
+    68 — Impulse (src/modules/sensors/Impulse)
+    69 — Ina219 (src/modules/sensors/Ina219)
+    70 — Ina226 (src/modules/sensors/Ina226)
+    71 — IoTWiegand (src/modules/sensors/IoTWiegand)
+    72 — ld2410 (src/modules/sensors/ld2410)
+    73 — Max6675 (src/modules/sensors/Max6675)
+    74 — Mhz19 (src/modules/sensors/Mhz19)
+    75 — ModbusRTU (src/modules/sensors/ModbusRTU) — в ошибке 1
+    76 — ModbusRTUasync (src/modules/sensors/ModbusRTUasync)
+    77 — MQgas (src/modules/sensors/MQgas)
+    78 — Ntc (src/modules/sensors/Ntc)
+    79 — Pcf8591 (src/modules/sensors/Pcf8591)
+    80 — Pzem004 (src/modules/sensors/Pzem004t) — в ошибке 1
+    81 — Pzem004_v2 (src/modules/sensors/Pzem004t_v2)
+    82 — RCswitch (src/modules/sensors/RCswitch)
+    83 — RTC (src/modules/sensors/RTC)
+    84 — S8 (src/modules/sensors/S8)
+    85 — Scd40 (src/modules/sensors/Scd40)
+    86 — Sds011 (src/modules/sensors/Sds011)
+    87 — Sgp30 (src/modules/sensors/Sgp30)
+    88 — Sht20 (src/modules/sensors/Sht20)
+    89 — Sht30 (src/modules/sensors/Sht30)
+    90 — Sonar (src/modules/sensors/Sonar)
+    91 — UART (src/modules/sensors/UART)
+    92 — Benchmark (src/modules/virtual/Benchmark)
+    93 — Cron (src/modules/virtual/Cron)
+    94 — DiscoveryHA (src/modules/virtual/DiscoveryHA)
+    95 — DiscoveryHomeD (src/modules/virtual/DiscoveryHomeD)
+    96 — GoogleSheet (src/modules/virtual/GoogleSheet)
+    97 — Loging (src/modules/virtual/Loging)
+    98 — Loging2 (src/modules/virtual/Loging2)
+    99 — Loging3 (src/modules/virtual/Loging3)
+    100 — LogingDaily (src/modules/virtual/LogingDaily)
+    101 — LogingHourly (src/modules/virtual/LogingHourly)
+    102 — IoTMath (src/modules/virtual/Math)
+    103 — owmWeather (src/modules/virtual/owmWeather)
+    104 — Ping (src/modules/virtual/Ping)
+    105 — Timer (src/modules/virtual/Timer)
+    106 — UpdateServer (src/modules/virtual/UpdateServer)
+    107 — Variable (src/modules/virtual/Variable)
+    108 — VButton (src/modules/virtual/VButton)
+    109 — Weather (src/modules/virtual/Weather)
+
+    0 — назад
+
+  ✓ Выбран модуль: Lcd2004
+
+  Базовые размеры (без модулей)
+────────────────────────────────────────────────────────────
+
+  Выберите источник базовых размеров:
+
+    1 — получить из предыдущих замеров
+    2 — произвести новые замеры базовых размеров
+    0 — назад
+
+  ✓ Будут выполнены новые замеры базовых размеров
+  ● Режим: 1 модуль (Lcd2004) — платформы: esp8266_4mb
+
+  Измерение размера Flash/RAM модулей
+────────────────────────────────────────────────────────────
+  ● Профиль: myProfile.json
+  ● Платформы: esp8266_4mb
+  ● Всего сборок: baseline × 1 + 1 модулей 
+
+  Базовая сборка (без модулей)
+────────────────────────────────────────────────────────────
+Processing esp8266_4mb (framework: arduino; board: nodemcuv2; platform: espressif8266 @4.0.1)
+--------------------------------------------------------------------------------
+Verbose mode can be enabled via `-v, --verbose` option
+Current Build targets []
+Clear BUILD_TIME, delete main.o !
+CONFIGURATION: https://docs.platformio.org/page/boards/espressif8266/nodemcuv2.html
+PLATFORM: Espressif 8266 (4.0.1) > NodeMCU 1.0 (ESP-12E Module)
+HARDWARE: ESP8266 80MHz, 80KB RAM, 4MB Flash
+PACKAGES: 
+ - framework-arduinoespressif8266 @ 3.30002.0 (3.0.2) 
+ - tool-esptool @ 1.413.0 (4.13) 
+ - tool-esptoolpy @ 1.30000.201119 (3.0.0) 
+ - toolchain-xtensa @ 2.100300.220621 (10.3.0)
+LDF: Library Dependency Finder -> https://bit.ly/configure-pio-ldf
+LDF Modes: Finder ~ chain, Compatibility ~ soft
+Found 47 compatible libraries
+Scanning dependencies...
+Dependency Graph
+|-- ArduinoJson @ 6.18.0
+|-- PubSubClient @ 2.8.0
+|-- ESPAsyncUDP @ 0.0.0-alpha+sha.697c75a025
+|-- Wire @ 1.0
+|-- LittleFS @ 0.1.0
+|-- ESP8266httpUpdate @ 1.3
+|-- ESP8266HTTPUpdateServer @ 1.0
+|-- ESP8266WebServer @ 1.0
+|-- ESP8266WiFi @ 1.0
+|-- Hash @ 1.0
+|-- TickerScheduler
+|-- WebSockets @ 2.3.7
+|-- EspSoftwareSerial @ 8.1.0
+Building in release mode
+Compiling .pio\build\esp8266_4mb\src\Main.cpp.o
+Linking .pio\build\esp8266_4mb\firmware.elf
+Retrieving maximum program size .pio\build\esp8266_4mb\firmware.elf
+Checking size .pio\build\esp8266_4mb\firmware.elf
+Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
+RAM:   [=====     ]  45.5% (used 37244 bytes from 81920 bytes)
+Flash: [====      ]  43.0% (used 448747 bytes from 1044464 bytes)
+Building .pio\build\esp8266_4mb\firmware.bin
+Creating BIN file ".pio\build\esp8266_4mb\firmware.bin" using "C:\Users\Admin\.platformio\packages\framework-arduinoespressif8266@3.30002.0\bootloaders\eboot\eboot.elf" and ".pio\build\esp8266_4mb\firmware.elf"
+========================= [SUCCESS] Took 6.42 seconds =========================
+
+Environment    Status    Duration
+-------------  --------  ------------
+esp8266_4mb    SUCCESS   00:00:06.418
+========================= 1 succeeded in 00:00:06.418 =========================
+  ✓ esp8266_4mb: baseline Flash=448,747 B, baseline RAM=37,244 B, total Flash=1,044,464 B, total RAM=81,920 B
+  ✓ platforms.json обновлён: E:\GitHub\IoTManager\tools\measure_size\platforms.json
+
+  Измерение модулей — esp8266_4mb
+────────────────────────────────────────────────────────────
+Processing esp8266_4mb (framework: arduino; board: nodemcuv2; platform: espressif8266 @4.0.1)
+--------------------------------------------------------------------------------
+Removing unused dependencies...
+Library Manager: Installing git+https://github.com/robotclass/RobotClass_LiquidCrystal_I2C
+git version 2.51.2.windows.1
+Cloning into 'C:\Users\Admin\.platformio\.cache\tmp\pkg-installing-r7ybm1pl'...
+fatal: unable to access 'https://github.com/robotclass/RobotClass_LiquidCrystal_I2C/': Failed to connect to github.com port 443 after 20640 ms: Could not connect to server
+VCSBaseException: VCS: Could not process command ['git', 'clone', '--recursive', '--depth', '1', 'https://github.com/robotclass/RobotClass_LiquidCrystal_I2C', 'C:\\Users\\Admin\\.platformio\\.cache\\tmp\\pkg-installing-r7ybm1pl']
+  ✗ [1/1] Lcd2004 — не удалось распарсить размер
+
+  Итог
+────────────────────────────────────────────────────────────
+  ✓ Файлов modinfo.json обновлено: 0
+  ✓ platformio.ini восстановлен.
+
+  Восстановление состояния проекта
+────────────────────────────────────────────────────────────
+  ✓ PrepareProject применён: myProfile.json (env=esp8266_4mb)

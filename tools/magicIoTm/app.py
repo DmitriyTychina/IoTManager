@@ -477,6 +477,13 @@ def api_compat():
     return jsonify({"success": True, "compatibility": get_compat_map(), "platform": current_platform})
 
 
+@app.route('/api/modules/reload', methods=['POST'])
+def api_modules_reload():
+    """Перезагрузка кэша modinfo с диска (после замера размеров)."""
+    scan_modinfo()
+    return jsonify({"success": True})
+
+
 @app.route('/api/modules/info', methods=['POST'])
 def api_module_info():
     path = request.json.get('path', '')
@@ -495,7 +502,13 @@ def api_module_info():
 @app.route('/api/platforms', methods=['GET'])
 def api_platforms():
     # Список платформ берём из platformio.ini текущего проекта (или корневого)
-    platforms = [{"name": p} for p in get_platformio_platforms()]
+    platforms = []
+    for p in get_platformio_platforms():
+        pl = platforms_cache.get(p, {})
+        platforms.append({
+            "name": p,
+            "baseline_flash": pl.get("baseline_flash", 0),
+        })
     return jsonify({"success": True, "platforms": platforms})
 
 
