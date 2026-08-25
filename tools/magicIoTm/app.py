@@ -154,28 +154,13 @@ def is_compatible(platform, used_libs):
 
 
 def _lookup_platform_value(data, platform):
-    """Поиск значения по платформе с wildcard-фолбэком, '-' → 0"""
+    """Поиск значения только по точной платформе, без фолбэков; '-' → 0"""
     if not data or not isinstance(data, dict):
         return 0
     v = data.get(platform)
-    if v is not None and v != "-":
-        return int(v) if isinstance(v, (int, float, str)) else 0
-    # wildcard
-    for pattern, value in data.items():
-        if pattern.endswith("*") and platform.startswith(pattern[:-1]):
-            if value != "-":
-                return int(value) if isinstance(value, (int, float, str)) else 0
-            return 0
-    # кросс-платформенный фолбэк
-    if platform.startswith("esp82"):
-        v = data.get("esp32_4mb")
-        if v and v != "-":
-            return int(v)
-    if platform.startswith("esp32"):
-        v = data.get("esp8266_4mb")
-        if v and v != "-":
-            return int(v)
-    return 0
+    if v is None or v == "-":
+        return 0
+    return int(v) if isinstance(v, (int, float, str)) else 0
 
 
 def get_module_flash(name, platform):
@@ -641,7 +626,7 @@ def api_measure_start():
         return jsonify({"success": False, "error": "Замер размера уже выполняется"}), 409
 
     data = request.json or {}
-    scope = data.get('scope', 'all')       # all | profile | without | module
+    scope = data.get('scope', 'all')       # all | profile | without | module | baseline
     module_path = (data.get('module') or '').strip()
     platform = (data.get('platform') or '').strip() or current_platform
 
@@ -654,6 +639,10 @@ def api_measure_start():
             return jsonify({"success": False, "error": "Модуль не указан"}), 400
         args += ['--module', module_path]
         label = f"{label} · модуль {module_path.split('/')[-1]}"
+    elif scope == 'baseline':
+        # Только базовая прошивка (без модулей) — нужна свежая baseline-сборка.
+        args += ['--baseline', 'build', '--baseline-only']
+        label = f"{label} · базовая прошивка"
     elif scope == 'profile':
         args += ['--mode', '2']
     elif scope == 'without':
@@ -661,11 +650,14 @@ def api_measure_start():
     else:
         args += ['--mode', '1']
 
+    # Файл-флаг мягкого прерывания (для /api/measure/abort)
+    abort_file = os.path.join(PROJECT_ROOT, '.measure_abort')
     cfg = {
         "script": MEASURE_SCRIPT,
-        "args": args,
+        "args": args + ['--abort-file', abort_file],
         "cwd": PROJECT_ROOT,
         "label": label,
+        "abort_file": abort_file,
     }
     if not measure_run.start(cfg):
         return jsonify({"success": False, "error": "Не удалось запустить замер"}), 409
@@ -688,6 +680,17 @@ def api_measure_stream():
             logger.error(f"Не удалось обновить кэши после замера: {e}")
     return Response(gen(), mimetype="text/event-stream",
                     headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@app.route('/api/measure/abort', methods=['POST'])
+def api_measure_abort():
+    """Мягкое прерывание текущего замера (measure.py восстановит состояние проекта)."""
+    if not measure_run.is_running():
+        return jsonify({"success": False, "error": "Замер не выполняется"}), 409
+    if measure_run.stop():
+        logger.info("Запрос на прерывание замера отправлен")
+        return jsonify({"success": True})
+    return jsonify({"success": False, "error": "Не удалось прервать замер"}), 409
 
 
 # ==================== Маршруты: валидация ====================

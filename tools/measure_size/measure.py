@@ -92,6 +92,21 @@ USE_COLOR = sys.stdout.isatty()
 # Исполняемый файл PlatformIO (pio). По умолчанию — из PATH; можно переопределить через --pio.
 PIO_BIN = None
 
+# Файл-флаг мягкого прерывания (--abort-file). При появлении файла замер останавливается
+# между шагами, а состояние проекта восстанавливается в finally.
+ABORT_FILE = None
+
+
+class _AbortError(Exception):
+    """Внутреннее исключение для кооперативного прерывания замера."""
+    pass
+
+
+def _check_abort():
+    """Выбрасывает _AbortError, если пользователь запросил прерывание (создан abort-файл)."""
+    if ABORT_FILE and os.path.exists(ABORT_FILE):
+        raise _AbortError()
+
 # ----------------------------------------------------------------------------
 # ФУНКЦИИ ФОРМАТИРОВАНИЯ ВЫВОДА (ЛОГИРОВАНИЕ)
 # ----------------------------------------------------------------------------
@@ -938,9 +953,28 @@ def get_size_from_output(env, timeout=1800):
       5. Возвращаем словарь {flash_used, flash_total, ram_used, ram_total}.
     """
     cmd = [PIO_BIN or "pio", "run", "-e", env]
-    r = subprocess.run(cmd, cwd=PROJECT_ROOT, capture_output=True, text=True, timeout=timeout)
-    out = (r.stdout or "") + (r.stderr or "")
-    if r.returncode != 0:
+
+    # Запускаем pio с потоковым выводом в консоль и одновременным захватом вывода
+    # для последующего парсинга размеров Flash/RAM.
+    proc = subprocess.Popen(
+        cmd, cwd=PROJECT_ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+        text=True, bufsize=1, encoding="utf-8", errors="replace"
+    )
+    chunks = []
+    try:
+        assert proc.stdout is not None
+        for line in proc.stdout:
+            print(line, end="")          # отображаем вывод pio в консоли
+            chunks.append(line)
+        proc.wait(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.wait()
+        log_fail(f"Таймаут сборки pio для env={env}")
+        return None
+
+    out = "".join(chunks)
+    if proc.returncode != 0:
         return None
 
     result = {"flash_used": None, "flash_total": None, "ram_used": None, "ram_total": None}
@@ -1253,7 +1287,21 @@ def main():
                     help="Источник базовых размеров: build=новая baseline-сборка, prev=из platforms.json")
     ap.add_argument("--module", default=None, metavar="PATH",
                     help="Измерить только один модуль (путь или имя папки модуля)")
+    ap.add_argument("--baseline-only", action="store_true",
+                    help="Измерить только базовую прошивку (без модулей) и обновить platforms.json")
+    ap.add_argument("--abort-file", default=None, metavar="PATH",
+                    help="Файл-флаг мягкого прерывания: при его появлении замер останавливается")
     args = ap.parse_args()
+
+    global ABORT_FILE
+    if args.abort_file:
+        ABORT_FILE = args.abort_file
+        # Удаляем возможный «остаток» от предыдущего запуска
+        try:
+            if os.path.exists(ABORT_FILE):
+                os.unlink(ABORT_FILE)
+        except OSError:
+            pass
 
     if args.no_color:
         USE_COLOR = False
@@ -1320,6 +1368,14 @@ def main():
         single_module_mode = True
         interactive_done = True
         baseline_source = args.baseline if args.baseline else "prev"
+
+    # -------------------------------------------------------------------------
+    # РЕЖИМ «ТОЛЬКО БАЗА» (--baseline-only): замер лишь базовой прошивки (без модулей).
+    #   Меню выбора модулей не нужно; всегда выполняется свежая baseline-сборка.
+    # -------------------------------------------------------------------------
+    if args.baseline_only:
+        interactive_done = True
+        baseline_source = "build"
 
     # -------------------------------------------------------------------------
     # МЕНЮ ВЫБОРА РЕЖИМА ОБРАБОТКИ:
@@ -1421,10 +1477,13 @@ def main():
     )
     shutil.copy(platformio_ini, platformio_backup)
 
+    failures = 0
+    aborted = False
     try:
         # -------------------------------------------------------------------------
         # ЭТАП 1: БАЗОВЫЕ СБОРКИ (baseline — БЕЗ МОДУЛЕЙ)
         # -------------------------------------------------------------------------
+        _check_abort()
         # Собираем прошивку БЕЗ КАКИХ-ЛИБО модулей для каждой платформы.
         # Парсим из вывода:
         #   baseline_flash = flash_used (занятая Flash без модулей)
@@ -1479,10 +1538,12 @@ def main():
                 os.unlink(f.name)
                 if not ok:
                     log_fail(f"PrepareProject не удался для baseline env={env}")
+                    failures += 1
                     continue
                 sizes = get_size_from_output(env)
                 if sizes is None:
                     log_fail(f"Не удалось получить размер для baseline env={env}")
+                    failures += 1
                     continue
                 baseline_sizes[env] = {
                     "baseline_flash": sizes["flash_used"],
@@ -1509,6 +1570,14 @@ def main():
             log_ok(f"platforms.json обновлён: {PLATFORMS_JSON}")
 
         # -------------------------------------------------------------------------
+        # РЕЖИМ «ТОЛЬКО БАЗА»: измеряем лишь базовую прошивку (без модулей),
+        # platforms.json уже обновлён выше. Пропускаем цикл измерения модулей.
+        # -------------------------------------------------------------------------
+        _check_abort()
+        if args.baseline_only:
+            log_section("Замер базовой прошивки завершён (без модулей)")
+
+        # -------------------------------------------------------------------------
         # ЭТАП 2: ИЗМЕРЕНИЕ МОДУЛЕЙ
         # -------------------------------------------------------------------------
         # Для каждого модуля и каждой платформы:
@@ -1521,10 +1590,12 @@ def main():
         updated_paths = set()
         idx = 0
 
-        for env in envs:
+        if not args.baseline_only:
+          for env in envs:
             log_section(f"Измерение модулей — {env}")
             mods = modules_by_env[env]
             for i, mod in enumerate(mods):
+                _check_abort()
                 idx += 1
                 active_paths = baseline_paths | {mod["path"]}
 
@@ -1537,6 +1608,7 @@ def main():
 
                 if not ok:
                     log_fail(f"[{idx}/{total_modules}] {mod['moduleName']} — PrepareProject не удался")
+                    failures += 1
                     # Ставим прочерк в sizeInfo для данной платформы
                     base = env_to_base_from_module(mod["usedLibs"], env)
                     info = load_json(mod["modinfo_path"])
@@ -1552,6 +1624,7 @@ def main():
                 os.unlink(tf)
                 if sizes is None:
                     log_fail(f"[{idx}/{total_modules}] {mod['moduleName']} — не удалось распарсить размер")
+                    failures += 1
                     # Ставим прочерк в sizeInfo для данной платформы
                     base = env_to_base_from_module(mod["usedLibs"], env)
                     info = load_json(mod["modinfo_path"])
@@ -1603,6 +1676,11 @@ def main():
         log_ok(f"Файлов modinfo.json обновлено: {updated}")
         log_ok("platformio.ini восстановлен.")
 
+    except _AbortError:
+        # Мягкое прерывание пользователем — состояние восстановит блок finally.
+        aborted = True
+        log_fail("Прервано пользователем")
+
     # -------------------------------------------------------------------------
     # ВОССТАНОВЛЕНИЕ СОСТОЯНИЯ (finally)
     # -------------------------------------------------------------------------
@@ -1629,6 +1707,14 @@ def main():
         stop_logging()
 
     print()
+
+    # Код выхода для внешних раннеров (measure_run.py):
+    #   0 — успешно; 2 — завершено, но часть модулей не измерилась;
+    #   3 — прервано пользователем (мягкий abort).
+    if aborted:
+        sys.exit(3)
+    if failures:
+        sys.exit(2)
 
 
 if __name__ == "__main__":

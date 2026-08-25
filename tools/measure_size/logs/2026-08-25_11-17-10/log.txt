@@ -1,0 +1,13 @@
+
+  ✓ Лог запуска сохранён: E:\GitHub\IoTManager\tools\measure_size\logs\2026-08-25_11-17-10
+
+  Dry run — модули по платформам
+────────────────────────────────────────────────────────────
+  ✓ esp8266_4mb: 97 модулей
+    Примеры модулей:
+    src/modules/display/DwinI → DwinI
+    src/modules/display/GyverLAMP → GyverLAMP
+    src/modules/display/Lcd2004 → Lcd2004
+    src/modules/display/LedFX → LedFX
+    src/modules/display/Nextion → Nextion
+

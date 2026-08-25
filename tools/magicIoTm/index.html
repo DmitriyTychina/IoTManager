@@ -201,6 +201,7 @@ textarea{resize:vertical;min-height:60px;font-family:inherit}
       <div class="platform-select" id="platformSelectWrap" style="display:none">
         <label>Платформа:</label>
         <select id="platformSelect" onchange="changePlatform()"></select>
+        <button class="btn-sm" title="Замер размера прошивки без модулей" onclick="startMeasure('baseline','')">⚖️ Замер базы</button>
       </div>
       <div class="build-upload">
         <button class="btn-sm btn-build" title="Сборка (Build)" onclick="startBuild()">🔨</button>
@@ -255,7 +256,7 @@ textarea{resize:vertical;min-height:60px;font-family:inherit}
 <!-- Measure modal -->
 <div class="modal-overlay" id="measureOverlay">
   <div class="modal build-modal">
-    <h3>⚖️ Замер размера модулей</h3>
+    <h3 id="measureTitle">⚖️ Замер размера модулей</h3>
     <div class="build-sub" id="measureSub">—</div>
     <div class="build-log" id="measureLog"></div>
     <div class="build-error" id="measureError" style="display:none"></div>
@@ -446,15 +447,15 @@ function renderContent(about){
     <div class="content-section">
       <div class="section-header">
         <h2>📡 Настройки устройства (iotmSettings)</h2>
-        <button class="btn-sm" title="Скопировать все значения (кроме name и apssid) из другого проекта" onclick="showCopyValuesModal('','Настройки')">📋 Из другого проекта</button>
+        <button class="btn-sm" title="Скопировать все значения (кроме name и apssid) из другого проекта" onclick="showCopyValuesModal('','Настройки')">⧉ Из другого проекта</button>
       </div>
       <div id="settingsContainer"></div>
     </div>
     <div class="content-section">
       <div class="section-header">
         <h2>📦 Модули прошивки</h2>
+        <button class="btn-sm" title="Скопировать состав модулей из другого проекта" onclick="showCopyModules()">⧉ Из другого проекта</button>
         <button class="btn-sm" title="Замер размера" onclick="showMeasureScope()">⚖️ Замер размера</button>
-        <button class="btn-sm" title="Скопировать состав модулей из другого проекта" onclick="showCopyModules()">📋 Из другого проекта</button>
       </div>
       <div class="module-list" id="moduleList"></div>
     </div>
@@ -488,7 +489,7 @@ function renderSettings(){
     const keys = present.map(([k])=>k);
     html += `<div class="group-separator">
       <span class="group-title">${group.title}</span>
-      <button class="btn-sm" title="Скопировать значения группы «${group.title}» из другого проекта" onclick="showCopyValuesModal('${keys.join(',')}','${group.title}')">⇅ Из другого проекта</button>
+      <button class="btn-sm" title="Скопировать значения группы «${group.title}» из другого проекта" onclick="showCopyValuesModal('${keys.join(',')}','${group.title}')">⧉ Из другого проекта</button>
     </div>`;
     html += `<div class="form-grid">`;
     for(const [key, label, type] of present){
@@ -583,13 +584,13 @@ function renderModules(){
       const comp = moduleCompat[m.path] || {compatible:true, size:0};
       const disabled = comp.compatible ? '' : 'disabled';
       const checked = m.active ? 'checked' : '';
-      const sizeStr = comp.size > 0 ? `<span class="size-tag">${formatBytes(comp.size)}</span>` : '';
+      const sizeStr = comp.size > 0 ? `<span class="size-tag">${formatBytes(comp.size)}</span>` : `<span class="size-tag">- КБ</span>`;
       const compatTag = comp.compatible ? '' : ' <span class="size-tag" style="color:var(--danger)">не совместим</span>';
       html += `<div class="module-item ${disabled}">
         <input type="checkbox" id="mod_${name}" ${checked} ${comp.compatible?'':'disabled'} onchange="toggleModule('${esc(section)}','${esc(m.path||'')}',this.checked)">
         <label for="mod_${name}">${esc(name)}${compatTag}</label> ${sizeStr}
         <button onclick="showModuleInfo('${esc(m.path||'')}')" title="Подробная информация о модуле">ℹ️</button>
-        ${comp.compatible ? `<button onclick="measureModule('${esc(m.path||'')}')" title="Замер размера модуля">⚖️</button>` : ''}
+        <button onclick="measureModule('${esc(m.path||'')}')" title="Замер размера модуля">⚖️</button>
       </div>`;
     }
     html += '</div></div>';
@@ -782,13 +783,26 @@ async function startBuild(){
 // ==================== Measure (замер размера модулей) ====================
 let measureStream = null;
 let measureDone = false;
+let measureScope = '';
+
+function setMeasureButton(text, title, enabled, onclick){
+  const btn = document.getElementById('measureCloseBtn');
+  if(!btn) return;
+  btn.textContent = text;
+  btn.title = title || '';
+  btn.disabled = !enabled;
+  btn.onclick = onclick;
+}
+
+function setMeasureTitle(title){
+  const el = document.getElementById('measureTitle');
+  if(el) el.textContent = title;
+}
 
 function openMeasureModal(){
   document.getElementById('measureLog').textContent = '';
   document.getElementById('measureError').style.display = 'none';
   document.getElementById('measureSuccessMsg').style.display = 'none';
-  const btn = document.getElementById('measureCloseBtn');
-  if(btn){ btn.disabled = true; btn.title = 'Кнопка станет активной после завершения замера'; }
   measureDone = false;
   document.getElementById('measureOverlay').classList.add('active');
 }
@@ -806,14 +820,21 @@ function appendMeasureLog(text){
 }
 
 function measureFinish(){
-  const btn = document.getElementById('measureCloseBtn');
-  if(btn){ btn.disabled = false; btn.title = 'Закрыть'; }
   if(measureStream){ measureStream.close(); measureStream = null; }
   measureDone = true;
+  setMeasureButton('Закрыть', 'Закрыть', true, closeMeasureModal);
+}
+
+async function abortMeasure(){
+  try{
+    await fetch('/api/measure/abort', {method:'POST'});
+  }catch(_){}
+  // Сообщение «✗ Прервано» появится по событию error/aborted от потока.
 }
 
 async function startMeasure(scope, modulePath, label){
   if(!currentProject){ toast('Сначала откройте проект', 'error'); return; }
+  measureScope = scope;
   const r = await fetch('/api/measure/start', {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ scope: scope, module: modulePath || '' })
@@ -821,16 +842,40 @@ async function startMeasure(scope, modulePath, label){
   const d = await r.json();
   if(!d.success){ toast(d.error || 'Ошибка запуска замера', 'error'); return; }
 
+  const platSel = document.getElementById('platformSelect');
+  const platform = platSel ? platSel.value : '';
+  const projLabel = label || ('Проект: ' + (currentProject.name === 'PlatformIO' ? 'PlatformIO' : `${currentProject.category} / ${currentProject.name}`));
+
+  if(scope === 'module'){
+    setMeasureTitle('⚖️ Замер размера модуля');
+    document.getElementById('measureSub').textContent =
+      'Модуль: ' + modulePath.split('/').pop() + ' для ' + platform;
+  } else if(scope === 'baseline'){
+    setMeasureTitle('⚖️ Замер размера прошивки без модулей');
+    document.getElementById('measureSub').textContent = 'Платформа: ' + platform;
+  } else {
+    setMeasureTitle('⚖️ Замер размера модулей');
+    document.getElementById('measureSub').textContent = projLabel + ' · Платформа: ' + platform;
+  }
+
   openMeasureModal();
-  document.getElementById('measureSub').textContent = label ||
-    ('Проект: ' + (currentProject.name === 'PlatformIO' ? 'PlatformIO' : `${currentProject.category} / ${currentProject.name}`));
+  // Во время запуска кнопка становится «Отмена» (прерывает скрипт, модал не закрывается).
+  setMeasureButton('Отмена', 'Прервать замер', true, abortMeasure);
 
   measureStream = new EventSource('/api/measure/stream');
   measureStream.addEventListener('log', e => appendMeasureLog(JSON.parse(e.data).text));
-  measureStream.addEventListener('done', () => {
+  measureStream.addEventListener('done', e => {
+    let failed = false;
+    try{ failed = !!(JSON.parse(e.data).failed); }catch(_){}
     const msg = document.getElementById('measureSuccessMsg');
     msg.style.display = 'block';
-    msg.textContent = '✅ Замер размера завершён.';
+    if(failed && measureScope === 'module'){
+      msg.textContent = '✗ Не удалось получить размер - модуль не компилируется';
+    } else if(failed){
+      msg.textContent = '✗ Замер завершился с ошибками для части модулей';
+    } else {
+      msg.textContent = '✅ Замер размера завершён.';
+    }
     measureFinish();
     // Обновляем размеры модулей и индикаторы
     loadCompatibility();
@@ -838,11 +883,17 @@ async function startMeasure(scope, modulePath, label){
     updateGauge();
   });
   measureStream.addEventListener('error', e => {
-    let txt = 'Ошибка замера';
-    try{ const d = JSON.parse(e.data); if(d.error) txt += ': ' + d.error; }catch(_){}
-    const errEl = document.getElementById('measureError');
-    errEl.style.display = 'block';
-    errEl.textContent = '❌ ' + txt;
+    let aborted = false, txt = 'Ошибка замера';
+    try{ const d = JSON.parse(e.data); if(d.aborted) aborted = true; if(d.error) txt = d.error; }catch(_){}
+    if(aborted){
+      const msg = document.getElementById('measureSuccessMsg');
+      msg.style.display = 'block';
+      msg.textContent = '✗ Прервано';
+    } else {
+      const errEl = document.getElementById('measureError');
+      errEl.style.display = 'block';
+      errEl.textContent = '❌ ' + txt;
+    }
     measureFinish();
   });
   measureStream.addEventListener('finish', () => {
@@ -857,6 +908,15 @@ async function startMeasure(scope, modulePath, label){
   };
 }
 
+function closeGenericModal(){
+  document.getElementById('modalOverlay').classList.remove('active');
+}
+
+function pickMeasure(scope){
+  closeGenericModal();
+  startMeasure(scope, '');
+}
+
 function showMeasureScope(){
   const platSel = document.getElementById('platformSelect');
   const modes = [
@@ -868,9 +928,9 @@ function showMeasureScope(){
     <h3>⚖️ Замер размера</h3>
     <p style="color:var(--muted);font-size:12px;margin-bottom:12px">Платформа: ${platSel ? esc(platSel.value) : ''}</p>
     <div class="measure-scope-list">
-      ${modes.map(m=>`<button class="btn-sm" onclick="startMeasure('${m.scope}','')">${m.label}<span class="ms-desc">${m.desc}</span></button>`).join('')}
+      ${modes.map(m=>`<button class="btn-sm" onclick="pickMeasure('${m.scope}')">${m.label}<span class="ms-desc">${m.desc}</span></button>`).join('')}
     </div>
-    <div class="modal-actions"><button onclick="closeModal(event)">Отмена</button></div>`;
+    <div class="modal-actions"><button onclick="closeGenericModal()">Отмена</button></div>`;
   document.getElementById('modalOverlay').classList.add('active');
 }
 
