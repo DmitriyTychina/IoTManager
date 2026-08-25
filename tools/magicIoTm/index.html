@@ -143,6 +143,9 @@ button.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent
 @keyframes blink{50%{opacity:.3}}
 .build-error{background:rgba(244,67,54,.1);border:1px solid var(--danger);color:var(--danger);border-radius:6px;padding:8px 10px;font-size:12px;margin-bottom:12px}
 .build-success-msg{color:#4caf50;font-weight:600;margin-bottom:12px}
+.measure-scope-list{display:flex;flex-direction:column;gap:8px}
+.measure-scope-list button{text-align:left;padding:8px 10px;font-size:13px}
+.measure-scope-list button .ms-desc{display:block;color:var(--muted);font-size:11px;margin-top:2px}
 
 /* Toast */
 .toast-container{position:fixed;bottom:20px;right:20px;z-index:2000;display:flex;flex-direction:column;gap:8px}
@@ -245,6 +248,20 @@ textarea{resize:vertical;min-height:60px;font-family:inherit}
     <div class="build-success-msg" id="buildSuccessMsg" style="display:none"></div>
     <div class="modal-actions">
       <button id="buildCloseBtn" onclick="closeBuildModal()" disabled title="Кнопка станет активной после завершения сборки">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<!-- Measure modal -->
+<div class="modal-overlay" id="measureOverlay">
+  <div class="modal build-modal">
+    <h3>⚖️ Замер размера модулей</h3>
+    <div class="build-sub" id="measureSub">—</div>
+    <div class="build-log" id="measureLog"></div>
+    <div class="build-error" id="measureError" style="display:none"></div>
+    <div class="build-success-msg" id="measureSuccessMsg" style="display:none"></div>
+    <div class="modal-actions">
+      <button id="measureCloseBtn" onclick="closeMeasureModal()" disabled title="Кнопка станет активной после завершения замера">Закрыть</button>
     </div>
   </div>
 </div>
@@ -436,6 +453,7 @@ function renderContent(about){
     <div class="content-section">
       <div class="section-header">
         <h2>📦 Модули прошивки</h2>
+        <button class="btn-sm" title="Замер размера" onclick="showMeasureScope()">⚖️ Замер размера</button>
         <button class="btn-sm" title="Скопировать состав модулей из другого проекта" onclick="showCopyModules()">📋 Из другого проекта</button>
       </div>
       <div class="module-list" id="moduleList"></div>
@@ -571,6 +589,7 @@ function renderModules(){
         <input type="checkbox" id="mod_${name}" ${checked} ${comp.compatible?'':'disabled'} onchange="toggleModule('${esc(section)}','${esc(m.path||'')}',this.checked)">
         <label for="mod_${name}">${esc(name)}${compatTag}</label> ${sizeStr}
         <button onclick="showModuleInfo('${esc(m.path||'')}')" title="Подробная информация о модуле">ℹ️</button>
+        ${comp.compatible ? `<button onclick="measureModule('${esc(m.path||'')}')" title="Замер размера модуля">⚖️</button>` : ''}
       </div>`;
     }
     html += '</div></div>';
@@ -758,6 +777,105 @@ async function startBuild(){
       document.getElementById('buildError').textContent = '⚠️ Соединение со сборкой потеряно. Если сборка ещё идёт, обновите страницу.';
     }
   };
+}
+
+// ==================== Measure (замер размера модулей) ====================
+let measureStream = null;
+let measureDone = false;
+
+function openMeasureModal(){
+  document.getElementById('measureLog').textContent = '';
+  document.getElementById('measureError').style.display = 'none';
+  document.getElementById('measureSuccessMsg').style.display = 'none';
+  const btn = document.getElementById('measureCloseBtn');
+  if(btn){ btn.disabled = true; btn.title = 'Кнопка станет активной после завершения замера'; }
+  measureDone = false;
+  document.getElementById('measureOverlay').classList.add('active');
+}
+
+function closeMeasureModal(){
+  if(measureStream){ measureStream.close(); measureStream = null; }
+  measureDone = true;
+  document.getElementById('measureOverlay').classList.remove('active');
+}
+
+function appendMeasureLog(text){
+  const el = document.getElementById('measureLog');
+  el.textContent += text + '\n';
+  el.scrollTop = el.scrollHeight;
+}
+
+function measureFinish(){
+  const btn = document.getElementById('measureCloseBtn');
+  if(btn){ btn.disabled = false; btn.title = 'Закрыть'; }
+  if(measureStream){ measureStream.close(); measureStream = null; }
+  measureDone = true;
+}
+
+async function startMeasure(scope, modulePath, label){
+  if(!currentProject){ toast('Сначала откройте проект', 'error'); return; }
+  const r = await fetch('/api/measure/start', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ scope: scope, module: modulePath || '' })
+  });
+  const d = await r.json();
+  if(!d.success){ toast(d.error || 'Ошибка запуска замера', 'error'); return; }
+
+  openMeasureModal();
+  document.getElementById('measureSub').textContent = label ||
+    ('Проект: ' + (currentProject.name === 'PlatformIO' ? 'PlatformIO' : `${currentProject.category} / ${currentProject.name}`));
+
+  measureStream = new EventSource('/api/measure/stream');
+  measureStream.addEventListener('log', e => appendMeasureLog(JSON.parse(e.data).text));
+  measureStream.addEventListener('done', () => {
+    const msg = document.getElementById('measureSuccessMsg');
+    msg.style.display = 'block';
+    msg.textContent = '✅ Замер размера завершён.';
+    measureFinish();
+    // Обновляем размеры модулей и индикаторы
+    loadCompatibility();
+    renderModules();
+    updateGauge();
+  });
+  measureStream.addEventListener('error', e => {
+    let txt = 'Ошибка замера';
+    try{ const d = JSON.parse(e.data); if(d.error) txt += ': ' + d.error; }catch(_){}
+    const errEl = document.getElementById('measureError');
+    errEl.style.display = 'block';
+    errEl.textContent = '❌ ' + txt;
+    measureFinish();
+  });
+  measureStream.addEventListener('finish', () => {
+    if(measureStream){ measureStream.close(); measureStream = null; }
+  });
+  measureStream.onerror = () => {
+    if(!measureDone){
+      const errEl = document.getElementById('measureError');
+      errEl.style.display = 'block';
+      errEl.textContent = '⚠️ Соединение с замером потеряно. Если замер ещё идёт, обновите страницу.';
+    }
+  };
+}
+
+function showMeasureScope(){
+  const platSel = document.getElementById('platformSelect');
+  const modes = [
+    {scope:'all', label:'Все модули', desc:'Измерить все модули для текущей платформы'},
+    {scope:'profile', label:'Модули профиля', desc:'Только активные модули из профиля'},
+    {scope:'without', label:'Без размера', desc:'Модули без информации о размере'}
+  ];
+  document.getElementById('modalContent').innerHTML = `
+    <h3>⚖️ Замер размера</h3>
+    <p style="color:var(--muted);font-size:12px;margin-bottom:12px">Платформа: ${platSel ? esc(platSel.value) : ''}</p>
+    <div class="measure-scope-list">
+      ${modes.map(m=>`<button class="btn-sm" onclick="startMeasure('${m.scope}','')">${m.label}<span class="ms-desc">${m.desc}</span></button>`).join('')}
+    </div>
+    <div class="modal-actions"><button onclick="closeModal(event)">Отмена</button></div>`;
+  document.getElementById('modalOverlay').classList.add('active');
+}
+
+function measureModule(path){
+  startMeasure('module', path, 'Модуль: ' + path.split('/').pop());
 }
 
 // ==================== Copy values (settings) ====================

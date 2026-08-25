@@ -64,7 +64,8 @@
                 "esp32s3_16mb": 26536,
                 "esp32c3m_4mb": "-",
                 "esp32c6_4mb": 0,
-                "esp32c6_8mb": 0
+                "esp32c6_8mb": 0,
+                "esp32_16mb": 25548
             },
             "usedRAM": {
                 "esp32_4mb": 656,
@@ -74,7 +75,8 @@
                 "esp32s3_16mb": 624,
                 "esp32c3m_4mb": "-",
                 "esp32c6_4mb": 0,
-                "esp32c6_8mb": 0
+                "esp32c6_8mb": 0,
+                "esp32_16mb": 656
             }
         }
     ]

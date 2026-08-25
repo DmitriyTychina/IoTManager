@@ -50,7 +50,8 @@
                 "esp8285_1mb": 392,
                 "esp8285_1mb_ota": 392,
                 "esp32c6_4mb": 662,
-                "esp32c6_8mb": 662
+                "esp32c6_8mb": 662,
+                "esp32_16mb": 652
             },
             "usedRAM": {
                 "esp8266_1mb": 0,
@@ -68,7 +69,8 @@
                 "esp8285_1mb": 0,
                 "esp8285_1mb_ota": 0,
                 "esp32c6_4mb": 0,
-                "esp32c6_8mb": 0
+                "esp32c6_8mb": 0,
+                "esp32_16mb": 0
             }
         }
     ]

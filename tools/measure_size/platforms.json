@@ -3,307 +3,114 @@
         "baseline_flash": 448747,
         "baseline_ram": 37244,
         "total_flash": 761840,
-        "total_ram": 81920,
-        "failed_modules": [
-            "GyverLAMP",
-            "Nextion",
-            "NextionUpload",
-            "DS2401",
-            "ModbusRTU",
-            "Pzem004",
-            "Ina226"
-        ]
+        "total_ram": 81920
     },
     "esp8266_1mb_ota": {
         "baseline_flash": 448751,
         "baseline_ram": 37248,
         "total_flash": 958448,
-        "total_ram": 81920,
-        "failed_modules": [
-            "GyverLAMP",
-            "Nextion",
-            "NextionUpload",
-            "DS2401",
-            "ModbusRTU",
-            "Pzem004",
-            "Ina226"
-        ]
+        "total_ram": 81920
     },
     "esp8266_4mb": {
         "baseline_flash": 448747,
         "baseline_ram": 37244,
         "total_flash": 1044464,
-        "total_ram": 81920,
-        "failed_modules": [
-            "GyverLAMP",
-            "Nextion",
-            "NextionUpload",
-            "Telegram",
-            "DS2401",
-            "ModbusRTU",
-            "Pzem004",
-            "Ina226"
-        ]
+        "total_ram": 81920
     },
     "esp32_4mb": {
         "baseline_flash": 1077989,
         "baseline_ram": 49244,
         "total_flash": 1310720,
-        "total_ram": 327680,
-        "failed_modules": [
-            "GyverLAMP",
-            "NextionUpload",
-            "EctoControlAdapter",
-            "Telegram",
-            "Ble",
-            "Ble_part1",
-            "Ble_part2",
-            "DS2401",
-            "IoTWiegand",
-            "ModbusRTU",
-            "Pzem004",
-            "Ina226"
-        ]
+        "total_ram": 327680
     },
     "esp32_4mb3f": {
         "baseline_flash": 1077989,
         "baseline_ram": 49244,
         "total_flash": 1572864,
-        "total_ram": 327680,
-        "failed_modules": [
-            "GyverLAMP",
-            "NextionUpload",
-            "EctoControlAdapter",
-            "Telegram",
-            "DS2401",
-            "IoTWiegand",
-            "ModbusRTU",
-            "Pzem004",
-            "Ina226"
-        ]
+        "total_ram": 327680
     },
     "esp8266_16mb": {
         "baseline_flash": 448747,
         "baseline_ram": 37244,
         "total_flash": 1044464,
-        "total_ram": 81920,
-        "failed_modules": [
-            "GyverLAMP",
-            "Nextion",
-            "NextionUpload",
-            "DS2401",
-            "ModbusRTU",
-            "Pzem004",
-            "Ina226"
-        ]
+        "total_ram": 81920
     },
     "esp32cam_4mb": {
         "baseline_flash": 1096301,
         "baseline_ram": 49332,
         "total_flash": 3145728,
-        "total_ram": 327680,
-        "failed_modules": [
-            "GyverLAMP",
-            "NextionUpload",
-            "EctoControlAdapter",
-            "Telegram",
-            "Ble",
-            "Ble_part1",
-            "Ble_part2",
-            "DS2401",
-            "IoTWiegand",
-            "ModbusRTU",
-            "Pzem004",
-            "Ina226"
-        ]
+        "total_ram": 327680
     },
     "esp32s2_4mb": {
         "baseline_flash": 1023858,
         "baseline_ram": 55232,
         "total_flash": 1310720,
-        "total_ram": 327680,
-        "failed_modules": [
-            "GyverLAMP",
-            "NextionUpload",
-            "EctoControlAdapter",
-            "MySensorsGate",
-            "SDcard",
-            "Telegram",
-            "DS2401",
-            "IoTWiegand",
-            "ModbusRTU",
-            "Pzem004",
-            "Ina226"
-        ]
+        "total_ram": 327680
     },
     "esp32s3_16mb": {
         "baseline_flash": 1054441,
         "baseline_ram": 60556,
         "total_flash": 4718592,
-        "total_ram": 327680,
-        "failed_modules": [
-            "GyverLAMP",
-            "NextionUpload",
-            "EctoControlAdapter",
-            "Telegram",
-            "DS2401",
-            "IoTWiegand",
-            "ModbusRTU",
-            "Pzem004",
-            "Ina226"
-        ]
+        "total_ram": 327680
     },
     "esp32c3m_4mb": {
         "baseline_flash": 1021232,
         "baseline_ram": 42244,
         "total_flash": 1572864,
-        "total_ram": 327680,
-        "failed_modules": [
-            "GyverLAMP",
-            "NextionUpload",
-            "MySensorsGate",
-            "SDcard",
-            "Telegram",
-            "DS2401",
-            "IoTWiegand",
-            "ModbusRTU",
-            "Pzem004",
-            "Ina226"
-        ]
+        "total_ram": 327680
     },
     "esp8266_2mb": {
         "baseline_flash": 453019,
         "baseline_ram": 37396,
         "total_flash": 1044464,
-        "total_ram": 81920,
-        "failed_modules": [
-            "GyverLAMP",
-            "Nextion",
-            "NextionUpload",
-            "DS2401",
-            "ModbusRTU",
-            "Pzem004",
-            "Ina226"
-        ]
+        "total_ram": 81920
     },
     "esp8266_2mb_ota": {
         "baseline_flash": 453023,
         "baseline_ram": 37400,
         "total_flash": 1044464,
-        "total_ram": 81920,
-        "failed_modules": [
-            "GyverLAMP",
-            "Nextion",
-            "NextionUpload",
-            "DS2401",
-            "ModbusRTU",
-            "Pzem004",
-            "Ina226"
-        ]
+        "total_ram": 81920
     },
     "esp8285_1mb": {
         "baseline_flash": 448779,
         "baseline_ram": 37244,
         "total_flash": 761840,
-        "total_ram": 81920,
-        "failed_modules": [
-            "GyverLAMP",
-            "Nextion",
-            "NextionUpload",
-            "DS2401",
-            "ModbusRTU",
-            "Pzem004",
-            "Ina226"
-        ]
+        "total_ram": 81920
     },
     "esp8285_1mb_ota": {
         "baseline_flash": 448783,
         "baseline_ram": 37248,
         "total_flash": 958448,
-        "total_ram": 81920,
-        "failed_modules": [
-            "GyverLAMP",
-            "Nextion",
-            "NextionUpload",
-            "DS2401",
-            "ModbusRTU",
-            "Pzem004",
-            "Ina226"
-        ]
+        "total_ram": 81920
     },
     "esp32c6_4mb": {
         "baseline_flash": 1247092,
         "baseline_ram": 40460,
         "total_flash": 1572864,
-        "total_ram": 327680,
-        "failed_modules": [
-            "GyverLAMP",
-            "Nextion",
-            "NextionUpload",
-            "EctoControlAdapter",
-            "SDcard",
-            "Telegram",
-            "Ble",
-            "Ble_part1",
-            "Ble_part2",
-            "DS2401",
-            "IoTWiegand",
-            "ModbusRTU",
-            "Pzem004",
-            "IoTServo",
-            "Ds2423",
-            "Ina226"
-        ]
+        "total_ram": 327680
     },
     "esp32c6_8mb": {
         "baseline_flash": 1247094,
         "baseline_ram": 40460,
         "total_flash": 3072000,
-        "total_ram": 327680,
-        "failed_modules": [
-            "GyverLAMP",
-            "Nextion",
-            "NextionUpload",
-            "EctoControlAdapter",
-            "SDcard",
-            "Telegram",
-            "Ble",
-            "Ble_part1",
-            "Ble_part2",
-            "DS2401",
-            "IoTWiegand",
-            "ModbusRTU",
-            "Pzem004",
-            "IoTServo",
-            "Ds2423",
-            "Ina226"
-        ]
+        "total_ram": 327680
     },
     "bk7231n": {
         "baseline_flash": 822232,
         "baseline_ram": 96364,
         "total_flash": 1083136,
-        "total_ram": 262144,
-        "failed_modules": []
+        "total_ram": 262144
     },
     "esp32_16mb": {
         "baseline_flash": 1077989,
         "baseline_ram": 49244,
         "total_flash": 4718592,
-        "total_ram": 327680,
-        "failed_modules": [
-            "ModbusRTU",
-            "Ina226"
-        ]
+        "total_ram": 327680
     },
     "esp32_wifirep": {
         "baseline_flash": 767869,
         "baseline_ram": 40496,
         "total_flash": 1572864,
-        "total_ram": 327680,
-        "failed_modules": [
-            "ModbusRTU",
-            "Ina226"
-        ]
+        "total_ram": 327680
     }
 }

@@ -55,7 +55,8 @@
                 "esp8285_1mb": 496,
                 "esp8285_1mb_ota": 496,
                 "esp32c6_4mb": 880,
-                "esp32c6_8mb": 880
+                "esp32c6_8mb": 880,
+                "esp32_16mb": 864
             },
             "usedRAM": {
                 "bk7231n": 0,
@@ -74,7 +75,8 @@
                 "esp8285_1mb": 16,
                 "esp8285_1mb_ota": 16,
                 "esp32c6_4mb": 0,
-                "esp32c6_8mb": 0
+                "esp32c6_8mb": 0,
+                "esp32_16mb": 0
             }
         }
     ]

@@ -14,7 +14,7 @@ from datetime import datetime
 from flask import Flask, request, jsonify, send_from_directory, Response
 from flask_cors import CORS
 
-from utils import projects, build
+from utils import projects, build, measure_run
 
 # ==================== Логирование ====================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -41,6 +41,7 @@ ROOT_CONFIG_FILE = os.path.join(PROJECT_ROOT, 'myProfile.json')
 MODULES_SRC_DIR = os.path.join(PROJECT_ROOT, 'src', 'modules')
 PLATFORMS_FILE = os.path.join(BASE_DIR, '..', 'measure_size', 'platforms.json')
 PLATFORMIO_INI_FILE = os.path.join(PROJECT_ROOT, 'platformio.ini')
+MEASURE_SCRIPT = os.path.abspath(os.path.join(BASE_DIR, '..', 'measure_size', 'measure.py'))
 
 # ==================== Состояние ====================
 current_project = None  # {"category": ..., "name": ...}
@@ -600,6 +601,8 @@ def api_build_start():
         return jsonify({"success": False, "error": "Проект не открыт"}), 400
     if build.is_running():
         return jsonify({"success": False, "error": "Сборка уже выполняется"}), 409
+    if measure_run.is_running():
+        return jsonify({"success": False, "error": "Замер размера уже выполняется — дождитесь его завершения"}), 409
     # Сохраняем последние правки конфигурации, чтобы сборка читала актуальный профиль
     if current_config:
         try:
@@ -621,6 +624,68 @@ def api_build_stream():
     def gen():
         for chunk in build.event_stream():
             yield chunk
+    return Response(gen(), mimetype="text/event-stream",
+                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+# ==================== Маршруты: замер размера модулей ====================
+
+@app.route('/api/measure/start', methods=['POST'])
+def api_measure_start():
+    """Запуск замера размера модулей (measure.py) в фоне."""
+    if not current_project:
+        return jsonify({"success": False, "error": "Проект не открыт"}), 400
+    if build.is_running():
+        return jsonify({"success": False, "error": "Сборка уже выполняется — дождитесь её завершения"}), 409
+    if measure_run.is_running():
+        return jsonify({"success": False, "error": "Замер размера уже выполняется"}), 409
+
+    data = request.json or {}
+    scope = data.get('scope', 'all')       # all | profile | without | module
+    module_path = (data.get('module') or '').strip()
+    platform = (data.get('platform') or '').strip() or current_platform
+
+    args = ['--no-color', '--env', platform,
+            '--pio', _get_platformio_path(), '--baseline', 'prev']
+    label = f"{current_project.get('category', '')}/{current_project.get('name', '')}"
+
+    if scope == 'module':
+        if not module_path:
+            return jsonify({"success": False, "error": "Модуль не указан"}), 400
+        args += ['--module', module_path]
+        label = f"{label} · модуль {module_path.split('/')[-1]}"
+    elif scope == 'profile':
+        args += ['--mode', '2']
+    elif scope == 'without':
+        args += ['--mode', '3']
+    else:
+        args += ['--mode', '1']
+
+    cfg = {
+        "script": MEASURE_SCRIPT,
+        "args": args,
+        "cwd": PROJECT_ROOT,
+        "label": label,
+    }
+    if not measure_run.start(cfg):
+        return jsonify({"success": False, "error": "Не удалось запустить замер"}), 409
+    logger.info(f"Замер запущен: scope={scope}, platform={platform}, module={module_path}")
+    return jsonify({"success": True})
+
+
+@app.route('/api/measure/stream')
+def api_measure_stream():
+    """SSE-поток событий замера (лог, финал)."""
+    def gen():
+        for chunk in measure_run.event_stream():
+            yield chunk
+        # Замер завершён — обновляем кэши размеров для отображения в UI
+        try:
+            scan_modinfo()
+            load_platforms()
+            logger.info("Кэши modinfo/platforms обновлены после замера")
+        except Exception as e:  # noqa: BLE001
+            logger.error(f"Не удалось обновить кэши после замера: {e}")
     return Response(gen(), mimetype="text/event-stream",
                     headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 

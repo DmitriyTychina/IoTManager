@@ -26,7 +26,7 @@
   "modules": {
     "executive_devices": [
       {
-        "active": false,
+        "active": true,
         "path": "src/modules/exec/AnalogBtn"
       },
       {
@@ -190,7 +190,7 @@
     ],
     "sensors": [
       {
-        "active": true,
+        "active": false,
         "path": "src/modules/sensors/Pcf8591"
       },
       {

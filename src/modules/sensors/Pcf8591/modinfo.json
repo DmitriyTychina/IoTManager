@@ -65,7 +65,7 @@
                 "esp32c6_4mb": 2278,
                 "esp32c6_8mb": 2278,
                 "esp32_16mb": 8640,
-                "esp32_wifirep": 4832
+                "esp32_wifirep": "-"
             },
             "usedRAM": {
                 "esp8266_1mb": 112,
@@ -85,7 +85,7 @@
                 "esp32c6_4mb": 0,
                 "esp32c6_8mb": 0,
                 "esp32_16mb": 8,
-                "esp32_wifirep": 8
+                "esp32_wifirep": "-"
             }
         }
     ]
