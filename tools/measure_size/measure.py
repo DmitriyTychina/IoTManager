@@ -31,7 +31,7 @@
    - Парсится flash_used и ram_used из вывода pio.
    - Вычисляется дельта: flash_used - baseline_flash, ram_used - baseline_ram.
    - Дельта записывается в about.usedFLASH и about.usedRAM модуля в modinfo.json.
-   - При ошибке компиляции ставится "-" и модуль добавляется в failed_modules.
+   - При ошибке компиляции ставится "-" в usedFLASH/usedRAM модуля в modinfo.json.
 
 5. ЛОГИРОВАНИЕ:
    Весь вывод скрипта сохраняется в measure_size/logs/[дата_время]/log.txt.
@@ -88,6 +88,9 @@ PLATFORMS_JSON = PROJECT_ROOT / "tools" / "measure_size" / "platforms.json"
 
 # Log styling (ANSI; disabled if not TTY or --no-color)
 USE_COLOR = sys.stdout.isatty()
+
+# Исполняемый файл PlatformIO (pio). По умолчанию — из PATH; можно переопределить через --pio.
+PIO_BIN = None
 
 # ----------------------------------------------------------------------------
 # ФУНКЦИИ ФОРМАТИРОВАНИЯ ВЫВОДА (ЛОГИРОВАНИЕ)
@@ -332,54 +335,20 @@ def filter_modules_by_profile(modules, prof_template):
 
 def filter_modules_without_size(modules, envs):
     """
-    Оставляет только те модули, у которых НЕТ информации о размере
-    (usedFLASH / usedRAM) для текущей версии модуля.
+    Оставляет только те модули, у которых НЕТ числового размера
+    для текущей версии модуля на ХОТЯ БЫ ОДНОЙ из платформ envs.
 
-    Чтение происходит из массива sizeInfo:
-      - Берётся moduleVersion из about.
-      - Ищется запись в sizeInfo с matching moduleVersion.
-      - Если запись найдена, проверяются usedFLASH / usedRAM для платформ.
-
-    Модуль считается "без размера", если для всех env:
-      - нет записи sizeInfo для текущей версии, ИЛИ
-      - в usedFLASH/usedRAM нет ключа платформы, ИЛИ
-      - значение равно "-" (не удалось скомпилировать ранее)
+    Размер берётся из modinfo.json (sizeInfo.usedFLASH / usedRAM):
+      - нет ключа платформы в usedFLASH → ещё не считали;
+      - значение "-" → была ошибка сборки (размер отсутствует);
+      - значение число → размер есть.
+    Модуль, не разрешённый для платформы (exclude в usedLibs), не учитывается.
 
     Возвращает новый список модулей без информации о размере.
     """
     def has_size(mod):
         """True, если у модуля есть размер хотя бы для одной из платформ."""
-        modinfo = mod.get("modinfo", {})
-        about = modinfo.get("about", {})
-        module_version = about.get("moduleVersion")
-        size_info = modinfo.get("sizeInfo", [])
-
-        # Ищем запись для текущей версии модуля
-        entry = None
-        for e in size_info:
-            if isinstance(e, dict) and e.get("moduleVersion") == module_version:
-                entry = e
-                break
-
-        if entry is None:
-            return False
-
-        used_flash = entry.get("usedFLASH", {})
-        used_ram = entry.get("usedRAM", {})
-
-        for env in envs:
-            # Если в usedFLASH есть числовое значение для платформы — размер есть
-            if env in used_flash:
-                val = used_flash[env]
-                if isinstance(val, (int, float)) or (isinstance(val, str) and val != "-"):
-                    return True
-            # Если в usedRAM есть числовое значение для платформы — размер есть
-            if env in used_ram:
-                val = used_ram[env]
-                if isinstance(val, (int, float)) or (isinstance(val, str) and val != "-"):
-                    return True
-
-        return False
+        return any(module_has_size_for_env(mod, env) for env in envs)
 
     # Оставляем только модули без размера
     return [m for m in modules if not has_size(m)]
@@ -402,6 +371,17 @@ def count_modules_for_envs(modules, envs):
                 count += 1
                 break  # модуль уже учтён для хотя бы одной платформы
     return count
+
+
+def _module_matches(mod, target):
+    """True, если модуль соответствует целевому пути.
+
+    Сравниваем по полному относительному пути (mod["path"]) или по имени папки модуля.
+    """
+    p = mod["path"].rstrip("/")
+    if p == target:
+        return True
+    return p.rsplit("/", 1)[-1] == target.rsplit("/", 1)[-1]
 
 
 def show_menu(total_modules, profile_modules_count, modules_without_size_count):
@@ -475,9 +455,11 @@ def show_top_mode_menu():
 
       1 — измерение ВСЕХ модулей для ОДНОЙ платформы
       2 — измерение ОДНОГО модуля для ВСЕХ платформ
+      3 — измерение ОДНОГО модуля для ОДНОЙ платформы
+      4 — измерение ВСЕХ модулей для ВСЕХ платформ
       0 — выход из программы
 
-    Возвращает: выбранный режим (int: 1 или 2).
+    Возвращает: выбранный режим (int: 1, 2, 3 или 4).
     """
     log_section("Выбор режима измерения")
     print()
@@ -485,19 +467,21 @@ def show_top_mode_menu():
     print()
     print(style("    1", "green", bold=True) + " — измерение всех модулей для одной платформы")
     print(style("    2", "green", bold=True) + " — измерение одного модуля для всех платформ")
+    print(style("    3", "green", bold=True) + " — измерение одного модуля для одной платформы")
+    print(style("    4", "green", bold=True) + " — измерение всех модулей для всех платформ")
     print(style("    0", "red", bold=True) + " — выход")
     print()
 
     while True:
         try:
-            choice = input(style("  Ваш выбор (0/1/2): ", "yellow")).strip()
+            choice = input(style("  Ваш выбор (0/1/2/3/4): ", "yellow")).strip()
             if choice == "0":
                 log_fail("Выход из программы.")
                 sys.exit(0)
-            if choice in ("1", "2"):
+            if choice in ("1", "2", "3", "4"):
                 log_ok(f"Выбран режим {choice}")
                 return int(choice)
-            log_fail("Некорректный ввод. Введите 0, 1 или 2.")
+            log_fail("Некорректный ввод. Введите 0, 1, 2, 3 или 4.")
         except (EOFError, KeyboardInterrupt):
             print()
             log_fail("Ввод прерван. Выход.")
@@ -526,9 +510,7 @@ def show_platform_menu(modules):
         log_fail("В platformio.ini не найдено ни одной платформы (секций [env:...])")
         sys.exit(1)
 
-    total_modules = len(modules)
-
-    # Загружаем platforms.json для получения failed_modules по платформам
+    # Загружаем platforms.json для определения измеренных базовых размеров платформ
     platforms_data = load_platforms_data()
 
     log_section("Выбор платформы")
@@ -537,9 +519,12 @@ def show_platform_menu(modules):
     print()
 
     for i, name in enumerate(platform_names):
-        supported = count_modules_for_envs(modules, [name])
-        # Количество модулей в ошибке (failed_modules) для данной платформы
-        failed = len(platforms_data.get(name, {}).get("failed_modules", []))
+        # Количество разрешённых (не исключённых) модулей для платформы
+        allowed = count_modules_for_envs(modules, [name])
+        # Количество уже измеренных модулей для платформы (есть числовой размер в modinfo)
+        supported = sum(1 for m in modules if module_has_size_for_env(m, name))
+        # Количество модулей в ошибке для данной платформы (usedFLASH[name] == "-")
+        failed = count_modules_in_error_for_env(modules, name)
         # Цвет имени платформы:
         #   red — платформа отсутствует в platforms.json или одно из значений
         #         (baseline_flash / baseline_ram / total_flash / total_ram) равно 0.
@@ -561,7 +546,7 @@ def show_platform_menu(modules):
             style(f"    {i + 1}", "green", bold=True) +
             " — " +
             style(f"{name}", name_color) +
-            f" обработано {supported} из {total_modules}, " +
+            f" обработано {supported} из {allowed}, " +
             style(f"в ошибке {failed}", "red")
         )
 
@@ -607,20 +592,14 @@ def show_module_menu(modules, envs):
 
     Возвращает: список из одного выбранного модуля (list[dict]).
     """
-    platforms_data = load_platforms_data()
-
     log_section("Выбор модуля для измерения")
     print()
     print(style("  Выберите модуль:", "cyan", bold=True))
     print()
 
     for i, mod in enumerate(modules):
-        # Считаем количество платформ, где этот модуль записан в failed_modules
-        failed_count = 0
-        for env in envs:
-            failed = platforms_data.get(env, {}).get("failed_modules", [])
-            if mod["moduleName"] in failed:
-                failed_count += 1
+        # Количество платформ, где этот модуль в ошибке (usedFLASH[env] == "-")
+        failed_count = sum(1 for env in envs if module_in_error_for_env(mod, env))
         err_str = style(f"в ошибке {failed_count}", "red") if failed_count else ""
         print(
             style(f"    {i + 1}", "green", bold=True) +
@@ -660,8 +639,8 @@ def select_measure_scope(module, envs):
       1 — для всех платформ (количество)
       2 — только для платформ в ошибке (количество)
 
-    «В ошибке» означает, что модуль записан в failed_modules платформы
-    в platforms.json (не удалось собрать/распарсить ранее).
+    «В ошибке» означает, что в modinfo.json модуля для данной платформы
+    в sizeInfo.usedFLASH стоит "-" (ошибка сборки).
 
     Параметры:
       module: словарь выбранного модуля (из show_module_menu)
@@ -669,13 +648,8 @@ def select_measure_scope(module, envs):
 
     Возвращает: отфильтрованный список платформ (list[str]).
     """
-    # Определяем платформы, где модуль числится в failed_modules
-    platforms_data = load_platforms_data()
-    failed_envs = []
-    for env in envs:
-        failed = platforms_data.get(env, {}).get("failed_modules", [])
-        if module["moduleName"] in failed:
-            failed_envs.append(env)
+    # Определяем платформы, где модуль в ошибке (usedFLASH[env] == "-")
+    failed_envs = [env for env in envs if module_in_error_for_env(module, env)]
 
     log_section("Область измерения")
     print()
@@ -717,22 +691,91 @@ def module_supports_env(used_libs, env):
     """
     Определяет, поддерживает ли модуль данную платформу (env).
 
-    used_libs — список шаблонов (pattern), например ["esp32*", "esp8266_4mb"].
+    used_libs — словарь { "<платформа/шаблон>": [библиотеки...] | ["exclude"] }.
     Используется fnmatch для совпадения по шаблону (glob-стиль).
+    Если значение ключа содержит "exclude" — модуль НЕ совместим с платформой.
+
+    Поддерживается и старый формат списка шаблонов ["esp32*", ...].
 
     Примеры:
-      used_libs = ["esp32*"]
-        module_supports_env(used_libs, "esp32_4mb")  → True
-        module_supports_env(used_libs, "esp8266_4mb") → False
+      used_libs = {"esp32*": ["lib1"], "esp32s2_4mb": ["exclude"]}
+        module_supports_env(used_libs, "esp32_4mb")   → True
+        module_supports_env(used_libs, "esp32s2_4mb") → False (exclude)
 
       used_libs = [] → всегда False
     """
     if not used_libs:
         return False
-    for pattern in used_libs:
-        if fnmatch.fnmatch(env, pattern):
+    if isinstance(used_libs, (list, tuple)):
+        # старый формат — список шаблонов
+        for pattern in used_libs:
+            if fnmatch.fnmatch(env, pattern):
+                return True
+        return False
+    # словарь: ключи — платформы/шаблоны, значения — библиотеки или ["exclude"]
+    for key, libs in used_libs.items():
+        if fnmatch.fnmatch(env, key):
+            if isinstance(libs, (list, tuple)) and "exclude" in libs:
+                return False
             return True
     return False
+
+
+def module_allowed_for_env(mod, env):
+    """True, если модуль разрешён для платформы env (не исключён в usedLibs)."""
+    return module_supports_env(mod.get("usedLibs"), env)
+
+
+def get_size_entry(mod):
+    """
+    Возвращает запись sizeInfo текущей версии модуля (для about.moduleVersion).
+    Если записи нет — возвращает None.
+    """
+    modinfo = mod.get("modinfo", {})
+    about = modinfo.get("about", {})
+    module_version = about.get("moduleVersion")
+    for e in modinfo.get("sizeInfo", []) or []:
+        if isinstance(e, dict) and e.get("moduleVersion") == module_version:
+            return e
+    return None
+
+
+def module_has_size_for_env(mod, env):
+    """
+    True, если для платформы env у модуля есть числовой размер Flash/RAM.
+    Модуль учитывается, только если он разрешён для этой платформы.
+    Значение "-" (ошибка) размером не считается.
+    """
+    if not module_allowed_for_env(mod, env):
+        return False
+    entry = get_size_entry(mod)
+    if entry is None:
+        return False
+    for key in ("usedFLASH", "usedRAM"):
+        d = entry.get(key, {}) or {}
+        val = d.get(env)
+        if val is not None and (isinstance(val, (int, float)) or (isinstance(val, str) and val != "-")):
+            return True
+    return False
+
+
+def module_in_error_for_env(mod, env):
+    """
+    True, если модуль в ошибке для платформы env: usedFLASH[env] == "-".
+    Модуль учитывается, только если он разрешён для этой платформы.
+    """
+    if not module_allowed_for_env(mod, env):
+        return False
+    entry = get_size_entry(mod)
+    if entry is None:
+        return False
+    used_flash = entry.get("usedFLASH", {}) or {}
+    return used_flash.get(env) == "-"
+
+
+def count_modules_in_error_for_env(modules, env):
+    """Количество модулей, находящихся в ошибке для платформы env."""
+    return sum(1 for m in modules if module_in_error_for_env(m, env))
 
 
 def env_to_base_from_module(used_libs, env):
@@ -894,7 +937,7 @@ def get_size_from_output(env, timeout=1800):
       4. ПОСЛЕДНИЙ РЕЗЕРВ — строка "used XXXXX bytes".
       5. Возвращаем словарь {flash_used, flash_total, ram_used, ram_total}.
     """
-    cmd = ["pio", "run", "-e", env]
+    cmd = [PIO_BIN or "pio", "run", "-e", env]
     r = subprocess.run(cmd, cwd=PROJECT_ROOT, capture_output=True, text=True, timeout=timeout)
     out = (r.stdout or "") + (r.stderr or "")
     if r.returncode != 0:
@@ -970,11 +1013,7 @@ def load_platforms_data():
           "baseline_flash": 448579,
           "baseline_ram": 37228,
           "total_flash": 761840,
-          "total_ram": 81920,
-          "failed_modules": [
-            "GyverLAMP",
-            ...
-          ]
+          "total_ram": 81920
         },
         "bk7231n": { ... }
       }
@@ -1017,101 +1056,115 @@ def update_platforms_data(env, sizes):
     platforms[env]["total_flash"] = sizes["total_flash"]
     platforms[env]["total_ram"] = sizes["total_ram"]
 
-    # Гарантируем существование массива failed_modules (если его ещё нет)
-    if "failed_modules" not in platforms[env] or not isinstance(platforms[env]["failed_modules"], list):
-        platforms[env]["failed_modules"] = []
-
     save_json(PLATFORMS_JSON, platforms)
 
 
-def record_failed_module(module_name, env):
+def choose_baseline_source(envs):
     """
-    Записывает имя модуля, который не удалось собрать/распарсить,
-    в массив failed_modules платформы в platforms.json.
+    Меню выбора источника базовых размеров (последнее меню).
 
-    Записи добавляются внутрь объекта платформы:
-      "esp8266_1mb": {
-        "baseline_flash": 448579,
-        ...
-        "failed_modules": [
-          "GyverLAMP",
-          ...
+    Если в platforms.json уже есть полные базовые размеры для ВСЕХ выбранных
+    платформ — показывается меню:
+      1 — получить из предыдущих замеров
+      2 — произвести новые замеры базовых размеров
+      0 — назад
+    Если размеров нет — меню пропускается, сразу назначаются новые замеры.
+
+    Параметры:
+      envs: список выбранных платформ
+
+    Возвращает:
+      'prev' — использовать размеры из platforms.json
+      'build'— произвести новые замеры (сборка)
+      None   — назад
+    """
+    platforms_data = load_platforms_data()
+    all_present = True
+    for env in envs:
+        pdata = platforms_data.get(env, {})
+        vals = [
+            pdata.get("baseline_flash"),
+            pdata.get("baseline_ram"),
+            pdata.get("total_flash"),
+            pdata.get("total_ram"),
         ]
-      }
+        if not all(isinstance(v, (int, float)) and v > 0 for v in vals):
+            all_present = False
+            break
 
-    Параметры:
-      module_name: имя модуля (moduleName)
-      env:         платформа, на которой произошла ошибка
-    """
-    platforms = load_platforms_data()
+    # Если размеров нет — меню не показываем, сразу новые замеры
+    if not all_present:
+        log_step("В platforms.json нет базовых размеров — будут выполнены новые замеры.")
+        return "build"
 
-    if not platforms:
-        platforms = {}
+    log_section("Базовые размеры (без модулей)")
+    print()
+    print(style("  Выберите источник базовых размеров:", "cyan", bold=True))
+    print()
+    print(style("    1", "green", bold=True) + " — получить из предыдущих замеров")
+    print(style("    2", "green", bold=True) + " — произвести новые замеры базовых размеров")
+    print(style("    0", "red", bold=True) + " — назад")
+    print()
 
-    # Гарантируем существование записи платформы
-    if env not in platforms or not isinstance(platforms[env], dict):
-        platforms[env] = {}
-
-    # Гарантируем существование массива failed_modules
-    if "failed_modules" not in platforms[env] or not isinstance(platforms[env]["failed_modules"], list):
-        platforms[env]["failed_modules"] = []
-
-    # Добавляем имя модуля в массив (без дубликатов)
-    failed = platforms[env]["failed_modules"]
-    if module_name not in failed:
-        failed.append(module_name)
-
-    save_json(PLATFORMS_JSON, platforms)
-
-
-def remove_failed_module(module_name, env):
-    """
-    Удаляет имя модуля из массива failed_modules платформы в platforms.json.
-    Вызывается, когда модуль успешно скомпилировался/распарсился.
-
-    Параметры:
-      module_name: имя модуля (moduleName)
-      env:         платформа, на которой модуль успешно собрался
-    """
-    platforms = load_platforms_data()
-
-    if not platforms:
-        return
-
-    # Если платформы нет в файле — нечего удалять
-    if env not in platforms or not isinstance(platforms[env], dict):
-        return
-
-    failed = platforms[env].get("failed_modules")
-    if not isinstance(failed, list) or module_name not in failed:
-        return
-
-    # Удаляем имя модуля из массива
-    failed.remove(module_name)
-
-    # Если массив стал пустым — удаляем его (чтобы не хранить пустой список)
-    if not failed:
-        del platforms[env]["failed_modules"]
-
-    save_json(PLATFORMS_JSON, platforms)
+    while True:
+        try:
+            choice = input(style("  Ваш выбор (0/1/2): ", "yellow")).strip()
+            if choice == "1":
+                log_ok("Использовать предыдущие замеры из platforms.json")
+                return "prev"
+            if choice == "2":
+                log_ok("Будут выполнены новые замеры базовых размеров")
+                return "build"
+            if choice == "0":
+                log_info("Назад.")
+                return None
+            log_fail("Некорректный ввод. Введите 0, 1 или 2.")
+        except (EOFError, KeyboardInterrupt):
+            print()
+            log_fail("Ввод прерван. Выход.")
+            sys.exit(1)
 
 
-def select_interactive_config(modules, prof_template):
+def select_interactive_config(modules, prof_template, need_baseline=True):
     """
     Интерактивный выбор конфигурации измерения с поддержкой «назад» в меню.
 
     Первое меню (выбор режима) — «0» = выход из программы.
     Остальные меню — «0» = назад к предыдущему.
 
-    Возвращает кортеж (envs, single_module_mode, modules, done):
+    Последнее меню — выбор источника базовых размеров (choose_baseline_source):
+      1 — получить из предыдущих замеров
+      2 — произвести новые замеры
+      0 — назад
+    Если в platforms.json нет базовых размеров, меню пропускается
+    и сразу назначаются новые замеры.
+
+    Параметры:
+      modules:        список всех модулей (от collect_modules)
+      prof_template:  словарь профиля сборки
+      need_baseline:  True — запрашивать источник базовых размеров
+                      (False для dry-run, где базовые размеры не нужны)
+
+    Возвращает кортеж (envs, single_module_mode, modules, done, baseline_source):
       envs               — список выбранных платформ
       single_module_mode — True, если выбран режим 2 (один модуль для всех платформ)
       modules            — итоговый список модулей для измерения
       done               — True (интерактивный выбор завершён)
+      baseline_source    — 'prev' (из platforms.json) или 'build' (новые замеры)
     """
     while True:
         # Первое меню — «0» = выход
         top_mode = show_top_mode_menu()
+
+        if top_mode == 4:
+            # Режим 4: все модули для всех платформ.
+            # Последнее меню (источник базовых размеров) НЕ показывается —
+            # все базовые размеры будут переизмерены заново.
+            envs = get_envs_from_platformio_ini()
+            log_section("Все модули для всех платформ")
+            log_ok(f"Платформы: {', '.join(envs)} ({len(envs)})")
+            log_info("Все базовые размеры будут переизмерены.")
+            return envs, False, modules, True, "build"
 
         if top_mode == 2:
             # Режим 2: один модуль для всех платформ
@@ -1120,10 +1173,31 @@ def select_interactive_config(modules, prof_template):
                 chosen = show_module_menu(modules, envs)           # 0 = назад
                 if chosen is None:
                     break  # назад -> первое меню
-                scope_envs = select_measure_scope(chosen[0], envs)  # 0 = назад
-                if scope_envs is None:
-                    continue  # назад -> перечень модулей
-                return scope_envs, True, chosen, True
+                while True:
+                    scope_envs = select_measure_scope(chosen[0], envs)  # 0 = назад
+                    if scope_envs is None:
+                        break  # назад -> перечень модулей
+                    bs = choose_baseline_source(scope_envs) if need_baseline else "build"
+                    if bs is None:
+                        continue  # назад -> область измерения
+                    return scope_envs, True, chosen, True, bs
+
+        if top_mode == 3:
+            # Режим 3: один модуль для одной платформы
+            while True:
+                envs = show_platform_menu(modules)                 # 0 = назад
+                if envs is None:
+                    break  # назад -> первое меню
+                while True:
+                    chosen = show_module_menu(modules, envs)       # 0 = назад
+                    if chosen is None:
+                        break  # назад -> выбор платформы
+                    # Платформа уже выбрана во втором меню,
+                    # поэтому вопрос «для каких платформ измерять?» не задаём.
+                    bs = choose_baseline_source(envs) if need_baseline else "build"
+                    if bs is None:
+                        continue  # назад -> перечень модулей
+                    return envs, True, chosen, True, bs
 
         # Режим 1: все модули для одной платформы
         while True:
@@ -1135,7 +1209,7 @@ def select_interactive_config(modules, prof_template):
             without_size = filter_modules_without_size(modules, envs)
             all_count = count_modules_for_envs(modules, envs)
             profile_count = count_modules_for_envs(profile_modules, envs)
-            without_size_count = count_modules_for_envs(without_size, envs)
+            without_size_count = len(without_size)
 
             while True:
                 choice = show_menu(all_count, profile_count, without_size_count)  # 0 = назад
@@ -1146,7 +1220,10 @@ def select_interactive_config(modules, prof_template):
                     chosen = profile_modules
                 elif choice == 3:
                     chosen = without_size
-                return envs, False, chosen, True
+                bs = choose_baseline_source(envs) if need_baseline else "build"
+                if bs is None:
+                    continue  # назад -> режим обработки
+                return envs, False, chosen, True, bs
 
 
 # ----------------------------------------------------------------------------
@@ -1168,6 +1245,14 @@ def main():
                     help="Отключить цветной вывод")
     ap.add_argument("--limit", type=int, default=None, metavar="N",
                     help="Измерить только первые N модулей на платформу")
+    ap.add_argument("--pio", default=None, metavar="PATH",
+                    help="Полный путь к исполняемому файлу pio (иначе — из PATH)")
+    ap.add_argument("--mode", type=int, choices=[1, 2, 3], default=None,
+                    help="Режим обработки без интерактивного меню: 1=все, 2=модули профиля, 3=без размера")
+    ap.add_argument("--baseline", choices=["build", "prev"], default=None,
+                    help="Источник базовых размеров: build=новая baseline-сборка, prev=из platforms.json")
+    ap.add_argument("--module", default=None, metavar="PATH",
+                    help="Измерить только один модуль (путь или имя папки модуля)")
     args = ap.parse_args()
 
     if args.no_color:
@@ -1206,19 +1291,41 @@ def main():
     # -------------------------------------------------------------------------
     single_module_mode = False
     interactive_done = False
+    baseline_source = "build"
+    non_interactive = not sys.stdin.isatty()
+    if args.pio:
+        global PIO_BIN
+        PIO_BIN = args.pio
+
     if args.env:
         envs = args.env
     elif DEFAULT_ENVS:
         envs = DEFAULT_ENVS
     else:
-        envs, single_module_mode, modules, interactive_done = select_interactive_config(
-            modules, prof_template
-        )
+        envs, single_module_mode, modules, interactive_done, baseline_source = \
+            select_interactive_config(modules, prof_template, need_baseline=not args.dry_run)
+
+    # -------------------------------------------------------------------------
+    # РЕЖИМ ОДНОГО МОДУЛЯ (--module): замер только указанного модуля.
+    #   Переопределяет выбор модулей, пропускает меню режима и baseline.
+    # -------------------------------------------------------------------------
+    if args.module:
+        target = Path(args.module).as_posix().rstrip("/")
+        wanted = [m for m in modules if _module_matches(m, target)]
+        if not wanted:
+            log_fail(f"Модуль не найден: {args.module}")
+            stop_logging()
+            sys.exit(1)
+        modules = wanted
+        single_module_mode = True
+        interactive_done = True
+        baseline_source = args.baseline if args.baseline else "prev"
 
     # -------------------------------------------------------------------------
     # МЕНЮ ВЫБОРА РЕЖИМА ОБРАБОТКИ:
     #   Показывается только при задании платформы через --env / DEFAULT_ENVS,
     #   т.к. при интерактивном выборе режим уже выбран внутри select_interactive_config.
+    #   При --mode или неинтерактивном stdin меню пропускается.
     # -------------------------------------------------------------------------
     if not interactive_done and not single_module_mode:
         profile_modules = filter_modules_by_profile(modules, prof_template)
@@ -1226,11 +1333,16 @@ def main():
 
         all_count = count_modules_for_envs(modules, envs)
         profile_count = count_modules_for_envs(profile_modules, envs)
-        without_size_count = count_modules_for_envs(without_size, envs)
+        without_size_count = len(without_size)
 
-        choice = show_menu(all_count, profile_count, without_size_count)
-        if choice is None:
-            choice = 1  # «назад» без предыдущего меню — берём все модули
+        if args.mode is not None:
+            choice = args.mode
+        elif non_interactive:
+            choice = 1  # нет интерактивного ввода — берём все модули
+        else:
+            choice = show_menu(all_count, profile_count, without_size_count)
+            if choice is None:
+                choice = 1  # «назад» без предыдущего меню — берём все модули
 
         if choice == 1:
             # Все модули — ничего не фильтруем
@@ -1243,6 +1355,20 @@ def main():
             # Только модули без размера
             modules = without_size
             log_step(f"Режим 3: обработка модулей без информации о размере ({len(modules)})")
+
+        # ---------------------------------------------------------------------
+        # Последнее меню — источник базовых размеров (для не-интерактивного пути)
+        # ---------------------------------------------------------------------
+        if not args.dry_run:
+            if args.baseline:
+                baseline_source = args.baseline
+            elif non_interactive:
+                baseline_source = "build"
+            else:
+                bs = choose_baseline_source(envs)
+                if bs is None:
+                    bs = "build"  # «назад» без предыдущего меню — новые замеры
+                baseline_source = bs
 
     # -------------------------------------------------------------------------
     # Если выбран режим 2 «один модуль для всех платформ» — логируем итоговый выбор.
@@ -1309,9 +1435,20 @@ def main():
         baseline_sizes = {}
         platforms_data = load_platforms_data()
 
-        if single_module_mode:
+        # Если запрошены «предыдущие замеры», но платформы ещё нет в platforms.json —
+        # автоматически выполняем новую baseline-сборку.
+        if baseline_source == "prev":
+            missing_prev = [e for e in envs if not platforms_data.get(e)]
+            if missing_prev:
+                log_step(
+                    "Нет базовых замеров для: " + ", ".join(missing_prev)
+                    + " — выполняется новая baseline-сборка"
+                )
+                baseline_source = "build"
+
+        if baseline_source == "prev":
             # -----------------------------------------------------------------
-            # РЕЖИМ «1 МОДУЛЬ ДЛЯ ВСЕХ ПЛАТФОРМ»:
+            # ИСТОЧНИК «ПРЕДЫДУЩИЕ ЗАМЕРЫ»:
             #   Базовая сборка (без модулей) НЕ выполняется.
             #   Размеры базовых прошивок берутся напрямую из platforms.json.
             # -----------------------------------------------------------------
@@ -1331,7 +1468,7 @@ def main():
                 )
         else:
             # -----------------------------------------------------------------
-            # ОБЫЧНЫЙ РЕЖИМ: выполняется базовая сборка БЕЗ МОДУЛЕЙ.
+            # ИСТОЧНИК «НОВЫЕ ЗАМЕРЫ»: выполняется базовая сборка БЕЗ МОДУЛЕЙ.
             # -----------------------------------------------------------------
             log_section("Базовая сборка (без модулей)")
             for env in envs:
@@ -1363,9 +1500,9 @@ def main():
         # -------------------------------------------------------------------------
         # СОХРАНЕНИЕ platforms.json сразу после базовой сборки
         # -------------------------------------------------------------------------
-        # В режиме «1 модуль для всех платформ» обновление не имеет смысла:
-        # размеры уже взяты из platforms.json, перезаписывать их не нужно.
-        if not single_module_mode:
+        # Если использованы предыдущие замеры — перезаписывать их не нужно.
+        # Обновление выполняется только после новых замеров (baseline_source == 'build').
+        if baseline_source == "build":
             for env in envs:
                 if env in baseline_sizes:
                     update_platforms_data(env, baseline_sizes[env])
@@ -1400,7 +1537,6 @@ def main():
 
                 if not ok:
                     log_fail(f"[{idx}/{total_modules}] {mod['moduleName']} — PrepareProject не удался")
-                    record_failed_module(mod["moduleName"], env)
                     # Ставим прочерк в sizeInfo для данной платформы
                     base = env_to_base_from_module(mod["usedLibs"], env)
                     info = load_json(mod["modinfo_path"])
@@ -1416,7 +1552,6 @@ def main():
                 os.unlink(tf)
                 if sizes is None:
                     log_fail(f"[{idx}/{total_modules}] {mod['moduleName']} — не удалось распарсить размер")
-                    record_failed_module(mod["moduleName"], env)
                     # Ставим прочерк в sizeInfo для данной платформы
                     base = env_to_base_from_module(mod["usedLibs"], env)
                     info = load_json(mod["modinfo_path"])
@@ -1454,9 +1589,6 @@ def main():
                 update_size_info(info, module_version, base, used_flash, used_ram)
 
                 save_json(mod["modinfo_path"], info)
-
-                # Модуль успешно собрался — убираем его из failed_modules
-                remove_failed_module(mod["moduleName"], env)
 
                 if mod["modinfo_path"] not in updated_paths:
                     updated_paths.add(mod["modinfo_path"])
@@ -1501,3 +1633,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
