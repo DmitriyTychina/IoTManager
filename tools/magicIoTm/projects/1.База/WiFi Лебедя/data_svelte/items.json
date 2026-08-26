@@ -42,26 +42,30 @@
         "moduleName": "ButtonIn"
     },
     {
-        "global": 0,
-        "name": "3. Управление пином",
-        "type": "Writing",
-        "subtype": "ButtonOut",
-        "needSave": 0,
-        "id": "btn",
-        "widget": "toggle",
-        "page": "Кнопки",
-        "descr": "Освещение",
-        "int": 0,
-        "inv": 0,
-        "pin": 2,
-        "num": 3,
-        "moduleName": "ButtonOut"
-    },
-    {
         "header": "screens"
     },
     {
         "header": "sensors"
+    },
+    {
+        "global": 0,
+        "name": "3. Расширитель портов PCF8591",
+        "type": "Reading",
+        "subtype": "Pcf8591",
+        "id": "Pcf85",
+        "widget": "anydataVlt",
+        "page": "PCF8591",
+        "descr": "PCF_0",
+        "pin": "0",
+        "mode": "volt",
+        "adc_ref": 5.0,
+        "map": "1,255,1,100",
+        "plus": 0,
+        "multiply": 1,
+        "round": 2,
+        "int": 7,
+        "num": 3,
+        "moduleName": "Pcf8591"
     },
     {
         "header": "virtual_elments"

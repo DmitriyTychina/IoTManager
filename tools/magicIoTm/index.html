@@ -126,8 +126,8 @@ button.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent
 .build-modal h3{margin:0 0 8px}
 .build-modal .build-sub{color:var(--muted);font-size:12px;margin-bottom:12px}
 .build-steps{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-.build-step{flex:1;min-width:150px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--panel)}
-.build-step .bs-name{display:block;margin-bottom:4px;font-weight:600}
+.build-step{flex:1;min-width:150px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--panel);display:flex;align-items:center;gap:6px}
+.build-step .bs-name{font-weight:600}
 .build-step.pending{opacity:.55}
 .build-step.running{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
 .build-step.running .bs-badge::after{content:"…";animation:blink 1s infinite}
@@ -730,7 +730,7 @@ function renderBuildSizes(s){
   const cards = [
     {t:'Прошивка (FLASH)', u:s.flash_used, to:s.flash_total, pct:s.flash_pct},
     {t:'Оперативная память (RAM)', u:s.ram_used, to:s.ram_total, pct:s.ram_pct},
-    {t:'Файлы FS', u:s.fs_used, to:s.fs_total, pct:s.fs_pct}
+    {t:'Файловая система', u:s.fs_used, to:s.fs_total, pct:s.fs_pct}
   ];
   document.getElementById('buildSizes').innerHTML = cards.map(c=>
     `<div class="size-card ${sizeClass(c.pct)}">
@@ -893,11 +893,14 @@ async function startMeasure(scope, modulePath, label){
     const msg = document.getElementById('measureSuccessMsg');
     msg.style.display = 'block';
     if(failed && measureScope === 'module'){
-      msg.textContent = '✗ Не удалось получить размер - модуль не компилируется';
+      msg.textContent = '✗ Не удалось получить размер - модуль не компилируется, обратитесь к разработчику модуля.';
+      msg.style.color = 'var(--danger)';
     } else if(failed){
       msg.textContent = '✗ Замер завершился с ошибками для части модулей';
+      msg.style.color = 'var(--danger)';
     } else {
-      msg.textContent = '✅ Замер размера завершён.';
+      msg.textContent = '✅ Замер размера завершён успешно.';
+      msg.style.color = '#4caf50';
     }
     measureFinish();
     // Перечитываем модифицированные modinfo.json и обновляем размеры модулей и индикаторы
@@ -914,6 +917,7 @@ async function startMeasure(scope, modulePath, label){
       const msg = document.getElementById('measureSuccessMsg');
       msg.style.display = 'block';
       msg.textContent = '✗ Прервано';
+      msg.style.color = 'var(--danger)';
     } else {
       const errEl = document.getElementById('measureError');
       errEl.style.display = 'block';

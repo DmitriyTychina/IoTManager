@@ -10,12 +10,12 @@
     "mqttServer": "",
     "mqttUser": "rise",
     "mqttin": 0,
-    "name": "IoTmESP32s2m",
+    "name": "ааа",
     "ntp": "pool.ntp.org",
     "pinSCL": 0,
     "pinSDA": 0,
-    "routerpass": "LXY5Njof",
-    "routerssid": "Keenetic-7400",
+    "routerpass": "NdmxA6Rp",
+    "routerssid": "RT-GPON-8A68",
     "serverip": "http://iotmanager.org",
     "serverlocal": "http://192.168.1.2:5500",
     "timezone": 3,
@@ -34,11 +34,11 @@
         "path": "src/modules/exec/BrokerMQTT"
       },
       {
-        "active": true,
+        "active": false,
         "path": "src/modules/exec/ButtonIn"
       },
       {
-        "active": true,
+        "active": false,
         "path": "src/modules/exec/ButtonOut"
       },
       {

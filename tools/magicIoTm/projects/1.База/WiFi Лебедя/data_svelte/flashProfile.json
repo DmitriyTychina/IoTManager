@@ -1,7 +1,7 @@
 {
     "projectProp": {
         "platformio": {
-            "default_envs": "esp8266_4mb"
+            "default_envs": "esp8266_1mb_ota"
         }
     },
     "modules": {
@@ -19,7 +19,7 @@
                 "path": "src/modules/exec/ButtonIn"
             },
             {
-                "active": true,
+                "active": false,
                 "path": "src/modules/exec/ButtonOut"
             },
             {
@@ -171,7 +171,7 @@
         ],
         "sensors": [
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/sensors/Pcf8591"
             },
             {

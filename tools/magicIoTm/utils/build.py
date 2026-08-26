@@ -16,6 +16,7 @@ import os
 import re
 import sys
 import json
+import shutil
 import threading
 import subprocess
 
@@ -221,6 +222,9 @@ def _worker(cfg):
             return
         _set_step(3, "done")
 
+        # ---- Копирование файлов прошивки в iotm/<платформа>/400/ ----
+        _copy_firmware(cfg)
+
         # ---- Шаг 4: успех + размеры ----
         sizes = _compute_sizes(out3, cfg)
         _append_line("")
@@ -316,6 +320,57 @@ def _dir_size(path):
             except OSError:
                 pass
     return total
+
+
+# Файлы прошивки, копируемые после сборки в iotm/<платформа>/<подкаталог>/
+FIRMWARE_FILES = ["firmware.bin", "littlefs.bin", "partitions.bin"]
+FIRMWARE_DEST_SUBDIR = "400"
+
+
+def _copy_firmware(cfg):
+    """Копирует собранные файлы прошивки в iotm/<платформа>/400/ проекта.
+
+    Источник — каталог сборки .pio/build/<платформа> в корне PlatformIO-проекта
+    (e:/GitHub/IoTManager/.pio/build/<платформа>).
+
+    Целевая папка iotm создаётся в корне самого собираемого проекта (каталог,
+    где лежит myProfile.json/platformio.ini): например, для проекта PlatformIO —
+    это e:/GitHub/IoTManager, а для Test/ESP8266 — e:/GitHub/IoTManager/tools/
+    magicIoTm/projects/Test/ESP8266.
+
+    Каждый файл копируется только если он реально существует в каталоге сборки
+    (например, у ESP8266 нет partitions.bin, а littlefs.bin создаётся шагом buildfs).
+    """
+    env = cfg.get("env", "")
+    # Источник — .pio\build\<платформа> в корне PlatformIO-проекта
+    build_base = cfg.get("cwd", "")
+    # Цель — iotm\<платформа>\400\ в корне собираемого проекта
+    proj_base = os.path.dirname(cfg.get("profile", "")) if cfg.get("profile") else build_base
+
+    src_dir = os.path.join(build_base, ".pio", "build", env)
+    dst_dir = os.path.join(proj_base, "iotm", env, FIRMWARE_DEST_SUBDIR)
+
+    if not os.path.isdir(src_dir):
+        _append_line(f"[copy] Каталог сборки не найден, пропускаем: {src_dir}")
+        return
+
+    os.makedirs(dst_dir, exist_ok=True)
+    copied = False
+    for fname in FIRMWARE_FILES:
+        src_path = os.path.join(src_dir, fname)
+        dst_path = os.path.join(dst_dir, fname)
+        if os.path.isfile(src_path):
+            try:
+                shutil.copy2(src_path, dst_path)
+                copied = True
+                _append_line(f"[copy] Скопировано: {src_path} -> {dst_path}")
+            except OSError as e:
+                _append_line(f"[copy] Ошибка копирования {fname}: {e}")
+        else:
+            _append_line(f"[copy] Файл не найден, пропускаем: {src_path}")
+
+    if not copied:
+        _append_line(f"[copy] Не найдено ни одного файла прошивки в {src_dir}")
 
 
 def _fs_total(cfg):

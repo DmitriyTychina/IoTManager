@@ -15,11 +15,11 @@
                 "path": "src/modules/exec/BrokerMQTT"
             },
             {
-                "active": true,
+                "active": false,
                 "path": "src/modules/exec/ButtonIn"
             },
             {
-                "active": true,
+                "active": false,
                 "path": "src/modules/exec/ButtonOut"
             },
             {

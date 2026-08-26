@@ -1,0 +1,133 @@
+
+  ✓ Лог запуска сохранён: E:\GitHub\IoTManager\tools\measure_size\logs\2026-08-26_20-00-15
+  ● Режим: 1 модуль (IoTWiegand) — платформы: esp32_16mb
+
+  Измерение размера Flash/RAM модулей
+────────────────────────────────────────────────────────────
+  ● Профиль: myProfile.json
+  ● Платформы: esp32_16mb
+  ● Всего сборок: baseline × 1 + 1 модулей 
+
+  Базовые размеры (из platforms.json)
+────────────────────────────────────────────────────────────
+  ✓ esp32_16mb: baseline взят из platforms.json (Flash=1,077,989 B, RAM=49,244 B)
+
+  Измерение модулей — esp32_16mb
+────────────────────────────────────────────────────────────
+Processing esp32_16mb (framework: arduino; board: esp32dev; platform: espressif32 @6.6.0)
+--------------------------------------------------------------------------------
+Removing unused dependencies...
+Library Manager: Removing Adafruit PCF8591 @ 1.0.4+sha.ef72f79
+Library Manager: Removing dependencies...
+Library Manager: Removing Adafruit BusIO @ 1.17.4
+Library Manager: Adafruit BusIO@1.17.4 has been removed!
+Library Manager: Adafruit PCF8591@1.0.4+sha.ef72f79 has been removed!
+Library Manager: Installing git+https://github.com/jpliew/Wiegand-NG-Multi-Bit-Wiegand-Library-for-Arduino
+git version 2.51.2.windows.1
+Cloning into 'C:\Users\Admin\.platformio\.cache\tmp\pkg-installing-jqhs_jrt'...
+Library Manager: Wiegand-NG-Multi-Bit-Wiegand-Library-for-Arduino@0.0.0+20260826200017.sha.5aea14f has been installed!
+Verbose mode can be enabled via `-v, --verbose` option
+PLATFORMIO_DIRC:\Users\Admin\.platformio
+Файл изменён, ОК! C:\Users\Admin\.platformio\packages\framework-arduinoespressif32\libraries\WiFi\src\WiFiClient.cpp
+CONFIGURATION: https://docs.platformio.org/page/boards/espressif32/esp32dev.html
+PLATFORM: Espressif 32 (6.6.0) > Espressif ESP32 Dev Module
+HARDWARE: ESP32 240MHz, 320KB RAM, 4MB Flash
+DEBUG: Current (esp-prog) External (cmsis-dap, esp-bridge, esp-prog, iot-bus-jtag, jlink, minimodule, olimex-arm-usb-ocd, olimex-arm-usb-ocd-h, olimex-arm-usb-tiny-h, olimex-jtag-tiny, tumpa)
+PACKAGES: 
+ - framework-arduinoespressif32 @ 3.20014.231204 (2.0.14) 
+ - tool-esptoolpy @ 1.40501.0 (4.5.1) 
+ - toolchain-xtensa-esp32 @ 8.4.0+2021r2-patch5
+LDF: Library Dependency Finder -> https://bit.ly/configure-pio-ldf
+LDF Modes: Finder ~ chain, Compatibility ~ soft
+Found 45 compatible libraries
+Scanning dependencies...
+Dependency Graph
+|-- ArduinoJson @ 6.18.0
+|-- PubSubClient @ 2.8.0
+|-- Wiegand-NG-Multi-Bit-Wiegand-Library-for-Arduino @ 0.0.0+20260826200017.sha.5aea14f
+|-- Wire @ 2.0.0
+|-- ESP32 Async UDP @ 2.0.0
+|-- LittleFS @ 2.0.0
+|-- FS @ 2.0.0
+|-- SPIFFS @ 2.0.0
+|-- WiFi @ 2.0.0
+|-- HTTPClient @ 2.0.0
+|-- HTTPUpdate @ 2.0.0
+|-- TickerScheduler
+|-- Update @ 2.0.0
+|-- WebServer @ 2.0.0
+|-- WebSockets @ 2.3.7
+|-- EspSoftwareSerial @ 8.1.0
+Building in release mode
+Compiling .pio\build\esp32_16mb\src\AsyncWebServer.cpp.o
+Compiling .pio\build\esp32_16mb\src\Buffers.cpp.o
+Compiling .pio\build\esp32_16mb\src\DebugTrace.cpp.o
+Compiling .pio\build\esp32_16mb\src\DeviceList.cpp.o
+Compiling .pio\build\esp32_16mb\src\ESPConfiguration.cpp.o
+Compiling .pio\build\esp32_16mb\src\EspFileSystem.cpp.o
+Compiling .pio\build\esp32_16mb\src\EventsAndOrders.cpp.o
+Compiling .pio\build\esp32_16mb\src\Global.cpp.o
+Compiling .pio\build\esp32_16mb\src\Main.cpp.o
+Compiling .pio\build\esp32_16mb\src\MqttClient.cpp.o
+Compiling .pio\build\esp32_16mb\src\NTP.cpp.o
+Compiling .pio\build\esp32_16mb\src\PeriodicTasks.cpp.o
+Compiling .pio\build\esp32_16mb\src\StandWebServer.cpp.o
+Compiling .pio\build\esp32_16mb\src\UpgradeFirm.cpp.o
+Compiling .pio\build\esp32_16mb\src\WsServer.cpp.o
+Compiling .pio\build\esp32_16mb\src\classes\IoTBench.cpp.o
+Compiling .pio\build\esp32_16mb\src\classes\IoTDB.cpp.o
+Compiling .pio\build\esp32_16mb\src\classes\IoTDiscovery.cpp.o
+Compiling .pio\build\esp32_16mb\src\classes\IoTGpio.cpp.o
+Compiling .pio\build\esp32_16mb\src\classes\IoTItem.cpp.o
+Compiling .pio\build\esp32_16mb\src\classes\IoTScenario.cpp.o
+Compiling .pio\build\esp32_16mb\src\classes\IoTUart.cpp.o
+Compiling .pio\build\esp32_16mb\src\classes\NotAsync.cpp.o
+Compiling .pio\build\esp32_16mb\src\modules\API.cpp.o
+Compiling .pio\build\esp32_16mb\src\modules\sensors\IoTWiegand\IoTWiegand.cpp.o
+Compiling .pio\build\esp32_16mb\src\utils\FileUtils.cpp.o
+Compiling .pio\build\esp32_16mb\src\utils\I2CUtils.cpp.o
+Compiling .pio\build\esp32_16mb\src\utils\JsonUtils.cpp.o
+Compiling .pio\build\esp32_16mb\src\utils\SerialPrint.cpp.o
+Compiling .pio\build\esp32_16mb\src\utils\Statistic.cpp.o
+Compiling .pio\build\esp32_16mb\src\utils\StringUtils.cpp.o
+Compiling .pio\build\esp32_16mb\src\utils\TimeUtils.cpp.o
+Compiling .pio\build\esp32_16mb\src\utils\WiFiUtils.cpp.o
+Building .pio\build\esp32_16mb\bootloader.bin
+Generating partitions .pio\build\esp32_16mb\partitions.bin
+src/modules/sensors/IoTWiegand/IoTWiegand.cpp: In constructor 'IoTWiegand::IoTWiegand(String)':
+src/modules/sensors/IoTWiegand/IoTWiegand.cpp:47:30: error: 'D5' was not declared in this scope
+         unsigned int pinD0 = D5;
+                              ^~
+src/modules/sensors/IoTWiegand/IoTWiegand.cpp:47:30: note: suggested alternative: 'T5'
+         unsigned int pinD0 = D5;
+                              ^~
+                              T5
+src/modules/sensors/IoTWiegand/IoTWiegand.cpp:48:30: error: 'D6' was not declared in this scope
+         unsigned int pinD1 = D6;
+                              ^~
+src/modules/sensors/IoTWiegand/IoTWiegand.cpp:48:30: note: suggested alternative: 'T6'
+         unsigned int pinD1 = D6;
+                              ^~
+                              T6
+esptool.py v4.5.1
+Creating esp32 image...
+Merged 1 ELF section
+Successfully created esp32 image.
+Compiling .pio\build\esp32_16mb\libcfd\PubSubClient\PubSubClient.cpp.o
+*** [.pio\build\esp32_16mb\src\modules\sensors\IoTWiegand\IoTWiegand.cpp.o] Error 1
+========================= [FAILED] Took 13.84 seconds =========================
+
+Environment    Status    Duration
+-------------  --------  ------------
+esp32_16mb     FAILED    00:00:13.844
+==================== 1 failed, 0 succeeded in 00:00:13.844 ====================
+  ✗ [1/1] IoTWiegand — не удалось распарсить размер
+
+  Итог
+────────────────────────────────────────────────────────────
+  ✓ Файлов modinfo.json обновлено: 0
+  ✓ platformio.ini восстановлен.
+
+  Восстановление состояния проекта
+────────────────────────────────────────────────────────────
+  ✓ PrepareProject применён: myProfile.json (env=esp8266_4mb)
