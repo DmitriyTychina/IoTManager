@@ -142,9 +142,7 @@ profileDir = str(Path(profile).parent)
 # папка данных прошивки — data_svelte, лежащая в папке проекта (там же, где myProfile.json)
 DATA_DIR = os.path.join(profileDir, "data_svelte")
 
-# Заполняем data_svelte проекта недостающими файлами из корневой data_svelte
-# (settings.json, items.json, flashProfile.json и пр.), сохраняя существующие данные проекта.
-copy_missing("data_svelte", DATA_DIR)
+# data_svelte проекта заполняется ниже, в зависимости от выбранного устройства.
 
 if Path(profile).is_file():
     # подтягиваем уже существующий профиль
@@ -193,10 +191,32 @@ else:
         print(f"\x1b[1;31;31m Board ", selectDevice, " not found in ",profile,"!!! Use ",deviceName,"  \x1b[0m")
 
 # заполняем папку /data файлами прошивки в зависимости от устройства
-if deviceName == 'esp8266_1mb_ota' or deviceName == 'esp8285_1mb_ota' or deviceName == 'esp8266_2mb_ota': 
-    shutil.copytree("data_lite", DATA_DIR, symlinks=False, ignore=None, ignore_dangling_symlinks=False, dirs_exist_ok=True)
+is_ota_lite = deviceName in ('esp8266_1mb_ota', 'esp8285_1mb_ota', 'esp8266_2mb_ota')
+data_source = "data_lite" if is_ota_lite else "data_full"
+
+if is_ota_lite:
+    # Для OTA-плат формируем чистую минимальную ФС: только data_lite + обязательные
+    # конфиги. Не копируем из корневой data_svelte полный веб-набор (edit.htm.gz,
+    # полные бандлы), чтобы не превысить маленький раздел littlefs (~64 КБ).
+    if os.path.isdir(DATA_DIR):
+        shutil.rmtree(DATA_DIR)
+    shutil.copytree(data_source, DATA_DIR, symlinks=False, ignore=None, ignore_dangling_symlinks=False, dirs_exist_ok=True)
+    config_seeds = [
+        "config.json", "dev_conf.txt", "items.json", "layout.json",
+        "ota.json", "scenario.txt", "settings.json", "values.json", "widgets.json",
+    ]
+    os.makedirs(DATA_DIR, exist_ok=True)
+    for fname in config_seeds:
+        src = os.path.join("data_svelte", fname)
+        dst = os.path.join(DATA_DIR, fname)
+        if os.path.isfile(src) and not os.path.exists(dst):
+            shutil.copy2(src, dst)
 else:
-    shutil.copytree("data_full", DATA_DIR, symlinks=False, ignore=None, ignore_dangling_symlinks=False, dirs_exist_ok=True)
+    # Для остальных плат дозаполняем data_svelte недостающими файлами из корневой
+    # data_svelte (settings.json, items.json, flashProfile.json и пр.), сохраняя
+    # существующие данные проекта, затем применяем полный набор прошивки.
+    copy_missing("data_svelte", DATA_DIR)
+    shutil.copytree(data_source, DATA_DIR, symlinks=False, ignore=None, ignore_dangling_symlinks=False, dirs_exist_ok=True)
 
 deviceType = 'esp32*'
 if not 'esp32' in deviceName:
