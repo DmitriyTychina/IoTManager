@@ -1,7 +1,7 @@
 {
     "projectProp": {
         "platformio": {
-            "default_envs": "esp8285_1mb"
+            "default_envs": "esp32cam_4mb"
         }
     },
     "modules": {

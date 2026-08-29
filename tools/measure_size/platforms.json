@@ -45,7 +45,8 @@
         "baseline_flash": 1096301,
         "baseline_ram": 49332,
         "total_flash": 3145728,
-        "total_ram": 327680
+        "total_ram": 327680,
+        "total_fs": 917504
     },
     "esp32s2_4mb": {
         "baseline_flash": 1023858,
