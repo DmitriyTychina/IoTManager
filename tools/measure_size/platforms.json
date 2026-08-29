@@ -3,37 +3,43 @@
         "baseline_flash": 448747,
         "baseline_ram": 37244,
         "total_flash": 761840,
-        "total_ram": 81920
+        "total_ram": 81920,
+        "total_fs": 262144
     },
     "esp8266_1mb_ota": {
         "baseline_flash": 448751,
         "baseline_ram": 37248,
         "total_flash": 958448,
-        "total_ram": 81920
+        "total_ram": 81920,
+        "total_fs": 65536
     },
     "esp8266_4mb": {
         "baseline_flash": 448747,
         "baseline_ram": 37244,
         "total_flash": 1044464,
-        "total_ram": 81920
+        "total_ram": 81920,
+        "total_fs": 2072576
     },
     "esp32_4mb": {
         "baseline_flash": 1077989,
         "baseline_ram": 49244,
         "total_flash": 1310720,
-        "total_ram": 327680
+        "total_ram": 327680,
+        "total_fs": 1441792
     },
     "esp32_4mb3f": {
         "baseline_flash": 1077989,
         "baseline_ram": 49244,
         "total_flash": 1572864,
-        "total_ram": 327680
+        "total_ram": 327680,
+        "total_fs": 983040
     },
     "esp8266_16mb": {
         "baseline_flash": 448747,
         "baseline_ram": 37244,
         "total_flash": 1044464,
-        "total_ram": 81920
+        "total_ram": 81920,
+        "total_fs": 14655488
     },
     "esp32cam_4mb": {
         "baseline_flash": 1096301,
@@ -45,7 +51,8 @@
         "baseline_flash": 1023858,
         "baseline_ram": 55232,
         "total_flash": 1310720,
-        "total_ram": 327680
+        "total_ram": 327680,
+        "total_fs": 1441792
     },
     "esp32s3_16mb": {
         "baseline_flash": 1054441,
@@ -63,25 +70,29 @@
         "baseline_flash": 453019,
         "baseline_ram": 37396,
         "total_flash": 1044464,
-        "total_ram": 81920
+        "total_ram": 81920,
+        "total_fs": 1024000
     },
     "esp8266_2mb_ota": {
         "baseline_flash": 453023,
         "baseline_ram": 37400,
         "total_flash": 1044464,
-        "total_ram": 81920
+        "total_ram": 81920,
+        "total_fs": 241664
     },
     "esp8285_1mb": {
         "baseline_flash": 448779,
         "baseline_ram": 37244,
         "total_flash": 761840,
-        "total_ram": 81920
+        "total_ram": 81920,
+        "total_fs": 262144
     },
     "esp8285_1mb_ota": {
         "baseline_flash": 448783,
         "baseline_ram": 37248,
         "total_flash": 958448,
-        "total_ram": 81920
+        "total_ram": 81920,
+        "total_fs": 65536
     },
     "esp32c6_4mb": {
         "baseline_flash": 1247092,
@@ -105,7 +116,8 @@
         "baseline_flash": 1077989,
         "baseline_ram": 49244,
         "total_flash": 4718592,
-        "total_ram": 327680
+        "total_ram": 327680,
+        "total_fs": 7208960
     },
     "esp32_wifirep": {
         "baseline_flash": 767869,

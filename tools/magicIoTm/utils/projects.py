@@ -292,16 +292,33 @@ def load_project_config(category, name):
         return json.load(f)
 
 
+def _detect_indent(path, default=2):
+    """Определяет ширину отступа в существующем JSON-файле."""
+    try:
+        with open(path, "r", encoding='utf-8') as f:
+            for line in f:
+                if line.startswith(' ') and not line.strip().startswith('{'):
+                    return len(line) - len(line.lstrip())
+    except Exception:  # noqa: BLE001
+        pass
+    return default
+
+
 def save_project_config(category, name, config):
-    """Сохранение myProfile.json проекта"""
+    """Сохранение myProfile.json проекта (без изменения порядка полей и отступов).
+
+    Существующий отступ файла сохраняется, порядок полей не изменяется.
+    """
     if is_platformio(name):
         # Проект PlatformIO пишет напрямую в корневой myProfile.json
+        indent = _detect_indent(ROOT_CONFIG_FILE, 4)
         with open(ROOT_CONFIG_FILE, 'w', encoding='utf-8') as f:
-            json.dump(config, f, ensure_ascii=False, indent=2)
+            json.dump(config, f, ensure_ascii=False, indent=indent, sort_keys=False)
         return
     path = os.path.join(PROJECTS_DIR, category, name, CONFIG_FILENAME)
+    indent = _detect_indent(path, 2)
     with open(path, 'w', encoding='utf-8') as f:
-        json.dump(config, f, ensure_ascii=False, indent=2)
+        json.dump(config, f, ensure_ascii=False, indent=indent, sort_keys=False)
 
 
 def load_project_about(category, name):
@@ -375,7 +392,7 @@ def get_all_field_values(field, exclude_project=None):
                 if val:
                     values.setdefault(val, []).append(f"{cat}/{proj}")
     # Проект PlatformIO (данные берутся из корневого myProfile.json)
-    if exclude_project not in (f"__virtual__/{PLATFORMIO_PROJECT}", PLATFORMIO_PROJECT) and os.path.exists(ROOT_CONFIG_FILE):
+    if exclude_project != PLATFORMIO_PROJECT and os.path.exists(ROOT_CONFIG_FILE):
         try:
             with open(ROOT_CONFIG_FILE, 'r', encoding='utf-8') as f:
                 pio_config = json.load(f)

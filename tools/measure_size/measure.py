@@ -553,6 +553,7 @@ def show_platform_menu(modules):
                 pdata.get("baseline_ram"),
                 pdata.get("total_flash"),
                 pdata.get("total_ram"),
+                pdata.get("total_fs"),
             ]
             # Значение 0 или отсутствующее (None) считается «не измеренным»
             if any(v is None or v == 0 for v in values):
@@ -1033,6 +1034,64 @@ def get_size_from_output(env, timeout=1800):
 
 
 # ----------------------------------------------------------------------------
+# ФАЙЛОВАЯ СИСТЕМА (FS)
+# ----------------------------------------------------------------------------
+
+def dir_size(path):
+    """Суммарный размер всех файлов в каталоге (байты)."""
+    if not path or not os.path.isdir(path):
+        return 0
+    total = 0
+    for root, _dirs, files in os.walk(path):
+        for f in files:
+            try:
+                total += os.path.getsize(os.path.join(root, f))
+            except OSError:
+                pass
+    return total
+
+
+def get_fs_total(env, timeout=600):
+    """Ёмкость раздела ФС — размер собранного образа littlefs.bin (spiffs.bin).
+
+    Выполняет `pio run -t buildfs -e ENV`, как при нажатии кнопки Build,
+    и возвращает размер полученного образа (.pio/build/<env>/littlefs.bin).
+    """
+    cmd = [PIO_BIN or "pio", "run", "-t", "buildfs", "-e", env]
+    try:
+        proc = subprocess.run(cmd, cwd=PROJECT_ROOT, capture_output=True, text=True,
+                              encoding="utf-8", errors="replace", timeout=timeout)
+    except subprocess.TimeoutExpired:
+        log_fail(f"Таймаут buildfs для env={env}")
+        return 0
+    if proc.returncode != 0:
+        log_fail(f"buildfs завершился с ошибкой для env={env}")
+        return 0
+    base = os.path.join(PROJECT_ROOT, ".pio", "build", env)
+    for name in ("littlefs.bin", "spiffs.bin"):
+        p = os.path.join(base, name)
+        if os.path.isfile(p):
+            try:
+                return os.path.getsize(p)
+            except OSError:
+                pass
+    return 0
+
+
+def fs_used_dir(project_dir, env):
+    """Занятое в ФС — размер папки data_svelte проекта.
+
+    Для корневого PlatformIO-проекта data_svelte лежит в корне (<project>/data_svelte),
+    для остальных — в <project>/iotm/<платформа>/data_svelte.
+    """
+    if not project_dir:
+        return 0
+    if os.path.abspath(project_dir) == str(PROJECT_ROOT):
+        return dir_size(os.path.join(project_dir, "data_svelte"))
+    return dir_size(os.path.join(project_dir, "iotm", env, "data_svelte"))
+
+
+# ----------------------------------------------------------------------------
 # ЗАГРУЗКА / СОХРАНЕНИЕ platforms.json
 # ----------------------------------------------------------------------------
 
@@ -1089,6 +1148,8 @@ def update_platforms_data(env, sizes):
     platforms[env]["baseline_ram"] = sizes["baseline_ram"]
     platforms[env]["total_flash"] = sizes["total_flash"]
     platforms[env]["total_ram"] = sizes["total_ram"]
+    if "total_fs" in sizes:
+        platforms[env]["total_fs"] = sizes["total_fs"]
 
     save_json(PLATFORMS_JSON, platforms)
 
@@ -1121,6 +1182,7 @@ def choose_baseline_source(envs):
             pdata.get("baseline_ram"),
             pdata.get("total_flash"),
             pdata.get("total_ram"),
+            pdata.get("total_fs"),
         ]
         if not all(isinstance(v, (int, float)) and v > 0 for v in vals):
             all_present = False
@@ -1291,6 +1353,8 @@ def main():
                     help="Измерить только базовую прошивку (без модулей) и обновить platforms.json")
     ap.add_argument("--abort-file", default=None, metavar="PATH",
                     help="Файл-флаг мягкого прерывания: при его появлении замер останавливается")
+    ap.add_argument("--project-dir", default=None, metavar="DIR",
+                    help="Каталог выбранного проекта (для расчёта размера папки data_svelte в iotm/<платформа>)")
     args = ap.parse_args()
 
     global ABORT_FILE
@@ -1497,7 +1561,8 @@ def main():
         # Если запрошены «предыдущие замеры», но платформы ещё нет в platforms.json —
         # автоматически выполняем новую baseline-сборку.
         if baseline_source == "prev":
-            missing_prev = [e for e in envs if not platforms_data.get(e)]
+            missing_prev = [e for e in envs
+                            if not platforms_data.get(e) or not (platforms_data[e].get("total_fs") or 0)]
             if missing_prev:
                 log_step(
                     "Нет базовых замеров для: " + ", ".join(missing_prev)
@@ -1519,6 +1584,7 @@ def main():
                     "baseline_ram": int(pdata.get("baseline_ram") or 0),
                     "total_flash": int(pdata.get("total_flash") or 0),
                     "total_ram": int(pdata.get("total_ram") or 0),
+                    "total_fs": int(pdata.get("total_fs") or 0),
                 }
                 log_ok(
                     f"{env}: baseline взят из platforms.json "
@@ -1545,17 +1611,22 @@ def main():
                     log_fail(f"Не удалось получить размер для baseline env={env}")
                     failures += 1
                     continue
+                # Собираем файловую систему (buildfs) и определяем ёмкость раздела ФС
+                total_fs = get_fs_total(env)
+                fs_used = fs_used_dir(args.project_dir, env)
                 baseline_sizes[env] = {
                     "baseline_flash": sizes["flash_used"],
                     "baseline_ram": sizes["ram_used"],
                     "total_flash": sizes["flash_total"],
                     "total_ram": sizes["ram_total"],
+                    "total_fs": total_fs,
                 }
                 log_ok(
                     f"{env}: baseline Flash={sizes['flash_used']:,} B, "
                     f"baseline RAM={sizes['ram_used']:,} B, "
                     f"total Flash={sizes['flash_total']:,} B, "
-                    f"total RAM={sizes['ram_total']:,} B"
+                    f"total RAM={sizes['ram_total']:,} B, "
+                    f"total FS={total_fs:,} B, FS занято={fs_used:,} B"
                 )
 
         # -------------------------------------------------------------------------

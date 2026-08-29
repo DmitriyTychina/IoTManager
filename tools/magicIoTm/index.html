@@ -56,9 +56,9 @@ body.dark{background:var(--bg);color:var(--text)}
 .build-upload .btn-upload:hover{background:rgba(74,144,217,0.12);border-color:var(--accent);color:var(--text)}
 
 /* Gauge */
-.gauge-bar{padding:8px 16px;background:var(--panel);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:16px}
+.gauge-bar{padding:3px 16px;background:var(--panel);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:16px}
 .gauge-label{font-size:13px;font-weight:700;white-space:nowrap;min-width:50px}
-.gauge-track{flex:1;height:24px;background:#e0e0e0;border-radius:12px;overflow:hidden;position:relative}
+.gauge-track{flex:1;height:13px;background:#e0e0e0;border-radius:7px;overflow:hidden;position:relative}
 body.dark .gauge-track{background:#2a2a4a}
 .gauge-fill{height:100%;border-radius:12px;transition:width 0.3s,background 0.3s;width:0%}
 .gauge-text{font-size:13px;font-weight:600;white-space:nowrap}
@@ -226,11 +226,17 @@ textarea{resize:vertical;min-height:60px;font-family:inherit}
       <span class="gauge-text" id="gaugeTextRam">0%</span>
       <span class="gauge-text" id="gaugeDetailRam" style="font-weight:400;font-size:11px;color:var(--muted)"></span>
     </div>
+    <div class="gauge-bar" id="gaugeBarFs" style="display:none">
+      <span class="gauge-label">FS:</span>
+      <div class="gauge-track"><div class="gauge-fill" id="gaugeFillFs"></div></div>
+      <span class="gauge-text" id="gaugeTextFs">0%</span>
+      <span class="gauge-text" id="gaugeDetailFs" style="font-weight:400;font-size:11px;color:var(--muted)"></span>
+    </div>
 
     <div class="content" id="content">
       <div class="empty-state">
         <h2>Добро пожаловать в magicIoTm</h2>
-        <p>Создайте или выберите проект слева для начала работы</p>
+        <p>Создайте или выберите проект для начала работы</p>
       </div>
     </div>
   </div>
@@ -391,6 +397,7 @@ async function openProject(cat, name){
   document.getElementById('platformSelectWrap').style.display = 'flex';
   document.getElementById('gaugeBar').style.display = 'flex';
   document.getElementById('gaugeBarRam').style.display = 'flex';
+  document.getElementById('gaugeBarFs').style.display = 'flex';
   await loadPlatforms();
   await loadCompatibility();
   renderContent(d.about || '');
@@ -649,9 +656,10 @@ async function toggleModule(section, path, active){
 
 // ==================== Gauge ====================
 function setGauge(kind, pct, used, total){
-  const fill = document.getElementById(kind === 'ram' ? 'gaugeFillRam' : 'gaugeFillFlash');
-  const text = document.getElementById(kind === 'ram' ? 'gaugeTextRam' : 'gaugeTextFlash');
-  const detail = document.getElementById(kind === 'ram' ? 'gaugeDetailRam' : 'gaugeDetailFlash');
+  const suffix = kind === 'ram' ? 'Ram' : (kind === 'fs' ? 'Fs' : 'Flash');
+  const fill = document.getElementById('gaugeFill' + suffix);
+  const text = document.getElementById('gaugeText' + suffix);
+  const detail = document.getElementById('gaugeDetail' + suffix);
   if(!fill) return;
   pct = Math.min(pct, 100);
   fill.style.width = pct + '%';
@@ -669,6 +677,7 @@ async function updateGauge(){
   if(!d) return;
   setGauge('flash', d.flash_pct || 0, d.flash_used, d.flash_total);
   setGauge('ram', d.ram_pct || 0, d.ram_used, d.ram_total);
+  setGauge('fs', d.fs_pct || 0, d.fs_used, d.fs_total);
 }
 
 function formatBytes(b){
@@ -782,6 +791,7 @@ async function startBuild(){
     msg.style.display = 'block';
     msg.textContent = '✅ Прошивка успешно собрана.';
     buildFinish();
+    updateGauge(); // обновляем верхние полосы FLASH/RAM/FS после сборки
   });
   buildStream.addEventListener('error', e => {
     const d = JSON.parse(e.data);
@@ -1072,10 +1082,11 @@ function resetToInitial(){
   document.getElementById('platformSelectWrap').style.display = 'none';
   document.getElementById('gaugeBar').style.display = 'none';
   document.getElementById('gaugeBarRam').style.display = 'none';
+  document.getElementById('gaugeBarFs').style.display = 'none';
   document.getElementById('content').innerHTML = `
     <div class="empty-state">
       <h2>Добро пожаловать в magicIoTm</h2>
-      <p>Создайте или выберите проект слева для начала работы</p>
+      <p>Создайте или выберите проект для начала работы</p>
     </div>`;
   updatePlatformioActive();
 }

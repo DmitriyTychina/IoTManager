@@ -64,6 +64,34 @@ def load_platforms():
         logger.error(f"platforms.json: {e}")
 
 
+def save_platform_fs_total(env, fs_total):
+    """Сохраняет ёмкость ФС (total_fs) платформы в platforms.json.
+
+    Запись происходит, если поля ещё нет ИЛИ текущее значение отличается от
+    переданного размера (например, изменился раздел littlefs).
+    """
+    global platforms_cache
+    if not env or not fs_total:
+        return
+    try:
+        with open(PLATFORMS_FILE, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+    except Exception:
+        data = {}
+    entry = data.setdefault(env, {})
+    current = entry.get("total_fs")
+    if not current or current != fs_total:
+        entry["total_fs"] = fs_total
+        try:
+            with open(PLATFORMS_FILE, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=4)
+        except Exception as e:
+            logger.error(f"Не удалось сохранить total_fs в platforms.json: {e}")
+    # Обновляем кэш для немедленного отображения
+    if env in platforms_cache:
+        platforms_cache[env]["total_fs"] = entry.get("total_fs") or fs_total
+
+
 def load_platformio_envs(ini_path=None):
     """Получение списка платформ из platformio.ini (секции [env:*]).
 
@@ -208,6 +236,58 @@ def calc_size():
     return flash_pct, flash_used, tf, ram_pct, ram_used, tr
 
 
+def _project_dir(proj):
+    """Каталог проекта (там, где лежат myProfile.json/platformio.ini)."""
+    if projects.is_platformio(proj.get("name", "")):
+        return PROJECT_ROOT
+    return os.path.join(projects.PROJECTS_DIR, proj.get("category", ""), proj.get("name", ""))
+
+
+def _dir_size(path):
+    """Суммарный размер файлов в каталоге (байты)."""
+    if not path or not os.path.isdir(path):
+        return 0
+    total = 0
+    for root, _dirs, files in os.walk(path):
+        for f in files:
+            try:
+                total += os.path.getsize(os.path.join(root, f))
+            except OSError:
+                pass
+    return total
+
+
+def get_fs_usage():
+    """Возвращает (fs_pct, fs_used, fs_total) для текущей платформы.
+
+    fs_total — ёмкость раздела ФС (total_fs из platforms.json; если его ещё нет —
+               размер только что собранного образа .pio/build/<платформа>/littlefs.bin).
+    fs_used  — занятое: размер папки data_svelte проекта (в iotm/<платформа> или в корне).
+    """
+    fs_total = platforms_cache.get(current_platform, {}).get("total_fs", 0)
+    if not fs_total:
+        # Запасной источник ёмкости — свежесобранный образ файловой системы
+        img_dir = os.path.join(PROJECT_ROOT, ".pio", "build", current_platform)
+        for name in ("littlefs.bin", "spiffs.bin"):
+            p = os.path.join(img_dir, name)
+            if os.path.isfile(p):
+                try:
+                    fs_total = os.path.getsize(p)
+                except OSError:
+                    fs_total = 0
+                break
+    fs_used = 0
+    if current_project:
+        if projects.is_platformio(current_project.get("name", "")):
+            # Корневой PlatformIO-проект — data_svelte остаётся в корне проекта
+            data_dir = os.path.join(_project_dir(current_project), "data_svelte")
+        else:
+            data_dir = os.path.join(_project_dir(current_project), "iotm", current_platform, "data_svelte")
+        fs_used = _dir_size(data_dir)
+    fs_pct = round(fs_used / fs_total * 100) if fs_total > 0 else 0
+    return fs_pct, fs_used, fs_total
+
+
 def get_compat_map():
     if not current_config:
         return {}
@@ -312,10 +392,22 @@ def api_copy_project():
     dst_cat = data.get('dst_cat', '')
     dst_name = data.get('dst_name', '')
     if projects.is_platformio(src_name):
+        # Сохраняем исходное имя устройства проекта PlatformIO,
+        # чтобы не изменять его в копии.
+        src_dev_name = None
+        if os.path.exists(ROOT_CONFIG_FILE):
+            with open(ROOT_CONFIG_FILE, 'r', encoding='utf-8') as f:
+                src_dev_name = json.load(f).get("iotmSettings", {}).get("name")
         # Копирование проекта PlatformIO:
         # создаём обычный проект из корневого myProfile.json как шаблона
         ok, msg = projects.create_project(dst_cat, dst_name, "")
         if ok:
+            # Восстанавливаем исходное имя устройства (create_project перезаписывает его именем проекта)
+            if src_dev_name:
+                cfg = projects.load_project_config(dst_cat, dst_name)
+                if cfg is not None:
+                    cfg.setdefault("iotmSettings", {})["name"] = src_dev_name
+                    projects.save_project_config(dst_cat, dst_name, cfg)
             # Копируем и platformio.ini из корня в новый проект
             dst_dir = os.path.join(projects.PROJECTS_DIR, dst_cat, dst_name)
             if os.path.exists(PLATFORMIO_INI_FILE):
@@ -368,7 +460,7 @@ def api_open_platformio():
         return jsonify({"success": False, "error": "myProfile.json не найден"}), 404
     with open(ROOT_CONFIG_FILE, 'r', encoding='utf-8') as f:
         config = json.load(f)
-    current_project = {"category": "__virtual__", "name": projects.PLATFORMIO_PROJECT}
+    current_project = {"category": projects.PLATFORMIO_PROJECT, "name": projects.PLATFORMIO_PROJECT}
     current_config = config
     # Платформа по умолчанию из конфига
     de = config.get("projectProp", {}).get("platformio", {}).get("default_envs", "")
@@ -468,8 +560,10 @@ def api_toggle_module():
                     break
         projects.save_project_config(current_project["category"], current_project["name"], current_config)
     fp, fu, ft, rp, ru, rt = calc_size()
+    sp, su, st = get_fs_usage()
     return jsonify({"success": True, "flash_pct": fp, "flash_used": fu, "flash_total": ft,
-                     "ram_pct": rp, "ram_used": ru, "ram_total": rt})
+                     "ram_pct": rp, "ram_used": ru, "ram_total": rt,
+                     "fs_pct": sp, "fs_used": su, "fs_total": st})
 
 
 @app.route('/api/modules/compatibility', methods=['GET'])
@@ -538,26 +632,48 @@ def api_change_platform():
         current_config.setdefault("projectProp", {}).setdefault("platformio", {})["default_envs"] = current_platform
         projects.save_project_config(current_project["category"], current_project["name"], current_config)
     fp, fu, ft, rp, ru, rt = calc_size()
+    sp, su, st = get_fs_usage()
     logger.info(f"Платформа: {current_platform}, отключено: {disabled}")
     return jsonify({"success": True, "platform": current_platform, "flash_pct": fp, "flash_used": fu, "flash_total": ft,
-                     "ram_pct": rp, "ram_used": ru, "ram_total": rt, "disabled_count": disabled})
+                     "ram_pct": rp, "ram_used": ru, "ram_total": rt,
+                     "fs_pct": sp, "fs_used": su, "fs_total": st, "disabled_count": disabled})
 
 
 @app.route('/api/size', methods=['GET'])
 def api_size():
     fp, fu, ft, rp, ru, rt = calc_size()
+    sp, su, st = get_fs_usage()
     return jsonify({"flash_pct": fp, "flash_used": fu, "flash_total": ft,
                      "ram_pct": rp, "ram_used": ru, "ram_total": rt,
+                     "fs_pct": sp, "fs_used": su, "fs_total": st,
                      "platform": current_platform})
 
 
 # ==================== Сборка прошивки ====================
 
 def _get_platformio_path():
-    """Путь к pio.exe по аналогии с run.py"""
+    """Путь к исполняемому файлу PlatformIO (pio/platformio).
+
+    Сначала ищем команду в PATH, затем резервно — в стандартном каталоге установки.
+    """
+    # 1. Поиск в PATH (pio или platformio)
+    for name in ('pio', 'platformio'):
+        found = shutil.which(name)
+        if found:
+            return found
+    # 2. Резерв: стандартный каталог установки PlatformIO
     if os.name == 'nt':
-        return os.path.join(os.environ['USERPROFILE'], '.platformio', 'penv', 'Scripts', 'pio.exe')
-    return os.path.join(os.environ.get('HOME', ''), '.platformio', 'penv', 'bin', 'pio')
+        exe_names = ['platformio.exe', 'pio.exe']
+        base = os.path.join(os.environ['USERPROFILE'], '.platformio', 'penv', 'Scripts')
+    else:
+        exe_names = ['pio', 'platformio']
+        base = os.path.join(os.environ.get('HOME', ''), '.platformio', 'penv', 'bin')
+    for name in exe_names:
+        candidate = os.path.join(base, name)
+        if os.path.isfile(candidate):
+            return candidate
+    # Если ни один не найден — возвращаем дефолт, чтобы вызвать понятную ошибку запуска
+    return os.path.join(base, exe_names[0])
 
 
 def _resolve_build_config(proj, config):
@@ -586,7 +702,10 @@ def _resolve_build_config(proj, config):
         "pio": _get_platformio_path(),
         "prepare": prepare_script,
         "cwd": PROJECT_ROOT,
-        "data_dir": os.path.join(os.path.dirname(profile), "data_svelte"),
+        # Для корневого PlatformIO-проекта data_svelte в корне; для остальных — в iotm/<платформа>
+        "data_dir": (os.path.join(os.path.dirname(profile), "data_svelte")
+                     if projects.is_platformio(proj.get("name", ""))
+                     else os.path.join(os.path.dirname(profile), "iotm", env, "data_svelte")),
         "project_label": f"{proj.get('category','')}/{proj.get('name','')}",
     }
 
@@ -622,6 +741,13 @@ def api_build_stream():
     def gen():
         for chunk in build.event_stream():
             yield chunk
+        # После успешной сборки сохраняем ёмкость ФС (total_fs) в platforms.json, если её ещё нет
+        try:
+            st = build.get_status()
+            if st.get("success") and st.get("sizes") and st["sizes"].get("fs_total"):
+                save_platform_fs_total(current_platform, st["sizes"]["fs_total"])
+        except Exception as e:  # noqa: BLE001
+            logger.error(f"Не удалось сохранить total_fs после сборки: {e}")
     return Response(gen(), mimetype="text/event-stream",
                     headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
@@ -662,6 +788,9 @@ def api_measure_start():
         args += ['--mode', '3']
     else:
         args += ['--mode', '1']
+
+    # Каталог выбранного проекта — для расчёта размера папки data_svelte в iotm/<платформа>
+    args += ['--project-dir', _project_dir(current_project)]
 
     # Файл-флаг мягкого прерывания (для /api/measure/abort)
     abort_file = os.path.join(PROJECT_ROOT, '.measure_abort')

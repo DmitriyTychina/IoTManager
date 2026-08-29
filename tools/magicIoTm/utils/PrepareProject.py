@@ -110,6 +110,25 @@ def copy_missing(src_dir, dst_dir):
 
 
 
+def _detect_indent(path, default=4):
+    """Определяет ширину отступа в существующем JSON-файле."""
+    try:
+        with open(path, "r", encoding='utf-8') as f:
+            for line in f:
+                if line.startswith(' ') and not line.strip().startswith('{'):
+                    return len(line) - len(line.lstrip())
+    except Exception:  # noqa: BLE001
+        pass
+    return default
+
+
+def _write_profile_json(path, data):
+    """Записывает профиль, сохраняя исходный отступ и порядок полей."""
+    indent = _detect_indent(path, 4)
+    with open(path, "w", encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=indent, sort_keys=False)
+
+
 update = False              # признак необходимости обновить список модулей
 profile = 'myProfile.json'  # имя профиля. Будет заменено из консоли, если указано при старте
 selectDevice = ''           # имя платы для которой хотим собрать, если её указали к командной строке -b <board>
@@ -139,7 +158,8 @@ for opt, arg in opts:
 # определяем каталог, в котором находится файл профиля,
 # чтобы читать и изменять platformio.ini в той же папке что и myProfile.json
 profileDir = str(Path(profile).parent)
-# папка данных прошивки — data_svelte, лежащая в папке проекта (там же, где myProfile.json)
+# Папка данных прошивки — data_svelte. Итоговое расположение — <проект>/iotm/<платформа>/data_svelte
+# (deviceName определяется ниже, поэтому здесь храним промежуточный путь).
 DATA_DIR = os.path.join(profileDir, "data_svelte")
 
 # data_svelte проекта заполняется ниже, в зависимости от выбранного устройства.
@@ -158,8 +178,7 @@ if Path(profile).is_file():
             
         # print(profJson)
         
-        with open(profile, "w", encoding='utf-8') as write_file:
-            json.dump(profJson, write_file, ensure_ascii=False, indent=4, sort_keys=False)
+        _write_profile_json(profile, profJson)
 else:
     # если файла нет - создаем по образу настроек из проекта
     profJson = json.loads('{}')
@@ -175,8 +194,7 @@ else:
     # загружаем список модулей для сборки
     updateModulesInProfile(profJson)
     # сохраняем новый профиль
-    with open(profile, "w", encoding='utf-8') as write_file:
-        json.dump(profJson, write_file, ensure_ascii=False, indent=4, sort_keys=False)
+    _write_profile_json(profile, profJson)
 
 deviceName = ''
 if selectDevice == '':
@@ -187,8 +205,15 @@ else:
         if envs['name'] == selectDevice:
             deviceName = selectDevice
     if deviceName == '':
-        deviceName = profJson['projectProp']['platformio']['default_envs'] 
+        deviceName = profJson['projectProp']['platformio']['default_envs']
         print(f"\x1b[1;31;31m Board ", selectDevice, " not found in ",profile,"!!! Use ",deviceName,"  \x1b[0m")
+
+# Папка данных прошивки. Для корневого PlatformIO-проекта (profileDir == корень репозитория)
+# data_svelte остаётся в корне проекта. Для остальных проектов переносится в iotm/<платформа>/data_svelte.
+if os.path.abspath(profileDir) == os.path.abspath(os.getcwd()):
+    DATA_DIR = os.path.join(profileDir, "data_svelte")
+else:
+    DATA_DIR = os.path.join(profileDir, "iotm", deviceName, "data_svelte")
 
 # заполняем папку /data файлами прошивки в зависимости от устройства
 is_ota_lite = deviceName in ('esp8266_1mb_ota', 'esp8285_1mb_ota', 'esp8266_2mb_ota')
@@ -225,7 +250,14 @@ if 'bk72' in deviceName:
     deviceType = 'bk72*'
 # генерируем файлы проекта на основе подготовленного профиля
 # заполняем конфигурационный файл прошивки параметрами из профиля
-with open(os.path.join(DATA_DIR, "settings.json"), "r", encoding='utf-8') as read_file:
+settings_path = os.path.join(DATA_DIR, "settings.json")
+if not os.path.isfile(settings_path):
+    # Если settings.json отсутствует (например, корневой data_svelte был очищен) —
+    # восстанавливаем его из настроек профиля, чтобы сборка не падала.
+    os.makedirs(DATA_DIR, exist_ok=True)
+    with open(settings_path, "w", encoding='utf-8') as wf:
+        json.dump(dict(profJson.get('iotmSettings', {})), wf, ensure_ascii=False, indent=4, sort_keys=False)
+with open(settings_path, "r", encoding='utf-8') as read_file:
     iotmJson = json.load(read_file)
 for key, value in profJson['iotmSettings'].items():
     iotmJson[key] = value
@@ -319,7 +351,11 @@ if not os.path.isfile(ini_path):
     else:
         open(ini_path, "w", encoding="utf-8").close()
 config.clear()
-config.read(ini_path)
+try:
+    config.read(ini_path, encoding='utf-8')
+except Exception:  # noqa: BLE001  старые ini могли быть записаны в кодировке cp1251
+    config.clear()
+    config.read(ini_path, encoding='cp1251')
 # Защитно добавляем недостающие секции
 fromitems_sec = "env:" + deviceName + "_fromitems"
 if not config.has_section("platformio"):
@@ -335,8 +371,11 @@ config[fromitems_sec]["build_flags"] = allDefs
 config["platformio"]["default_envs"] = deviceName
 if "${env:" + deviceName + "_fromitems.build_flags}" not in config["env:" + deviceName]["build_flags"]:
     config["env:" + deviceName]["build_flags"] += "\n${env:" + deviceName + "_fromitems.build_flags}"
-# config["platformio"]["data_dir"] = profJson['projectProp']['platformio']['data_dir']
-with open(ini_path, 'w') as configFile:
+# Папка данных прошивки перенесена в <проект>/iotm/<платформа>/data_svelte.
+# Путь относительный (от корня репозитория — cwd, где запускается pio), чтобы в
+# platformio.ini не было абсолютных путей и кириллических полных адресов диска.
+config["platformio"]["data_dir"] = os.path.relpath(DATA_DIR).replace(os.sep, "/")
+with open(ini_path, 'w', encoding='utf-8') as configFile:
     config.write(configFile)
     
     

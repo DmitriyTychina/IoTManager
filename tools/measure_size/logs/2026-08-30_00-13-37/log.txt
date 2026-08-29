@@ -1,0 +1,451 @@
+
+  ✓ Лог запуска сохранён: E:\GitHub\IoTManager\tools\measure_size\logs\2026-08-30_00-13-37
+
+  Измерение размера Flash/RAM модулей
+────────────────────────────────────────────────────────────
+  ● Профиль: myProfile.json
+  ● Платформы: esp8285_1mb_ota
+  ● Всего сборок: baseline × 1 + 94 модулей 
+
+  Базовая сборка (без модулей)
+────────────────────────────────────────────────────────────
+C:\Users\Admin\.platformio\penv\Lib\site-packages\requests\__init__.py:92: RequestsDependencyWarning: Unable to find acceptable character detection dependency (chardet or charset_normalizer).
+  warnings.warn(
+Processing esp8285_1mb_ota (framework: arduino; board: esp8285; platform: espressif8266 @4.0.1)
+--------------------------------------------------------------------------------
+C:\Users\Admin\.platformio\penv\Lib\site-packages\requests\__init__.py:92: RequestsDependencyWarning: Unable to find acceptable character detection dependency (chardet or charset_normalizer).
+  warnings.warn(
+Verbose mode can be enabled via `-v, --verbose` option
+Current Build targets []
+Clear BUILD_TIME, delete main.o !
+Error: ./.pio/build/esp8285_1mb_ota/src/Main.cpp.o - Системе не удается найти указанный путь.
+CONFIGURATION: https://docs.platformio.org/page/boards/espressif8266/esp8285.html
+PLATFORM: Espressif 8266 (4.0.1) > Generic ESP8285 Module
+HARDWARE: ESP8266 80MHz, 80KB RAM, 1MB Flash
+PACKAGES: 
+ - framework-arduinoespressif8266 @ 3.30002.0 (3.0.2) 
+ - tool-esptool @ 1.413.0 (4.13) 
+ - tool-esptoolpy @ 1.30000.201119 (3.0.0) 
+ - toolchain-xtensa @ 2.100300.220621 (10.3.0)
+LDF: Library Dependency Finder -> https://bit.ly/configure-pio-ldf
+LDF Modes: Finder ~ chain, Compatibility ~ soft
+Found 47 compatible libraries
+Scanning dependencies...
+Dependency Graph
+|-- ArduinoJson @ 6.18.0
+|-- PubSubClient @ 2.8.0
+|-- ESPAsyncUDP @ 0.0.0-alpha+sha.697c75a025
+|-- Wire @ 1.0
+|-- LittleFS @ 0.1.0
+|-- ESP8266httpUpdate @ 1.3
+|-- ESP8266HTTPUpdateServer @ 1.0
+|-- ESP8266WebServer @ 1.0
+|-- ESP8266WiFi @ 1.0
+|-- Hash @ 1.0
+|-- TickerScheduler
+|-- WebSockets @ 2.3.7
+|-- EspSoftwareSerial @ 8.1.0
+Building in release mode
+Compiling .pio\build\esp8285_1mb_ota\src\AsyncWebServer.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\src\Buffers.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\src\DebugTrace.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\src\DeviceList.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\src\ESPConfiguration.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\src\EspFileSystem.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\src\EventsAndOrders.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\src\Global.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\src\Main.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\src\MqttClient.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\src\NTP.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\src\PeriodicTasks.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\src\StandWebServer.cpp.o
+src\DeviceList.cpp: In function 'void jsonMergeArrays(String&, String&)':
+src\DeviceList.cpp:117:26: warning: variable 'incJsonError' set but not used [-Wunused-but-set-variable]
+  117 |     DeserializationError incJsonError = deserializeJson(incJsonDoc, incJson);
+      |                          ^~~~~~~~~~~~
+src\DeviceList.cpp:125:26: warning: variable 'existJsonError' set but not used [-Wunused-but-set-variable]
+  125 |     DeserializationError existJsonError = deserializeJson(existJsonDoc, existJson);
+      |                          ^~~~~~~~~~~~~~
+src\MqttClient.cpp: In function 'boolean mqttConnect()':
+src\MqttClient.cpp:61:14: warning: variable 'connected' set but not used [-Wunused-but-set-variable]
+   61 |         bool connected = false;
+      |              ^~~~~~~~~
+src\ESPConfiguration.cpp: In function 'void configure(String)':
+src\ESPConfiguration.cpp:37:32: warning: suggest parentheses around assignment used as truth value [-Wparentheses]
+   37 |                     if (driver = myIoTItem->getGpioDriver()) IoTgpio.regDriver((IoTGpio*)driver);
+      |                         ~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src\ESPConfiguration.cpp:45:32: warning: suggest parentheses around assignment used as truth value [-Wparentheses]
+   45 |                     if (driver = myIoTItem->getBenchmarkTask()) benchTaskItem = ((IoTBench*)driver);
+      |                         ~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src\ESPConfiguration.cpp:46:32: warning: suggest parentheses around assignment used as truth value [-Wparentheses]
+   46 |                     if (driver = myIoTItem->getBenchmarkLoad()) benchLoadItem = ((IoTBench*)driver);
+      |                         ~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src\ESPConfiguration.cpp:48:32: warning: suggest parentheses around assignment used as truth value [-Wparentheses]
+   48 |                     if (driver = myIoTItem->getHOMEdDiscovery()) HOMEdDiscovery = ((IoTDiscovery*)driver);
+      |                         ~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src\ESPConfiguration.cpp:49:32: warning: suggest parentheses around assignment used as truth value [-Wparentheses]
+   49 |                     if (driver = myIoTItem->getHADiscovery()) HADiscovery = ((IoTDiscovery*)driver);
+      |                         ~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src\ESPConfiguration.cpp:51:32: warning: suggest parentheses around assignment used as truth value [-Wparentheses]
+   51 |                     if (driver = myIoTItem->getTlgrmDriver()) tlgrmItem = (IoTItem*)driver;
+      |                         ~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from C:\Users\Admin\.platformio\packages\framework-arduinoespressif8266@3.30002.0\tools\sdk\lwip2\include/glue.h:60,
+                 from C:\Users\Admin\.platformio\packages\framework-arduinoespressif8266@3.30002.0\tools\sdk\lwip2\include/arch/cc.h:61,
+                 from C:\Users\Admin\.platformio\packages\framework-arduinoespressif8266@3.30002.0\tools\sdk\lwip2\include/lwip/arch.h:48,
+                 from C:\Users\Admin\.platformio\packages\framework-arduinoespressif8266@3.30002.0\tools\sdk\lwip2\include/lwip/debug.h:40,
+                 from C:\Users\Admin\.platformio\packages\framework-arduinoespressif8266@3.30002.0\tools\sdk\lwip2\include/lwipopts.h:3632,
+                 from C:\Users\Admin\.platformio\packages\framework-arduinoespressif8266@3.30002.0\tools\sdk\lwip2\include/lwip/opt.h:51,
+                 from C:\Users\Admin\.platformio\packages\framework-arduinoespressif8266@3.30002.0\tools\sdk\lwip2\include/lwip/init.h:40,
+                 from C:\Users\Admin\.platformio\packages\framework-arduinoespressif8266@3.30002.0\cores\esp8266/IPAddress.h:27,
+                 from .pio\libdeps\esp8285_1mb_ota\PubSubClient\src/PubSubClient.h:11,
+                 from include/Global.h:9,
+                 from include/EspFileSystem.h:2,
+                 from src\EspFileSystem.cpp:1:
+src\EspFileSystem.cpp: In function 'const String getMacAddress()':
+C:\Users\Admin\.platformio\packages\framework-arduinoespressif8266@3.30002.0\tools\sdk\include/user_interface.h:48:16: warning: '%02x' directive writing 2 bytes into a region of size 1 [-Wformat-overflow=]
+   48 | #define MACSTR "%02x:%02x:%02x:%02x:%02x:%02x"
+      |                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src\EspFileSystem.cpp:155:18: note: in expansion of macro 'MACSTR'
+  155 |     sprintf(buf, MACSTR, MAC2STR(mac));
+      |                  ^~~~~~
+C:\Users\Admin\.platformio\packages\framework-arduinoespressif8266@3.30002.0\tools\sdk\include/user_interface.h:48:37: note: format string is defined here
+   48 | #define MACSTR "%02x:%02x:%02x:%02x:%02x:%02x"
+      |                                     ^~~~
+C:\Users\Admin\.platformio\packages\framework-arduinoespressif8266@3.30002.0\tools\sdk\include/user_interface.h:48:16: note: directive argument in the range [0, 255]
+   48 | #define MACSTR "%02x:%02x:%02x:%02x:%02x:%02x"
+      |                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src\EspFileSystem.cpp:155:18: note: in expansion of macro 'MACSTR'
+  155 |     sprintf(buf, MACSTR, MAC2STR(mac));
+      |                  ^~~~~~
+C:\Users\Admin\.platformio\packages\framework-arduinoespressif8266@3.30002.0\tools\sdk\include/user_interface.h:48:16: note: directive argument in the range [0, 255]
+   48 | #define MACSTR "%02x:%02x:%02x:%02x:%02x:%02x"
+      |                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src\EspFileSystem.cpp:155:18: note: in expansion of macro 'MACSTR'
+  155 |     sprintf(buf, MACSTR, MAC2STR(mac));
+      |                  ^~~~~~
+src\EspFileSystem.cpp:155:12: note: 'sprintf' output 18 bytes into a destination of size 13
+  155 |     sprintf(buf, MACSTR, MAC2STR(mac));
+      |     ~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+Compiling .pio\build\esp8285_1mb_ota\src\UpgradeFirm.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\src\WsServer.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\src\classes\IoTBench.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\src\classes\IoTDB.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\src\classes\IoTDiscovery.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\src\classes\IoTGpio.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\src\classes\IoTItem.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\src\classes\IoTScenario.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\src\classes\IoTUart.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\src\classes\NotAsync.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\src\modules\API.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\src\utils\FileUtils.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\src\utils\I2CUtils.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\src\utils\JsonUtils.cpp.o
+src\classes\IoTScenario.cpp: In member function 'bool BinaryExprAST::compStr(String, String)':
+src\classes\IoTScenario.cpp:249:27: warning: comparison of integer expressions of different signedness: 'int' and 'unsigned int' [-Wsign-compare]
+  249 |         for (int i = 0; i < str1.length(); i++) {
+      |                         ~~^~~~~~~~~~~~~~~
+src\classes\IoTScenario.cpp: In function 'IoTValue sysExecute(SysOp, std::vector<IoTValue>&)':
+src\classes\IoTScenario.cpp:370:16: warning: enumeration value 'sysop_notfound' not handled in switch [-Wswitch]
+  370 |         switch (command) {
+      |                ^
+src\classes\IoTScenario.cpp:370:16: warning: enumeration value 'sysop_reboot' not handled in switch [-Wswitch]
+src\classes\IoTScenario.cpp:370:16: warning: enumeration value 'sysop_digitalRead' not handled in switch [-Wswitch]
+src\classes\IoTScenario.cpp:370:16: warning: enumeration value 'sysop_analogRead' not handled in switch [-Wswitch]
+src\classes\IoTScenario.cpp:370:16: warning: enumeration value 'sysop_digitalWrite' not handled in switch [-Wswitch]
+src\classes\IoTScenario.cpp:370:16: warning: enumeration value 'sysop_digitalInvert' not handled in switch [-Wswitch]
+src\classes\IoTScenario.cpp:370:16: warning: enumeration value 'sysop_deepSleep' not handled in switch [-Wswitch]
+src\classes\IoTScenario.cpp:370:16: warning: enumeration value 'sysop_getRSSI' not handled in switch [-Wswitch]
+src\classes\IoTScenario.cpp:370:16: warning: enumeration value 'sysop_getIP' not handled in switch [-Wswitch]
+src\classes\IoTScenario.cpp:370:16: warning: enumeration value 'sysop_mqttPub' not handled in switch [-Wswitch]
+src\classes\IoTScenario.cpp:370:16: warning: enumeration value 'sysop_getUptime' not handled in switch [-Wswitch]
+src\classes\IoTScenario.cpp:370:16: warning: enumeration value 'sysop_mqttIsConnect' not handled in switch [-Wswitch]
+src\classes\IoTScenario.cpp:370:16: warning: enumeration value 'sysop_wifiIsConnect' not handled in switch [-Wswitch]
+src\classes\IoTScenario.cpp:370:16: warning: enumeration value 'sysop_setInterval' not handled in switch [-Wswitch]
+src\classes\IoTScenario.cpp:370:16: warning: enumeration value 'sysop_addPortMap' not handled in switch [-Wswitch]
+src\classes\IoTScenario.cpp:404:12: warning: enumeration value 'sysop_notfound' not handled in switch [-Wswitch]
+  404 |     switch (command) {
+      |            ^
+src\classes\IoTScenario.cpp:404:12: warning: enumeration value 'sysop_getHours' not handled in switch [-Wswitch]
+src\classes\IoTScenario.cpp:404:12: warning: enumeration value 'sysop_getMinutes' not handled in switch [-Wswitch]
+src\classes\IoTScenario.cpp:404:12: warning: enumeration value 'sysop_getSeconds' not handled in switch [-Wswitch]
+src\classes\IoTScenario.cpp:404:12: warning: enumeration value 'sysop_getMonth' not handled in switch [-Wswitch]
+src\classes\IoTScenario.cpp:404:12: warning: enumeration value 'sysop_getDay' not handled in switch [-Wswitch]
+src\classes\IoTScenario.cpp:404:12: warning: enumeration value 'sysop_gethhmm' not handled in switch [-Wswitch]
+src\classes\IoTScenario.cpp:404:12: warning: enumeration value 'sysop_gethhmmss' not handled in switch [-Wswitch]
+src\classes\IoTScenario.cpp:404:12: warning: enumeration value 'sysop_getTime' not handled in switch [-Wswitch]
+src\classes\IoTScenario.cpp: In member function 'virtual IoTValue* IfExprAST::exec()':
+src\classes\IoTScenario.cpp:608:33: warning: suggest parentheses around '&&' within '||' [-Wparentheses]
+  608 |         if (cond_ret->isDecimal && cond_ret->valD || !(cond_ret->isDecimal) && cond_ret->valS != "") {
+      |             ~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+src\classes\IoTScenario.cpp:597:19: warning: variable 'res_ret' set but not used [-Wunused-but-set-variable]
+  597 |         IoTValue *res_ret = nullptr;
+      |                   ^~~~~~~
+src\classes\IoTScenario.cpp: In member function 'int IoTScenario::getLastChar()':
+src\classes\IoTScenario.cpp:678:23: warning: comparison of integer expressions of different signedness: 'int' and 'unsigned int' [-Wsign-compare]
+  678 |         if (charCount < strFromFile.length()) {
+      |             ~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~
+src\WsServer.cpp: In function 'void sendFileToWsByFrames(const String&, const String&, const String&, int, size_t)':
+src\WsServer.cpp:461:12: warning: unused variable 'totalSize' [-Wunused-variable]
+  461 |     size_t totalSize = file.size();
+      |            ^~~~~~~~~
+Compiling .pio\build\esp8285_1mb_ota\src\utils\SerialPrint.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\src\utils\Statistic.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\src\utils\StringUtils.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\src\utils\TimeUtils.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\src\utils\WiFiUtils.cpp.o
+src\modules\API.cpp: In function 'void* getAPI(String, String)':
+src\modules\API.cpp:5:7: warning: unused variable 'tmpAPI' [-Wunused-variable]
+    5 | void* tmpAPI; void* foundAPI = nullptr;
+      |       ^~~~~~
+Generating LD script .pio\build\esp8285_1mb_ota\ld\local.eagle.app.v6.common.ld
+Compiling .pio\build\esp8285_1mb_ota\libda1\PubSubClient\PubSubClient.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\libf76\ESPAsyncUDP\AsyncUDP.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\lib9dc\Wire\Wire.cpp.o
+src\classes\IoTScenario.cpp: In member function 'virtual IoTValue* CallExprAST::exec()':
+src\classes\IoTScenario.cpp:282:67: warning: 'tmp' may be used uninitialized in this function [-Wmaybe-uninitialized]
+  282 |             if (tmp) SerialPrint("i", "SysExt", "Exit = '" + tmp->valS + "'");
+      |                                                              ~~~~~^~~~
+Compiling .pio\build\esp8285_1mb_ota\lib7a4\LittleFS\LittleFS.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\lib7a4\LittleFS\lfs.c.o
+.pio\libdeps\esp8285_1mb_ota\PubSubClient\src\PubSubClient.cpp: In member function 'boolean PubSubClient::publish_P(const char*, const uint8_t*, unsigned int, boolean)':
+.pio\libdeps\esp8285_1mb_ota\PubSubClient\src\PubSubClient.cpp:523:16: warning: comparison of integer expressions of different signedness: 'unsigned int' and 'int' [-Wsign-compare]
+  523 |     return (rc == expectedLength);
+      |             ~~~^~~~~~~~~~~~~~~~~
+src\utils\JsonUtils.cpp: In function 'bool jsonReadArray(const String&, String, std::vector<String>&, bool)':
+src\utils\JsonUtils.cpp:115:30: warning: comparison of integer expressions of different signedness: 'int8_t' {aka 'signed char'} and 'size_t' {aka 'unsigned int'} [-Wsign-compare]
+  115 |         for (int8_t i = 0; i < doc[key].size(); i++) jArray.push_back(doc[key][i].as<String>());
+      |                            ~~^~~~~~~~~~~~~~~~~
+Archiving .pio\build\esp8285_1mb_ota\lib9dc\libWire.a
+Archiving .pio\build\esp8285_1mb_ota\libda1\libPubSubClient.a
+Compiling .pio\build\esp8285_1mb_ota\lib7a4\LittleFS\lfs_util.c.o
+src\utils\StringUtils.cpp: In function 'std::vector<String> splitStr(const String&, const String&)':
+src\utils\StringUtils.cpp:222:51: warning: comparison of integer expressions of different signedness: 'size_t' {aka 'unsigned int'} and 'int' [-Wsign-compare]
+  222 |     while ((newPos = str.indexOf(delimiter, pos)) != -1) {
+      |            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~
+Compiling .pio\build\esp8285_1mb_ota\lib05b\ESP8266WiFi\BearSSLHelpers.cpp.o
+src\utils\WiFiUtils.cpp: In function 'void routerConnect()':
+src\utils\WiFiUtils.cpp:426:26: warning: comparison of integer expressions of different signedness: 'int8_t' {aka 'signed char'} and 'std::vector<String>::size_type' {aka 'unsigned int'} [-Wsign-compare]
+  426 |     for (int8_t i = 0; i < _ssidList.size(); i++)
+      |                        ~~^~~~~~~~~~~~~~~~~~
+src\utils\WiFiUtils.cpp:430:26: warning: comparison of integer expressions of different signedness: 'int8_t' {aka 'signed char'} and 'std::vector<String>::size_type' {aka 'unsigned int'} [-Wsign-compare]
+  430 |     for (int8_t i = 0; i < _passwordList.size(); i++)
+      |                        ~~^~~~~~~~~~~~~~~~~~~~~~
+src\utils\WiFiUtils.cpp: In lambda function:
+src\utils\WiFiUtils.cpp:546:32: warning: comparison of integer expressions of different signedness: 'int8_t' {aka 'signed char'} and 'std::vector<String>::size_type' {aka 'unsigned int'} [-Wsign-compare]
+  546 |           for (int8_t i = 0; i < jArray.size(); i++)
+      |                              ~~^~~~~~~~~~~~~~~
+src\utils\WiFiUtils.cpp: In function 'boolean RouterFind(std::vector<String>)':
+src\utils\WiFiUtils.cpp:592:28: warning: comparison of integer expressions of different signedness: 'int8_t' {aka 'signed char'} and 'std::vector<String>::size_type' {aka 'unsigned int'} [-Wsign-compare]
+  592 |       for (int8_t k = 0; k < jArray.size(); k++)
+      |                          ~~^~~~~~~~~~~~~~~
+Archiving .pio\build\esp8285_1mb_ota\libf76\libESPAsyncUDP.a
+src\utils\TimeUtils.cpp: In function 'const String prettyMinutsTimeout(long unsigned int)':
+src\utils\TimeUtils.cpp:55:26: warning: format '%d' expects argument of type 'int', but argument 3 has type 'long unsigned int' [-Wformat=]
+   55 |         sprintf_P(buf, "%d day %d hr %d min", days, hours, minutes, seconds);
+      |                         ~^                    ~~~~
+      |                          |                    |
+      |                          int                  long unsigned int
+      |                         %ld
+src\utils\TimeUtils.cpp:55:33: warning: format '%d' expects argument of type 'int', but argument 4 has type 'long unsigned int' [-Wformat=]
+   55 |         sprintf_P(buf, "%d day %d hr %d min", days, hours, minutes, seconds);
+      |                                ~^                   ~~~~~
+      |                                 |                   |
+      |                                 int                 long unsigned int
+      |                                %ld
+src\utils\TimeUtils.cpp:55:39: warning: format '%d' expects argument of type 'int', but argument 5 has type 'long unsigned int' [-Wformat=]
+   55 |         sprintf_P(buf, "%d day %d hr %d min", days, hours, minutes, seconds);
+      |                                      ~^                    ~~~~~~~
+      |                                       |                    |
+      |                                       int                  long unsigned int
+      |                                      %ld
+src\utils\TimeUtils.cpp:55:24: warning: too many arguments for format [-Wformat-extra-args]
+   55 |         sprintf_P(buf, "%d day %d hr %d min", days, hours, minutes, seconds);
+      |                        ^~~~~~~~~~~~~~~~~~~~~
+src\utils\TimeUtils.cpp:57:26: warning: format '%d' expects argument of type 'int', but argument 3 has type 'long unsigned int' [-Wformat=]
+   57 |         sprintf_P(buf, "%d hr %d min", hours, minutes);
+      |                         ~^             ~~~~~
+      |                          |             |
+      |                          int           long unsigned int
+      |                         %ld
+src\utils\TimeUtils.cpp:57:32: warning: format '%d' expects argument of type 'int', but argument 4 has type 'long unsigned int' [-Wformat=]
+   57 |         sprintf_P(buf, "%d hr %d min", hours, minutes);
+      |                               ~^              ~~~~~~~
+      |                                |              |
+      |                                int            long unsigned int
+      |                               %ld
+src\utils\TimeUtils.cpp:59:26: warning: format '%d' expects argument of type 'int', but argument 3 has type 'long unsigned int' [-Wformat=]
+   59 |         sprintf_P(buf, "%d min", minutes);
+      |                         ~^       ~~~~~~~
+      |                          |       |
+      |                          int     long unsigned int
+      |                         %ld
+Compiling .pio\build\esp8285_1mb_ota\lib05b\ESP8266WiFi\CertStoreBearSSL.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\lib05b\ESP8266WiFi\ESP8266WiFi.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\lib05b\ESP8266WiFi\ESP8266WiFiAP.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\lib05b\ESP8266WiFi\ESP8266WiFiGeneric.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\lib05b\ESP8266WiFi\ESP8266WiFiGratuitous.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\lib05b\ESP8266WiFi\ESP8266WiFiMulti.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\lib05b\ESP8266WiFi\ESP8266WiFiSTA-WPS.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\lib05b\ESP8266WiFi\ESP8266WiFiSTA.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\lib05b\ESP8266WiFi\ESP8266WiFiScan.cpp.o
+Archiving .pio\build\esp8285_1mb_ota\lib7a4\libLittleFS.a
+Compiling .pio\build\esp8285_1mb_ota\lib05b\ESP8266WiFi\WiFiClient.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\lib05b\ESP8266WiFi\WiFiClientSecureBearSSL.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\lib05b\ESP8266WiFi\WiFiServer.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\lib05b\ESP8266WiFi\WiFiServerSecureBearSSL.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\lib05b\ESP8266WiFi\WiFiUdp.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\lib05b\ESP8266WiFi\enable_wifi_at_boot_time.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\lib998\ESP8266HTTPClient\ESP8266HTTPClient.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\lib560\ESP8266httpUpdate\ESP8266httpUpdate.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\lib13d\ESP8266WebServer\detail\mimetable.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\libd42\Hash\Hash.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\lib1c9\Ticker\Ticker.cpp.o
+Archiving .pio\build\esp8285_1mb_ota\lib13d\libESP8266WebServer.a
+Compiling .pio\build\esp8285_1mb_ota\libc10\TickerScheduler\TickerScheduler.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\lib98a\SPI\SPI.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\libb0d\Ethernet\Dhcp.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\libb0d\Ethernet\Dns.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\libb0d\Ethernet\Ethernet.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\libb0d\Ethernet\EthernetClient.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\libb0d\Ethernet\EthernetServer.cpp.o
+Archiving .pio\build\esp8285_1mb_ota\lib1c9\libTicker.a
+lib\TickerScheduler\TickerScheduler.cpp: In member function 'bool TickerScheduler::enable(uint8_t)':
+lib\TickerScheduler\TickerScheduler.cpp:81:5: warning: this 'if' clause does not guard... [-Wmisleading-indentation]
+   81 |     if (i >= this->size || !this->items[i].is_used)
+      |     ^~
+lib\TickerScheduler\TickerScheduler.cpp:84:2: note: ...this statement, but the latter is misleadingly indented as if it were guarded by the 'if'
+   84 |  bool * flag = &this->items[i].flag;
+      |  ^~~~
+Archiving .pio\build\esp8285_1mb_ota\libd42\libHash.a
+Compiling .pio\build\esp8285_1mb_ota\libb0d\Ethernet\EthernetUdp.cpp.o
+Archiving .pio\build\esp8285_1mb_ota\lib560\libESP8266httpUpdate.a
+Compiling .pio\build\esp8285_1mb_ota\libb0d\Ethernet\socket.cpp.o
+Archiving .pio\build\esp8285_1mb_ota\lib05b\libESP8266WiFi.a
+Compiling .pio\build\esp8285_1mb_ota\libb0d\Ethernet\utility\w5100.cpp.o
+Archiving .pio\build\esp8285_1mb_ota\libc10\libTickerScheduler.a
+Compiling .pio\build\esp8285_1mb_ota\lib495\WebSockets\SocketIOclient.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\lib495\WebSockets\WebSockets.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\lib495\WebSockets\WebSocketsClient.cpp.o
+Archiving .pio\build\esp8285_1mb_ota\lib998\libESP8266HTTPClient.a
+Compiling .pio\build\esp8285_1mb_ota\lib495\WebSockets\WebSocketsServer.cpp.o
+Archiving .pio\build\esp8285_1mb_ota\lib98a\libSPI.a
+Compiling .pio\build\esp8285_1mb_ota\lib495\WebSockets\libb64\cdecode.c.o
+Compiling .pio\build\esp8285_1mb_ota\lib495\WebSockets\libb64\cencode.c.o
+Compiling .pio\build\esp8285_1mb_ota\lib495\WebSockets\libsha1\libsha1.c.o
+Compiling .pio\build\esp8285_1mb_ota\libda2\EspSoftwareSerial\SoftwareSerial.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduinoVariant\initD9D10Pins.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\Crypto.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\Esp-frag.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\Esp-version.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\Esp.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\FS.cpp.o
+Archiving .pio\build\esp8285_1mb_ota\libb0d\libEthernet.a
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\FSnoop.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\FunctionalInterrupt.cpp.o
+Archiving .pio\build\esp8285_1mb_ota\libFrameworkArduinoVariant.a
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\HardwareSerial.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\IPAddress.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\LwipDhcpServer-NonOS.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\LwipDhcpServer.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\LwipIntf.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\LwipIntfCB.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\MD5Builder.cpp.o
+Archiving .pio\build\esp8285_1mb_ota\lib495\libWebSockets.a
+Archiving .pio\build\esp8285_1mb_ota\libda2\libEspSoftwareSerial.a
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\Print.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\Schedule.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\StackThunk.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\Stream.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\StreamSend.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\Tone.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\TypeConversion.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\Updater.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\WMath.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\WString.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\abi.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\aes_unwrap.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\base64.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\cbuf.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\cont.S.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\cont_util.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\core_esp8266_app_entry_noextra4k.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\core_esp8266_eboot_command.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\core_esp8266_features.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\core_esp8266_flash_quirks.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\core_esp8266_flash_utils.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\core_esp8266_i2s.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\core_esp8266_main.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\core_esp8266_non32xfer.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\core_esp8266_noniso.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\core_esp8266_phy.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\core_esp8266_postmortem.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\core_esp8266_si2c.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\core_esp8266_sigma_delta.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\core_esp8266_spi_utils.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\core_esp8266_timer.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\core_esp8266_vm.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\core_esp8266_waveform_phase.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\core_esp8266_waveform_pwm.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\core_esp8266_wiring.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\core_esp8266_wiring_analog.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\core_esp8266_wiring_digital.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\core_esp8266_wiring_pulse.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\core_esp8266_wiring_pwm.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\core_esp8266_wiring_shift.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\crc32.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\debug.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\exc-c-wrapper-handler.S.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\exc-sethandler.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\flash_hal.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\gdb_hooks.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\heap.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\hwdt_app_entry.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\libb64\cdecode.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\libb64\cencode.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\libc_replacements.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\mmu_iram.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\reboot_uart_dwnld.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\spiffs\spiffs_cache.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\spiffs\spiffs_check.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\spiffs\spiffs_gc.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\spiffs\spiffs_hydrogen.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\spiffs\spiffs_nucleus.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\spiffs_api.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\sqrt32.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\stdlib_noniso.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\time.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\uart.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\umm_malloc\umm_info.c.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\umm_malloc\umm_integrity.c.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\umm_malloc\umm_local.c.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\umm_malloc\umm_malloc.cpp.o
+Compiling .pio\build\esp8285_1mb_ota\FrameworkArduino\umm_malloc\umm_poison.c.o
+Archiving .pio\build\esp8285_1mb_ota\libFrameworkArduino.a
+Linking .pio\build\esp8285_1mb_ota\firmware.elf
+Retrieving maximum program size .pio\build\esp8285_1mb_ota\firmware.elf
+Checking size .pio\build\esp8285_1mb_ota\firmware.elf
+Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
+RAM:   [=====     ]  45.5% (used 37248 bytes from 81920 bytes)
+Flash: [=====     ]  46.8% (used 448783 bytes from 958448 bytes)
+Building .pio\build\esp8285_1mb_ota\firmware.bin
+Creating BIN file ".pio\build\esp8285_1mb_ota\firmware.bin" using "C:\Users\Admin\.platformio\packages\framework-arduinoespressif8266@3.30002.0\bootloaders\eboot\eboot.elf" and ".pio\build\esp8285_1mb_ota\firmware.elf"
+========================= [SUCCESS] Took 22.41 seconds =========================
+
+Environment      Status    Duration
+---------------  --------  ------------
+esp8285_1mb_ota  SUCCESS   00:00:22.405
+========================= 1 succeeded in 00:00:22.405 =========================
+  ✓ esp8285_1mb_ota: baseline Flash=448,783 B, baseline RAM=37,248 B, total Flash=958,448 B, total RAM=81,920 B, total FS=65,536 B, FS занято=15,677 B
+  ✓ platforms.json обновлён: E:\GitHub\IoTManager\tools\measure_size\platforms.json
+
+  Замер базовой прошивки завершён (без модулей)
+────────────────────────────────────────────────────────────
+
+  Итог
+────────────────────────────────────────────────────────────
+  ✓ Файлов modinfo.json обновлено: 0
+  ✓ platformio.ini восстановлен.
+
+  Восстановление состояния проекта
+────────────────────────────────────────────────────────────
+  ✓ PrepareProject применён: myProfile.json (env=esp8285_1mb_ota)

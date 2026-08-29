@@ -1,7 +1,7 @@
 {
     "projectProp": {
         "platformio": {
-            "default_envs": "esp8266_4mb"
+            "default_envs": "esp8285_1mb"
         }
     },
     "modules": {
@@ -15,11 +15,11 @@
                 "path": "src/modules/exec/BrokerMQTT"
             },
             {
-                "active": true,
+                "active": false,
                 "path": "src/modules/exec/ButtonIn"
             },
             {
-                "active": true,
+                "active": false,
                 "path": "src/modules/exec/ButtonOut"
             },
             {

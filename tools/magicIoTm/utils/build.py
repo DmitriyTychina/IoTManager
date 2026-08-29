@@ -238,10 +238,16 @@ def _worker(cfg):
 def _run_streaming(cmd, cwd):
     """Запуск команды с построчным выводом. Возвращает (returncode, полный текст)."""
     full = []
+    # Принудительно UTF-8 у дочерних процессов (PrepareProject/pio), чтобы кириллица
+    # не искажалась при декодировании pipe (по аналогии с measure_run).
+    env = os.environ.copy()
+    env["PYTHONIOENCODING"] = "utf-8"
+    env["PYTHONUTF8"] = "1"
     try:
         p = subprocess.Popen(
             cmd,
             cwd=cwd,
+            env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
