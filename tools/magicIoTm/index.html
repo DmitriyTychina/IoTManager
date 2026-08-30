@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>magicIoTm — Конфигуратор прошивок IoTmanager</title>
+<title>MagicIoTm — Конфигуратор прошивок IoTmanager</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -37,6 +37,18 @@ body.dark{background:var(--bg);color:var(--text)}
 .tree-project:hover .proj-actions,.tree-project.active .proj-actions{visibility:visible;pointer-events:auto}
 .tree-project .proj-actions button{cursor:pointer}
 
+/* Секции сайдбара: «Проекты» и «Устройства» */
+.tree-section-title{text-align:center;padding:6px 8px 2px;font-size:12px;font-weight:600;letter-spacing:.4px;color:var(--muted);user-select:none}
+.tree-section-title + .project-tree{margin-top:0}
+.tree-devices-title{border-top:1px solid var(--border);margin-top:4px;padding-top:8px}
+.tree-devices{padding:0 8px 8px}
+.device-item{display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:4px;font-size:13px;cursor:default}
+.device-item:hover{background:rgba(74,144,217,0.1)}
+.device-status{width:8px;height:8px;border-radius:50%;flex:0 0 auto;background:var(--muted)}
+.device-status.online{background:#4caf50;box-shadow:0 0 4px #4caf50}
+.device-status.offline{background:var(--muted)}
+.device-item .device-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
 /* Проект PlatformIO (в стиле дерева, с разделителями) */
 .platformio-sep{margin:2px 8px 0;border-top:2px solid var(--accent);border-bottom:2px solid var(--accent);padding:4px 2px}
 .platformio-sep .tree-project{padding:4px 8px;font-size:13px}
@@ -56,12 +68,13 @@ body.dark{background:var(--bg);color:var(--text)}
 .build-upload .btn-upload:hover{background:rgba(74,144,217,0.12);border-color:var(--accent);color:var(--text)}
 
 /* Gauge */
-.gauge-bar{padding:3px 16px;background:var(--panel);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:16px}
-.gauge-label{font-size:13px;font-weight:700;white-space:nowrap;min-width:50px}
+.gauge-bar{padding:3px 6px 3px 16px;background:var(--panel);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:8px}
+.gauge-label{font-size:13px;font-weight:700;white-space:nowrap;width:60px;min-width:60px}
 .gauge-track{flex:1;height:13px;background:#e0e0e0;border-radius:7px;overflow:hidden;position:relative}
 body.dark .gauge-track{background:#2a2a4a}
 .gauge-fill{height:100%;border-radius:12px;transition:width 0.3s,background 0.3s;width:0%}
-.gauge-text{font-size:13px;font-weight:600;white-space:nowrap}
+.gauge-text{font-size:13px;font-weight:600;white-space:nowrap;width:56px;min-width:56px;text-align:right}
+.gauge-detail{font-weight:400;font-size:11px;color:var(--muted);width:100px;min-width:100px;text-align:left;white-space:nowrap}
 
 /* Content area */
 .content{flex:1;overflow-y:auto;padding:16px}
@@ -94,6 +107,13 @@ body.dark .gauge-track{background:#2a2a4a}
 .module-section{margin-bottom:16px}
 .module-section h3{font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px;cursor:pointer;display:flex;align-items:center;gap:6px;user-select:none}
 .module-section h3 .collapse-icon{font-size:12px;color:var(--muted)}
+.module-section h3 input[type=checkbox]{margin:0;cursor:pointer;flex:0 0 auto;padding:0}
+/* Кастомный чекбокс группы: пустой / закрашенный квадрат (partial) / галочка (checked) */
+.module-section h3 input[type=checkbox].group-check{appearance:none;-webkit-appearance:none;width:14px;height:14px;border:1px solid var(--border);border-radius:3px;background:var(--panel);position:relative;display:inline-block}
+.module-section h3 input[type=checkbox].group-check:hover{border-color:var(--accent)}
+.module-section h3 input[type=checkbox].group-check:checked,
+.module-section h3 input[type=checkbox].group-check.partial{background:var(--accent);border-color:var(--accent)}
+.module-section h3 input[type=checkbox].group-check:checked::after{content:'';position:absolute;left:4px;top:1px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
 .module-section h3 .count{font-size:12px;color:var(--muted);font-weight:400}
 .module-items{overflow:hidden;transition:max-height 0.2s}
 .module-items.collapsed{max-height:0 !important}
@@ -176,7 +196,7 @@ textarea{resize:vertical;min-height:60px;font-family:inherit}
   <!-- Sidebar -->
   <div class="sidebar">
     <div class="sidebar-header">
-      <h1>magicIoTm</h1>
+      <h1>MagicIoTm</h1>
       <button class="btn-sm" onclick="toggleTheme()" title="Тема">🌙</button>
     </div>
     <div class="platformio-sep">
@@ -192,8 +212,13 @@ textarea{resize:vertical;min-height:60px;font-family:inherit}
       <button class="btn-sm btn-primary" onclick="showCreateProject()" title="Создать новый проект">+ Проект</button>
       <button class="btn-sm" onclick="loadProjects()" title="Обновить список проектов">🔄</button>
     </div>
+    <div class="tree-section-title">📁 Проекты</div>
     <div class="project-tree" id="projectTree">
       <div class="empty-state" style="padding:20px"><p>Нет проектов</p></div>
+    </div>
+    <div class="tree-section-title tree-devices-title">💡 Устройства</div>
+    <div class="tree-devices" id="deviceTree">
+      <div class="empty-state" style="padding:16px"><p>Устройства не найдены</p></div>
     </div>
   </div>
 
@@ -218,24 +243,24 @@ textarea{resize:vertical;min-height:60px;font-family:inherit}
       <span class="gauge-label">FLASH:</span>
       <div class="gauge-track"><div class="gauge-fill" id="gaugeFillFlash"></div></div>
       <span class="gauge-text" id="gaugeTextFlash">0%</span>
-      <span class="gauge-text" id="gaugeDetailFlash" style="font-weight:400;font-size:11px;color:var(--muted)"></span>
+      <span class="gauge-detail" id="gaugeDetailFlash"></span>
     </div>
     <div class="gauge-bar" id="gaugeBarRam" style="display:none">
       <span class="gauge-label">RAM:</span>
       <div class="gauge-track"><div class="gauge-fill" id="gaugeFillRam"></div></div>
       <span class="gauge-text" id="gaugeTextRam">0%</span>
-      <span class="gauge-text" id="gaugeDetailRam" style="font-weight:400;font-size:11px;color:var(--muted)"></span>
+      <span class="gauge-detail" id="gaugeDetailRam"></span>
     </div>
     <div class="gauge-bar" id="gaugeBarFs" style="display:none">
       <span class="gauge-label">FS:</span>
       <div class="gauge-track"><div class="gauge-fill" id="gaugeFillFs"></div></div>
       <span class="gauge-text" id="gaugeTextFs">0%</span>
-      <span class="gauge-text" id="gaugeDetailFs" style="font-weight:400;font-size:11px;color:var(--muted)"></span>
+      <span class="gauge-detail" id="gaugeDetailFs"></span>
     </div>
 
     <div class="content" id="content">
       <div class="empty-state">
-        <h2>Добро пожаловать в magicIoTm</h2>
+        <h2>Добро пожаловать в MagicIoTm</h2>
         <p>Создайте или выберите проект для начала работы</p>
       </div>
     </div>
@@ -288,10 +313,52 @@ let collapsedCats = new Set();
 let projectAbout = {};
 let moduleCompat = {};
 
+// ==================== Devices (multicast) ====================
+let deviceStream = null;
+
+function renderDevices(devices){
+  const el = document.getElementById('deviceTree');
+  if(!el) return;
+  if(!devices || devices.length === 0){
+    el.innerHTML = '<div class="empty-state" style="padding:16px"><p>Устройства не найдены</p></div>';
+    return;
+  }
+  let html = '';
+  for(const d of devices){
+    const cls = d.online ? 'online' : 'offline';
+    const label = `${d.ip}:${d.name}`;
+    const tip = `${d.ip} · ${d.name}` +
+      (d.wg ? ` · группа: ${d.wg}` : '') +
+      (d.fv !== '' && d.fv !== undefined ? ` · fw: ${d.fv}` : '') +
+      (d.id ? ` · id: ${d.id}` : '');
+    html += `<div class="device-item" title="${esc(tip)}">
+      <span class="device-status ${cls}" title="${d.online ? 'Online' : 'Offline'}"></span>
+      <span class="device-name">${esc(label)}</span>
+    </div>`;
+  }
+  el.innerHTML = html;
+}
+
+function connectDevicesStream(){
+  if(deviceStream) deviceStream.close();
+  deviceStream = new EventSource('/api/devices/stream');
+  deviceStream.onmessage = (e) => {
+    try{
+      const d = JSON.parse(e.data);
+      if(d.success) renderDevices(d.devices);
+    }catch(_){}
+  };
+  deviceStream.onerror = () => {
+    if(deviceStream){ deviceStream.close(); deviceStream = null; }
+    setTimeout(connectDevicesStream, 3000);
+  };
+}
+
 // ==================== Init ====================
 document.addEventListener('DOMContentLoaded', () => {
   if (localStorage.getItem('magicIoTm_dark') === '1') document.body.classList.add('dark');
   loadProjects();
+  connectDevicesStream();
   // По умолчанию открываем проект PlatformIO
   openProject('__virtual__', 'PlatformIO');
 });
@@ -474,14 +541,14 @@ function renderContent(about){
   el.innerHTML = `
     <div class="content-section">
       <div class="section-header">
-        <h2>📡 Настройки устройства (iotmSettings)</h2>
+        <h2>⚙️ Настройки устройства</h2>
         <button class="btn-sm" title="Скопировать все значения (кроме name и apssid) из другого проекта" onclick="showCopyValuesModal('','Настройки')">⧉ Из другого проекта</button>
       </div>
       <div id="settingsContainer"></div>
     </div>
-    <div class="content-section">
+    <div class="content-section" id="modulesSection">
       <div class="section-header">
-        <h2>📦 Модули прошивки</h2>
+        <h2> 💠 Модули</h2>
         <div class="section-tools">
           <button class="btn-sm" title="Замер размера модулей для этой платформы" onclick="showMeasureScope()">⚖️ Замер размера</button>
           <button class="btn-sm" title="Скопировать состав модулей из другого проекта" onclick="showCopyModules()">⧉ Из другого проекта</button>
@@ -607,7 +674,11 @@ function renderModules(){
     const collapsed = moduleCollapsed[section] !== false; // по умолчанию свёрнуты
     const icon = collapsed ? '▶' : '▼';
     html += `<div class="module-section">
-      <h3 onclick="toggleModuleGroup('${esc(section)}')"><span class="collapse-icon">${icon}</span> ${esc(section)} <span class="count">(${mods.filter(m=>m.active).length}/${mods.length})</span></h3>
+      <h3 onclick="toggleModuleGroup('${esc(section)}')">
+        <span class="collapse-icon">${icon}</span>
+        <input type="checkbox" class="group-check" id="modgroup_${esc(section)}" title="Все / Ни одного / Вернуть как было" onclick="event.stopPropagation();cycleModuleGroup('${esc(section)}')">
+        ${esc(section)} <span class="count">(${mods.filter(m=>m.active).length}/${mods.length})</span>
+      </h3>
       <div class="module-items ${collapsed?'collapsed':''}" id="moditems_${esc(section)}">`;
     for(const m of mods){
       const name = (m.path||'').split('/').pop();
@@ -626,6 +697,8 @@ function renderModules(){
     html += '</div></div>';
   }
   el.innerHTML = html;
+  // Инициализация состояний групповых чекбоксов
+  for(const section of Object.keys(configData.modules)) refreshModuleGroup(section);
 }
 
 function toggleModuleGroup(section){
@@ -639,6 +712,74 @@ function toggleModuleGroup(section){
   // Обновляем иконку
   const h3 = items?.previousElementSibling?.querySelector('.collapse-icon');
   if(h3) h3.textContent = moduleCollapsed[section] ? '▶' : '▼';
+  // При раскрытии прокручиваем страницу, чтобы секция «Модули» была вверху экрана
+  if(!moduleCollapsed[section]) scrollModulesToTop();
+}
+
+function scrollModulesToTop(){
+  const container = document.getElementById('content');
+  const section = document.getElementById('modulesSection');
+  if(!container || !section) return;
+  const top = section.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
+  container.scrollTo({top, behavior:'smooth'});
+}
+
+// Групповое управление чекбоксами модулей в секции «Модули».
+// Цикл при клике на групповой чекбокс: 0=все → 1=ни одного → 2=вернуть как было.
+let moduleGroupCycle = {}; // {section: {original:{path:active}, step:0..2}}
+
+function cycleModuleGroup(section){
+  const mods = configData?.modules?.[section];
+  if(!Array.isArray(mods) || mods.length === 0) return;
+  // Снапшот исходного состояния группы при первом клике
+  if(!moduleGroupCycle[section]){
+    const original = {};
+    for(const m of mods) original[m.path] = !!m.active;
+    moduleGroupCycle[section] = {original, step:0};
+  }
+  const st = moduleGroupCycle[section];
+  const action = st.step; // 0=все, 1=ни одного, 2=вернуть
+  st.step = (st.step + 1) % 3;
+
+  for(const m of mods){
+    const comp = moduleCompat[m.path] || {compatible:true};
+    if(!comp.compatible) continue; // несовместимые модули не трогаем
+    let target;
+    if(action === 0) target = true;                 // отметить все
+    else if(action === 1) target = false;           // снять все
+    else target = st.original[m.path] ?? false;     // вернуть как было
+    if(!!m.active !== target){
+      m.active = target;
+      const name = (m.path||'').split('/').pop();
+      const cb = document.getElementById('mod_' + name);
+      if(cb && !cb.disabled) cb.checked = target;
+      toggleModule(section, m.path, target); // отправка на сервер (без await)
+    }
+  }
+  refreshModuleGroup(section);
+  updateGauge();
+}
+
+// Обновление индикатора группового чекбокса и счётчика активных модулей
+function refreshModuleGroup(section){
+  const cb = document.getElementById('modgroup_' + section);
+  if(!cb) return;
+  const mods = configData?.modules?.[section] || [];
+  let active = 0, total = 0;
+  for(const m of mods){
+    const comp = moduleCompat[m.path] || {compatible:true};
+    if(!comp.compatible) continue; // несовместимые не считаем
+    total++;
+    if(m.active) active++;
+  }
+  // Галочка только при полном выборе; частичный — просто закрашенный квадрат (без галочки)
+  cb.checked = (total > 0 && active === total);
+  cb.classList.toggle('partial', (active > 0 && active < total));
+  cb.indeterminate = false;
+  // Счётчик в заголовке группы
+  const h3 = cb.closest('h3');
+  const countEl = h3 ? h3.querySelector('.count') : null;
+  if(countEl) countEl.textContent = `(${mods.filter(m=>m.active).length}/${mods.length})`;
 }
 
 async function toggleModule(section, path, active){
@@ -661,13 +802,13 @@ function setGauge(kind, pct, used, total){
   const text = document.getElementById('gaugeText' + suffix);
   const detail = document.getElementById('gaugeDetail' + suffix);
   if(!fill) return;
-  pct = Math.min(pct, 100);
-  fill.style.width = pct + '%';
+  // Заливка физически не выходит за пределы дорожки, но % в тексте считаем честно (может быть >100)
+  fill.style.width = Math.min(pct, 100) + '%';
   let color = '#4caf50';
   if(pct > 90) color = '#f44336';
   else if(pct > 70) color = '#ff9800';
   fill.style.background = color;
-  text.textContent = pct + '%';
+  text.textContent = pct.toFixed(1) + '%';
   detail.textContent = `${formatBytes(used||0)} / ${formatBytes(total||0)}`;
 }
 
@@ -1085,7 +1226,7 @@ function resetToInitial(){
   document.getElementById('gaugeBarFs').style.display = 'none';
   document.getElementById('content').innerHTML = `
     <div class="empty-state">
-      <h2>Добро пожаловать в magicIoTm</h2>
+      <h2>Добро пожаловать в MagicIoTm</h2>
       <p>Создайте или выберите проект для начала работы</p>
     </div>`;
   updatePlatformioActive();

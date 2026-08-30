@@ -1,4 +1,4 @@
-# magicIoTm — Конфигуратор прошивок IoTmanager
+# MagicIoTm — Конфигуратор прошивок IoTmanager
 
 Web-приложение на Python Flask для управления проектами и конфигурациями IoT-устройств.
 

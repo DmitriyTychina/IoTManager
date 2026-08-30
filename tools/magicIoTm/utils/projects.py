@@ -1,5 +1,5 @@
 """
-Управление проектами magicIoTm
+Управление проектами MagicIoTm
 Каждый проект = папка с data.json, about.txt, myProfile.json
 Категории = папки верхнего уровня внутри projects/
 """

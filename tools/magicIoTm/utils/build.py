@@ -299,19 +299,19 @@ def _compute_sizes(build_out, cfg):
         _, used, total = flash_matches[-1]
         used, total = int(used), int(total)
         sizes["flash_used"], sizes["flash_total"] = used, total
-        sizes["flash_pct"] = round(used / total * 100) if total > 0 else 0
+        sizes["flash_pct"] = round(used / total * 100, 1) if total > 0 else 0
 
     ram_matches = _RAM_RE.findall(build_out)
     if ram_matches:
         _, used, total = ram_matches[-1]
         used, total = int(used), int(total)
         sizes["ram_used"], sizes["ram_total"] = used, total
-        sizes["ram_pct"] = round(used / total * 100) if total > 0 else 0
+        sizes["ram_pct"] = round(used / total * 100, 1) if total > 0 else 0
 
     fs_used = _dir_size(cfg.get("data_dir", ""))
     fs_total = _fs_total(cfg)
     sizes["fs_used"], sizes["fs_total"] = fs_used, fs_total
-    sizes["fs_pct"] = round(fs_used / fs_total * 100) if fs_total > 0 else 0
+    sizes["fs_pct"] = round(fs_used / fs_total * 100, 1) if fs_total > 0 else 0
     return sizes
 
 

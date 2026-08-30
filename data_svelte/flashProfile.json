@@ -1,7 +1,7 @@
 {
     "projectProp": {
         "platformio": {
-            "default_envs": "esp32cam_4mb"
+            "default_envs": "esp32s2_4mb"
         }
     },
     "modules": {
@@ -11,7 +11,7 @@
                 "path": "src/modules/exec/AnalogBtn"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/exec/BrokerMQTT"
             },
             {
@@ -23,7 +23,7 @@
                 "path": "src/modules/exec/ButtonOut"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/exec/Buzzer"
             },
             {
@@ -39,11 +39,11 @@
                 "path": "src/modules/exec/EspCam"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/exec/Ftp"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/exec/HttpGet"
             },
             {
@@ -51,7 +51,7 @@
                 "path": "src/modules/exec/IoTServo"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/exec/IRremote"
             },
             {
@@ -115,7 +115,7 @@
                 "path": "src/modules/exec/TelegramLT"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/exec/Telegram_v2"
             },
             {
@@ -129,7 +129,7 @@
         ],
         "screens": [
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/display/DwinI"
             },
             {
@@ -137,7 +137,7 @@
                 "path": "src/modules/display/GyverLAMP"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/display/Lcd2004"
             },
             {
@@ -157,15 +157,15 @@
                 "path": "src/modules/display/Oled64"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/display/Smi2_m"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/display/TM16XX"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/display/Ws2812b"
             }
         ],

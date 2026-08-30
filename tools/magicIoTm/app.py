@@ -1,5 +1,5 @@
 """
-magicIoTm — Конфигуратор прошивок IoTmanager
+MagicIoTm — Конфигуратор прошивок IoTmanager
 Web-сервер на Flask для управления проектами и конфигурациями
 """
 
@@ -8,6 +8,9 @@ import os
 import glob
 import re
 import shutil
+import socket
+import struct
+import time
 import logging
 import threading
 from datetime import datetime
@@ -49,6 +52,114 @@ current_config = None
 current_platform = "esp8266_4mb"
 modinfo_cache = {}
 platforms_cache = {}
+
+# ==================== Обнаружение устройств (multicast) ====================
+MULTICAST_GROUP = "239.255.255.255"
+MULTICAST_PORT = 4210
+DEVICES_TIMEOUT = 90  # секунды без пакета, после чего устройство считается offline
+
+_devices = {}          # ip -> {ip, name, wg, id, status, fv, last_seen}
+_devices_lock = threading.Lock()
+_device_thread = None
+
+
+def _device_listener():
+    """Фоновый поток: приём multicast-пакетов от устройств IoTManager.
+
+    Каждый пакет — JSON-массив объектов (wg, ip, id, name, status, fv).
+    IP устройства берётся из заголовка пакета (addr[0]), name — из данных.
+    """
+    logger.info(f"Multicast слушатель: {MULTICAST_GROUP}:{MULTICAST_PORT}")
+    sock = None
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        if hasattr(socket, "SO_REUSEPORT"):
+            try:
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+            except OSError:
+                pass
+        sock.bind(("", MULTICAST_PORT))
+        mreq = struct.pack("=4s4s", socket.inet_aton(MULTICAST_GROUP),
+                           socket.inet_aton("0.0.0.0"))
+        sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+        sock.settimeout(0.5)
+    except OSError as e:
+        logger.error(f"Не удалось настроить multicast-сокет: {e}")
+        return
+
+    while True:
+        try:
+            data, addr = sock.recvfrom(65535)
+        except socket.timeout:
+            continue
+        except OSError:
+            break
+        try:
+            text = data.decode("utf-8")
+        except UnicodeDecodeError:
+            text = data.decode("latin-1", errors="replace")
+        _ingest_payload(addr[0], text)
+
+    if sock:
+        sock.close()
+    logger.info("Multicast слушатель остановлен")
+
+
+def _ingest_payload(src_ip, text):
+    """Разбор payload: JSON-массив или единичный объект. ip берём из заголовка пакета."""
+    try:
+        obj = json.loads(text)
+    except (json.JSONDecodeError, ValueError):
+        return
+    items = obj if isinstance(obj, list) else [obj]
+    now = time.time()
+    with _devices_lock:
+        for it in items:
+            if not isinstance(it, dict):
+                continue
+            _devices[src_ip] = {
+                "ip": src_ip,
+                "name": str(it.get("name", "")),
+                "wg": str(it.get("wg", "")),
+                "id": str(it.get("id", "")),
+                "status": bool(it.get("status", False)),
+                "fv": it.get("fv", ""),
+                "last_seen": now,
+            }
+
+
+def _build_devices_payload():
+    """Текущий список устройств с признаком online/offline, отсортированный."""
+    now = time.time()
+    with _devices_lock:
+        devices = []
+        for d in _devices.values():
+            dev = dict(d)
+            dev["online"] = (now - d["last_seen"]) <= DEVICES_TIMEOUT
+            devices.append(dev)
+    devices.sort(key=lambda x: (not x["online"], x["ip"]))
+    return {"success": True, "devices": devices}
+
+
+def _devices_signature():
+    """Сигнатура набора устройств для детекции изменений в SSE-потоке."""
+    now = time.time()
+    with _devices_lock:
+        return tuple(sorted(
+            (d["ip"], round(d["last_seen"], 1), (now - d["last_seen"]) <= DEVICES_TIMEOUT)
+            for d in _devices.values()
+        ))
+
+
+def start_device_listener():
+    """Запуск фонового потока multicast-слушателя (идемпотентно)."""
+    global _device_thread
+    if _device_thread and _device_thread.is_alive():
+        return
+    _device_thread = threading.Thread(target=_device_listener, daemon=True,
+                                      name="multicast-device-listener")
+    _device_thread.start()
 
 # ==================== modinfo кэш ====================
 
@@ -231,8 +342,8 @@ def calc_size():
     bf, tf, br, tr = get_platform_limits(current_platform)
     flash_used = bf + flash_total
     ram_used = br + ram_total
-    flash_pct = round(flash_used / tf * 100) if tf > 0 else 0
-    ram_pct = round(ram_used / tr * 100) if tr > 0 else 0
+    flash_pct = round(flash_used / tf * 100, 1) if tf > 0 else 0
+    ram_pct = round(ram_used / tr * 100, 1) if tr > 0 else 0
     return flash_pct, flash_used, tf, ram_pct, ram_used, tr
 
 
@@ -284,7 +395,7 @@ def get_fs_usage():
         else:
             data_dir = os.path.join(_project_dir(current_project), "iotm", current_platform, "data_svelte")
         fs_used = _dir_size(data_dir)
-    fs_pct = round(fs_used / fs_total * 100) if fs_total > 0 else 0
+    fs_pct = round(fs_used / fs_total * 100, 1) if fs_total > 0 else 0
     return fs_pct, fs_used, fs_total
 
 
@@ -327,6 +438,32 @@ def api_list_projects():
         "tree": projects.list_projects(),
         "about": projects.get_all_abouts(),
     })
+
+
+# ==================== Маршруты: устройства (multicast) ====================
+
+@app.route('/api/devices', methods=['GET'])
+def api_devices():
+    """Список обнаруженных устройств с признаком online/offline."""
+    return jsonify(_build_devices_payload())
+
+
+@app.route('/api/devices/stream')
+def api_devices_stream():
+    """SSE-поток изменений списка устройств (online/offline, новые/обновлённые)."""
+    def gen():
+        last_sig = None
+        while True:
+            sig = _devices_signature()
+            if sig != last_sig:
+                last_sig = sig
+                payload = json.dumps(_build_devices_payload(), ensure_ascii=False)
+                yield f"data: {payload}\n\n"
+            else:
+                yield ": keepalive\n\n"
+            time.sleep(2)
+    return Response(gen(), mimetype="text/event-stream",
+                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 @app.route('/api/projects/category', methods=['POST'])
@@ -941,11 +1078,12 @@ def api_copy_modules():
 
 def init():
     logger.info("=" * 60)
-    logger.info("magicIoTm запускается...")
+    logger.info("MagicIoTm запускается...")
     logger.info("=" * 60)
     projects.ensure_dirs()
     load_platforms()
     scan_modinfo()
+    start_device_listener()
     logger.info("Готов к работе")
     logger.info("=" * 60)
 
