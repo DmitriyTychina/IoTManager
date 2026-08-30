@@ -193,7 +193,9 @@ textarea{resize:vertical;min-height:60px;font-family:inherit}
 .devmgr{display:flex;flex-direction:column;gap:10px;height:100%;min-height:calc(100vh - 150px)}
 .devmgr-top{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:8px 12px}
 .devmgr-title{font-weight:600;font-size:14px}
-.devmgr-status{margin-left:auto;font-size:12px;color:var(--muted)}
+.devmgr-title .device-status{display:inline-block;margin-right:6px}
+.devmgr-project{font-size:14px;color:var(--accent)}
+.devmgr-top-actions{margin-left:auto;display:flex;gap:6px}
 .devmgr-panels{flex:1;display:flex;flex-direction:column;gap:10px;min-height:0}
 .devmgr-panel{flex:1;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--border);border-radius:8px;overflow:hidden;min-height:0}
 .devmgr-panel-head{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--border)}
@@ -202,9 +204,12 @@ textarea{resize:vertical;min-height:60px;font-family:inherit}
 .devmgr-panel-head button:disabled,.devmgr-editor button:disabled{opacity:.45;cursor:not-allowed;background:var(--panel);color:var(--muted);border-color:var(--border)}
 .devmgr-panel-body{flex:1;display:flex;min-height:0}
 .devmgr-tree{width:250px;min-width:200px;border-right:1px solid var(--border);overflow-y:auto;padding:6px}
-.devmgr-tree-item{padding:3px 6px;border-radius:4px;font-size:12px;cursor:pointer;font-family:Consolas,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.devmgr-tree-item{display:flex;align-items:center;gap:4px;padding:3px 6px;border-radius:4px;font-size:12px;cursor:pointer;font-family:Consolas,monospace;white-space:nowrap;overflow:hidden}
 .devmgr-tree-item:hover{background:rgba(74,144,217,0.1)}
 .devmgr-tree-item.active{background:var(--accent);color:#fff}
+.devmgr-tree-item .devmgr-tree-name{flex:1;overflow:hidden;text-overflow:ellipsis}
+.devmgr-copy{flex:0 0 auto;padding:0 5px;line-height:1.4;font-size:11px;cursor:pointer;background:transparent;border:1px solid var(--border);color:var(--text);border-radius:4px;opacity:.7}
+.devmgr-copy:hover{opacity:1;background:rgba(74,144,217,0.15);border-color:var(--accent)}
 .devmgr-editor{flex:1;display:flex;flex-direction:column;min-width:0}
 .devmgr-editor-head{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--border);font-size:12px;color:var(--muted)}
 .devmgr-editor-head .file-title{flex:1;display:flex;align-items:center;gap:6px;min-width:0}
@@ -389,8 +394,9 @@ function renderDevices(devices){
   let html = '';
   for(const d of devices){
     const cls = d.online ? 'online' : 'offline';
-    const label = `${d.ip}:${d.name}`;
-    const tip = `${d.ip} · ${d.name}` +
+    const shown = dispName(d.name);
+    const label = shown;
+    const tip = `${d.ip} · ${shown}` +
       (d.wg ? ` · группа: ${d.wg}` : '') +
       (d.fv !== '' && d.fv !== undefined ? ` · fw: ${d.fv}` : '') +
       (d.id ? ` · id: ${d.id}` : '');
@@ -401,6 +407,12 @@ function renderDevices(devices){
     </div>`;
   }
   el.innerHTML = html;
+  // Синхронизируем статус активного устройства (для индикатора в devmgr)
+  const act = devices.find(x => activeDevice && x.ip === activeDevice.ip);
+  if(act && activeDevice.online !== act.online){
+    activeDevice.online = act.online;
+    if(document.querySelector('.devmgr')) renderDevmgrTop();
+  }
 }
 
 // Клик по устройству в списке (делегирование — список перерисовывается по SSE)
@@ -427,6 +439,7 @@ function connectDevicesStream(){
 
 // ==================== Device manager ====================
 let activeDevice = null;            // {ip, name, online}
+let firmwareLink = null;            // {category, name} — привязанная прошивка (data_svelte)
 let deviceEditors = {
   ram: {path:null, original:''},
   fs:  {path:null, original:''},
@@ -438,7 +451,7 @@ function selectDevice(ip, name, online){
   // Скрываем верхний тулбар, выбор платформы и датчики, пока открыт менеджер устройства
   const tb = document.querySelector('.topbar');
   if(tb) tb.style.display = 'none';
-  document.getElementById('topProjectName').textContent = `💡 ${name}`;
+  document.getElementById('topProjectName').textContent = `💡 ${dispName(name)}`;
   document.getElementById('platformSelectWrap').style.display = 'none';
   document.getElementById('gaugeBar').style.display = 'none';
   document.getElementById('gaugeBarRam').style.display = 'none';
@@ -472,16 +485,18 @@ function renderDeviceManager(){
   el.innerHTML = `
   <div class="devmgr">
     <div class="devmgr-top">
-      <button onclick="exitDevice()">← Назад</button>
-      <span class="devmgr-title">💡 ${esc(activeDevice.name)}</span>
-      <span class="devmgr-status">${esc(activeDevice.ip)}${activeDevice.online ? '' : ' · offline'}</span>
-      <button class="btn-sm" onclick="reloadDeviceTrees()" title="Обновить деревья">🔄</button>
+      <span class="devmgr-title"><span class="device-status ${activeDevice.online?'online':'offline'}" title="${activeDevice.online?'Online':'Offline'}"></span>${esc(dispName(activeDevice.name))}</span>
+      ${firmwareLink ? `<span class="devmgr-title">⬅➡</span><span class="devmgr-project">${esc(firmwareLink.category + '/' + firmwareLink.name)}</span>` : ''}
+      <div class="devmgr-top-actions">
+        <button class="btn-sm" onclick="showFirmwarePicker()" title="Привязать проект для манипулирования файлами">🔗</button>
+        <button class="btn-sm" onclick="reloadDeviceTrees()" title="Обновить деревья">🔄</button>
+      </div>
     </div>
     <div class="devmgr-panels">
       <div class="devmgr-panel">
         <div class="devmgr-panel-head">
           <span class="devmgr-panel-title">Файлы из RAM по WebSockets</span>
-          <button class="btn-sm btn-primary" onclick="fetchRam()" title="Скачать файлы с устройства (/config, /profile)">📤 Получить файлы</button>
+          <button class="btn-sm btn-primary" onclick="fetchRam()" title="Получить файлы с устройства">⤵ Получить файлы</button>
         </div>
         <div class="devmgr-panel-body">
           <div class="devmgr-tree" id="ramTree" onclick="onTreeClick(event)"><div class="empty-state" style="padding:12px">Файлы не загружены</div></div>
@@ -493,13 +508,13 @@ function renderDeviceManager(){
               </div>
               <button class="btn-sm" id="ramCheckBtn" style="display:none" onclick="checkScenarioLoops('ram')" title="Проверить сценарий на циклические зависимости (event-driven)">🔍 Проверка</button>
               <button class="btn-sm" id="ramSaveBtn" onclick="saveFile('ram')" disabled>💾 Локально</button>
-              <button class="btn-sm btn-primary" id="ramPushBtn" onclick="pushFile('ram')" disabled title="">📡 На устройство</button>
+              <button class="btn-sm btn-primary" id="ramPushBtn" onclick="pushFile('ram')" disabled title="">💾 На устройство</button>
             </div>
             <div class="devmgr-code">
               <div class="devmgr-gutter" id="ramGutter"><pre></pre></div>
               <div class="devmgr-code-editor">
                 <pre class="devmgr-hl" id="ramHl"></pre>
-                <textarea id="ramEditor" class="devmgr-textarea" spellcheck="false" wrap="off" oninput="onEditorInput('ram')" onscroll="onEditorScroll('ram')" onclick="onEditorCaret('ram')" onkeyup="onEditorCaret('ram')" onselect="onEditorCaret('ram')" placeholder="Выберите файл слева"></textarea>
+                <textarea id="ramEditor" class="devmgr-textarea" spellcheck="false" wrap="off" oninput="onEditorInput('ram')" onscroll="onEditorScroll('ram')" onclick="onEditorCaret('ram')" onkeyup="onEditorCaret('ram')" onselect="onEditorCaret('ram')" placeholder="Выберите файл"></textarea>
               </div>
               <div class="devmgr-check" id="ramCheck">
                 <div class="devmgr-check-head">
@@ -515,7 +530,7 @@ function renderDeviceManager(){
       <div class="devmgr-panel">
         <div class="devmgr-panel-head">
           <span class="devmgr-panel-title">Файлы из файловой системы</span>
-          <button class="btn-sm" onclick="toast('Скачивание FS ещё не реализовано','warning')" title="Получить файлы">📤 Получить файлы</button>
+          <button class="btn-sm" onclick="toast('Скачивание FS ещё не реализовано','warning')" title="Получить файлы">⤵ Получить файлы</button>
         </div>
         <div class="devmgr-panel-body">
           <div class="devmgr-tree" id="fsTree" onclick="onTreeClick(event)"><div class="empty-state" style="padding:12px">Раздел FS пуст</div></div>
@@ -532,7 +547,7 @@ function renderDeviceManager(){
               <div class="devmgr-gutter" id="fsGutter"><pre></pre></div>
               <div class="devmgr-code-editor">
                 <pre class="devmgr-hl" id="fsHl"></pre>
-                <textarea id="fsEditor" class="devmgr-textarea" spellcheck="false" wrap="off" oninput="onEditorInput('fs')" onscroll="onEditorScroll('fs')" onclick="onEditorCaret('fs')" onkeyup="onEditorCaret('fs')" onselect="onEditorCaret('fs')" placeholder="Выберите файл слева"></textarea>
+                <textarea id="fsEditor" class="devmgr-textarea" spellcheck="false" wrap="off" oninput="onEditorInput('fs')" onscroll="onEditorScroll('fs')" onclick="onEditorCaret('fs')" onkeyup="onEditorCaret('fs')" onselect="onEditorCaret('fs')" placeholder="Выберите файл"></textarea>
               </div>
               <div class="devmgr-check" id="fsCheck">
                 <div class="devmgr-check-head">
@@ -564,8 +579,12 @@ async function loadTree(section){
       el.innerHTML = `<div class="empty-state" style="padding:12px">${section === 'ram' ? 'Файлы не загружены' : 'Раздел FS пуст'}</div>`;
       return;
     }
+    const linked = firmwareLink ? true : false;
     el.innerHTML = d.files.map(f =>
-      `<div class="devmgr-tree-item" data-section="${section}" data-path="${esc(f)}">${esc(f)}</div>`
+      `<div class="devmgr-tree-item" data-section="${section}" data-path="${esc(f)}">
+         <span class="devmgr-tree-name">${esc(f)}</span>
+         ${linked ? `<button class="devmgr-copy" title="Скопировать из проекта в устройство" onclick="event.stopPropagation();copyFromFirmware('${section}','${esc(f)}')">⬅</button>` : ''}
+       </div>`
     ).join('');
   }catch(e){
     el.innerHTML = '<div class="empty-state" style="padding:12px">Ошибка загрузки</div>';
@@ -1176,6 +1195,74 @@ async function fetchRam(){
 function reloadDeviceTrees(){
   loadTree('ram');
   loadTree('fs');
+}
+
+async function showFirmwarePicker(){
+  showModal(`<h3>🔗 Привязка прошивки</h3>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Выберите проект для привязки. После этого можно будет манипулировать файлами между устройством и проектом.</div>
+    <div id="fwList" style="max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:2px">Загрузка...</div>
+    <div class="modal-actions"><button title="Закрыть" onclick="closeModal()">Отмена</button><button class="btn-sm" title="Убрать привязку прошивки" onclick="clearFirmwareLink()">Снять привязку</button></div>`);
+  try{
+    const r = await fetch('/api/projects/data-svelte');
+    const d = await r.json();
+    const list = document.getElementById('fwList');
+    if(!d.success || !d.projects || !d.projects.length){
+      list.innerHTML = '<div class="empty-state"><p>Нет проектов с папкой data_svelte</p></div>';
+      return;
+    }
+    list.innerHTML = d.projects.map(p =>
+      `<div class="tree-project ${firmwareLink && firmwareLink.name === p.name && firmwareLink.category === p.category ? 'active' : ''}"
+           onclick="pickFirmware('${esc(p.category)}','${esc(p.name)}')" style="cursor:pointer">
+         🛠️ ${esc(p.category)}/${esc(p.name)}
+       </div>`).join('');
+  }catch(e){
+    const list = document.getElementById('fwList');
+    if(list) list.innerHTML = '<div class="empty-state"><p>Ошибка загрузки</p></div>';
+  }
+}
+
+function renderDevmgrTop(){
+  const top = document.querySelector('.devmgr-top');
+  if(!top) return;
+  top.innerHTML = `
+    <span class="devmgr-title"><span class="device-status ${activeDevice.online?'online':'offline'}" title="${activeDevice.online?'Online':'Offline'}"></span>${esc(dispName(activeDevice.name))}</span>
+    ${firmwareLink ? `<span class="devmgr-title">⬅➡</span><span class="devmgr-project">${esc(firmwareLink.category + '/' + firmwareLink.name)}</span>` : ''}
+    <div class="devmgr-top-actions">
+      <button class="btn-sm" onclick="showFirmwarePicker()" title="Привязать проект для манипулирования файлами">🔗</button>
+      <button class="btn-sm" onclick="reloadDeviceTrees()" title="Обновить деревья">🔄</button>
+    </div>`;
+}
+
+function pickFirmware(cat, name){
+  firmwareLink = {category: cat, name};
+  closeModal();
+  toast('Прошивка привязана: ' + name, 'success');
+  renderDevmgrTop();
+  reloadDeviceTrees();
+}
+
+function clearFirmwareLink(){
+  firmwareLink = null;
+  closeModal();
+  renderDevmgrTop();
+  reloadDeviceTrees();
+}
+
+async function copyFromFirmware(section, path){
+  if(!activeDevice || !firmwareLink) return;
+  try{
+    const r = await fetch(`/api/device/${encodeURIComponent(activeDevice.ip)}/copy-from-project`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({section, path, category: firmwareLink.category, project: firmwareLink.name})
+    });
+    const d = await r.json();
+    if(!d.success){ toast(d.error || 'Ошибка', 'error'); return; }
+    toast('Скопировано из прошивки', 'success');
+    loadTree(section);
+    selectFile(section, path);
+  }catch(e){
+    toast('Ошибка связи с сервером', 'error');
+  }
 }
 
 // ==================== Init ====================
@@ -2212,6 +2299,9 @@ async function showModuleInfo(path){
   }
   showModal(html + `<div class="modal-actions"><button title="Закрыть окно" onclick="closeModal()">Закрыть</button></div>`);
 }
+
+// Отображаемое имя устройства: название папки, подчёркивания заменяются на пробелы
+function dispName(s){ return String(s == null ? '' : s).replace(/_/g, ' '); }
 
 // ==================== Utils ====================
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }

@@ -1081,14 +1081,12 @@ def get_fs_total(env, timeout=600):
 def fs_used_dir(project_dir, env):
     """Занятое в ФС — размер папки data_svelte проекта.
 
-    Для корневого PlatformIO-проекта data_svelte лежит в корне (<project>/data_svelte),
-    для остальных — в <project>/iotm/<платформа>/data_svelte.
+    data_svelte всегда лежит в корне проекта (<project>/data_svelte).
+    Параметр env оставлен для совместимости вызова.
     """
     if not project_dir:
         return 0
-    if os.path.abspath(project_dir) == str(PROJECT_ROOT):
-        return dir_size(os.path.join(project_dir, "data_svelte"))
-    return dir_size(os.path.join(project_dir, "iotm", env, "data_svelte"))
+    return dir_size(os.path.join(project_dir, "data_svelte"))
 
 
 # ----------------------------------------------------------------------------
@@ -1354,7 +1352,7 @@ def main():
     ap.add_argument("--abort-file", default=None, metavar="PATH",
                     help="Файл-флаг мягкого прерывания: при его появлении замер останавливается")
     ap.add_argument("--project-dir", default=None, metavar="DIR",
-                    help="Каталог выбранного проекта (для расчёта размера папки data_svelte в iotm/<платформа>)")
+                    help="Каталог выбранного проекта (для расчёта размера папки data_svelte в корне проекта)")
     args = ap.parse_args()
 
     global ABORT_FILE

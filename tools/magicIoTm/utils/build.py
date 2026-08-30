@@ -225,6 +225,9 @@ def _worker(cfg):
         # ---- Копирование файлов прошивки в iotm/<платформа>/400/ ----
         _copy_firmware(cfg)
 
+        # ---- Очистка iotm/ — оставляем только одну папку с прошивками ----
+        _prune_iotm(cfg)
+
         # ---- Шаг 4: успех + размеры ----
         sizes = _compute_sizes(out3, cfg)
         _append_line("")
@@ -377,6 +380,48 @@ def _copy_firmware(cfg):
 
     if not copied:
         _append_line(f"[copy] Не найдено ни одного файла прошивки в {src_dir}")
+
+
+def _prune_iotm(cfg):
+    """После успешной сборки оставляет в папке iotm/ проекта только одну папку
+    с прошивками — текущей платформы. Остальные папки удаляются.
+
+    Выполняется для всех проектов, кроме PlatformIO (у него iotm/ не используется).
+
+    data_svelte теперь всегда лежит в корне проекта (<проект>/data_svelte),
+    поэтому из папки прошивки также удаляется устаревшая внутренняя data_svelte.
+    """
+    build_base = cfg.get("cwd", "")
+    proj_base = os.path.dirname(cfg.get("profile", "")) if cfg.get("profile") else build_base
+    env = cfg.get("env", "")
+
+    # Проект PlatformIO — очистка iotm/ не требуется.
+    if os.path.abspath(proj_base) == os.path.abspath(build_base):
+        return
+
+    iotm_dir = os.path.join(proj_base, "iotm")
+    if not os.path.isdir(iotm_dir):
+        return
+
+    for entry in sorted(os.listdir(iotm_dir)):
+        full = os.path.join(iotm_dir, entry)
+        if not os.path.isdir(full):
+            continue
+        if entry != env:
+            try:
+                shutil.rmtree(full)
+                _append_line(f"[iotm] Удалена лишняя папка с прошивками: {full}")
+            except OSError as e:
+                _append_line(f"[iotm] Не удалось удалить {full}: {e}")
+        else:
+            # В папке текущей платформы оставляем только прошивку.
+            old_data = os.path.join(full, "data_svelte")
+            if os.path.isdir(old_data):
+                try:
+                    shutil.rmtree(old_data)
+                    _append_line(f"[iotm] Удалена устаревшая data_svelte из папки прошивки: {old_data}")
+                except OSError as e:
+                    _append_line(f"[iotm] Не удалось удалить {old_data}: {e}")
 
 
 def _fs_total(cfg):

@@ -1,162 +1,34 @@
 {
     "iotmSettings": {
-        "name": "IoTmanagerVer4",
-        "apssid": "IoTmanager",
         "appass": "",
-        "wifirep_apchanel": 7,
-        "wifirep_apip": "192.168.4.1",
-        "wifirep_staip": "192.168.1.160",
-        "wifirep_netmask": "255.255.255.0",
-        "wifirep_gateway": "192.168.4.1",
-        "wifirep_dns": "192.168.4.1",
-        "routerssid": "iot",
-        "routerpass": "hostel3333",
-        "timezone": 3,
-        "ntp": "pool.ntp.org",
-        "weblogin": "admin",
-        "webpass": "admin",
-        "mqttServer": "",
+        "apssid": "IoTmanager",
+        "debugTraceMsgTlgrm": 1,
+        "i2cFreq": 100000,
+        "log": 0,
+        "mqttPass": "3hostel3",
         "mqttPort": 8021,
         "mqttPrefix": "/risenew",
+        "mqttServer": "",
         "mqttUser": "rise",
-        "mqttPass": "3hostel3",
-        "serverip": "http://iotmanager.org",
-        "serverlocal": "http://192.168.1.2:5500",
-        "log": 0,
         "mqttin": 0,
+        "name": "IoTmanagerVer4",
+        "ntp": "pool.ntp.org",
         "pinSCL": 0,
         "pinSDA": 0,
-        "i2cFreq": 100000,
+        "routerpass": "hostel3333",
+        "routerssid": "iot",
+        "serverip": "http://iotmanager.org",
+        "serverlocal": "http://192.168.1.2:5500",
+        "timezone": 3,
+        "weblogin": "admin",
+        "webpass": "admin",
         "wg": "group1",
-        "debugTraceMsgTlgrm": 1
-    },
-    "projectProp": {
-        "platformio": {
-            "default_envs": "esp8266_2mb_ota",
-            "comments_default_envs": "choose from: esp8266_4mb, esp32_4mb, esp32_4mb3f, esp8266_16mb, esp32_16mb, esp32cam_4mb, esp32s2_4mb, esp32s3_16mb, esp32c3m_4mb, esp8266_1mb, esp8266_1mb_ota, esp8266_2mb, esp8266_2mb_ota, esp8285_1mb, esp8285_1mb_ota, esp32c6_4mb, esp32c6_8mb, bk7231n, esp32_wifirep",
-            "envs": [
-                {
-                    "name": "esp8266_4mb",
-                    "firmware": "0x00000",
-                    "littlefs": "0x300000"
-                },
-                {
-                    "name": "esp8266_16mb",
-                    "firmware": "0x00000",
-                    "littlefs": "0x200000"
-                },
-                {
-                    "name": "esp32_4mb",
-                    "boot_app0": "0xe000",
-                    "bootloader_qio_80m": "0x1000",
-                    "firmware": "0x10000",
-                    "partitions": "0x8000",
-                    "littlefs": "0x290000"
-                },
-                {
-                    "name": "esp32_4mb3f",
-                    "boot_app0": "0xe000",
-                    "bootloader_qio_80m": "0x1000",
-                    "firmware": "0x10000",
-                    "partitions": "0x8000",
-                    "littlefs": "0x310000"
-                },
-                {
-                    "name": "esp32_wifirep",
-                    "boot_app0": "0xe000",
-                    "bootloader_qio_80m": "0x1000",
-                    "firmware": "0x10000",
-                    "partitions": "0x8000",
-                    "littlefs": "0x310000"
-                },
-                {
-                    "name": "esp32cam_4mb",
-                    "boot_app0": "0xe000",
-                    "bootloader_qio_80m": "0x1000",
-                    "firmware": "0x10000",
-                    "partitions": "0x8000",
-                    "littlefs": "0x310000"
-                },
-                {
-                    "name": "esp32_16mb",
-                    "boot_app0": "0xe000",
-                    "bootloader_qio_80m": "0x1000",
-                    "firmware": "0x10000",
-                    "partitions": "0x8000",
-                    "littlefs": "0x910000"
-                },
-                {
-                    "name": "esp8266_1mb",
-                    "firmware": "0x00000000",
-                    "littlefs": "0x000bb000"
-                },
-                {
-                    "name": "esp8266_1mb_ota",
-                    "firmware": "0x00000000",
-                    "littlefs": "0x000eb000"
-                },
-                {
-                    "name": "esp8266_2mb",
-                    "firmware": "0x00000000",
-                    "littlefs": "0x00100000"
-                },
-                {
-                    "name": "esp8266_2mb_ota",
-                    "firmware": "0x00000000",
-                    "littlefs": "0x001c0000"
-                },
-                {
-                    "name": "esp8285_1mb",
-                    "firmware": "0x00000000",
-                    "littlefs": "0x000bb000"
-                },
-                {
-                    "name": "esp8285_1mb_ota",
-                    "firmware": "0x00000000",
-                    "littlefs": "0x000eb000"
-                },
-                {
-                    "name": "esp32s2_4mb",
-                    "boot_app0": "0xe000",
-                    "bootloader_qio_80m": "0x1000",
-                    "firmware": "0x10000",
-                    "partitions": "0x8000",
-                    "littlefs": "0x290000"
-                },
-                {
-                    "name": "esp32c3m_4mb",
-                    "boot_app0": "0xe000",
-                    "bootloader_qio_80m": "0x1000",
-                    "firmware": "0x10000",
-                    "partitions": "0x8000",
-                    "littlefs": "0x310000"
-                },
-                {
-                    "name": "esp32s3_16mb",
-                    "boot_app0": "0xe000",
-                    "bootloader_qio_80m": "0x1000",
-                    "firmware": "0x10000",
-                    "partitions": "0x8000",
-                    "littlefs": "0x910000"
-                },
-                {
-                    "name": "esp32c6_4mb",
-                    "boot_app0": "0xe000",
-                    "bootloader_qio_80m": "0x1000",
-                    "firmware": "0x10000",
-                    "partitions": "0x8000",
-                    "littlefs": "0x310000"
-                },
-                {
-                    "name": "esp32c6_8mb",
-                    "boot_app0": "0xe000",
-                    "bootloader_qio_80m": "0x1000",
-                    "firmware": "0x10000",
-                    "partitions": "0x8000",
-                    "littlefs": "0x670000"
-                }
-            ]
-        }
+        "wifirep_apchanel": 7,
+        "wifirep_apip": "192.168.4.1",
+        "wifirep_dns": "192.168.4.1",
+        "wifirep_gateway": "192.168.4.1",
+        "wifirep_netmask": "255.255.255.0",
+        "wifirep_staip": "192.168.1.160"
     },
     "modules": {
         "executive_devices": [
@@ -595,5 +467,133 @@
                 "path": "src/modules/virtual/Weather"
             }
         ]
+    },
+    "projectProp": {
+        "platformio": {
+            "comments_default_envs": "choose from: esp8266_4mb, esp32_4mb, esp32_4mb3f, esp8266_16mb, esp32_16mb, esp32cam_4mb, esp32s2_4mb, esp32s3_16mb, esp32c3m_4mb, esp8266_1mb, esp8266_1mb_ota, esp8266_2mb, esp8266_2mb_ota, esp8285_1mb, esp8285_1mb_ota, esp32c6_4mb, esp32c6_8mb, bk7231n, esp32_wifirep",
+            "default_envs": "esp8266_4mb",
+            "envs": [
+                {
+                    "firmware": "0x00000",
+                    "littlefs": "0x300000",
+                    "name": "esp8266_4mb"
+                },
+                {
+                    "firmware": "0x00000",
+                    "littlefs": "0x200000",
+                    "name": "esp8266_16mb"
+                },
+                {
+                    "boot_app0": "0xe000",
+                    "bootloader_qio_80m": "0x1000",
+                    "firmware": "0x10000",
+                    "littlefs": "0x290000",
+                    "name": "esp32_4mb",
+                    "partitions": "0x8000"
+                },
+                {
+                    "boot_app0": "0xe000",
+                    "bootloader_qio_80m": "0x1000",
+                    "firmware": "0x10000",
+                    "littlefs": "0x310000",
+                    "name": "esp32_4mb3f",
+                    "partitions": "0x8000"
+                },
+                {
+                    "boot_app0": "0xe000",
+                    "bootloader_qio_80m": "0x1000",
+                    "firmware": "0x10000",
+                    "littlefs": "0x310000",
+                    "name": "esp32_wifirep",
+                    "partitions": "0x8000"
+                },
+                {
+                    "boot_app0": "0xe000",
+                    "bootloader_qio_80m": "0x1000",
+                    "firmware": "0x10000",
+                    "littlefs": "0x310000",
+                    "name": "esp32cam_4mb",
+                    "partitions": "0x8000"
+                },
+                {
+                    "boot_app0": "0xe000",
+                    "bootloader_qio_80m": "0x1000",
+                    "firmware": "0x10000",
+                    "littlefs": "0x910000",
+                    "name": "esp32_16mb",
+                    "partitions": "0x8000"
+                },
+                {
+                    "firmware": "0x00000000",
+                    "littlefs": "0x000bb000",
+                    "name": "esp8266_1mb"
+                },
+                {
+                    "firmware": "0x00000000",
+                    "littlefs": "0x000eb000",
+                    "name": "esp8266_1mb_ota"
+                },
+                {
+                    "firmware": "0x00000000",
+                    "littlefs": "0x00100000",
+                    "name": "esp8266_2mb"
+                },
+                {
+                    "firmware": "0x00000000",
+                    "littlefs": "0x001c0000",
+                    "name": "esp8266_2mb_ota"
+                },
+                {
+                    "firmware": "0x00000000",
+                    "littlefs": "0x000bb000",
+                    "name": "esp8285_1mb"
+                },
+                {
+                    "firmware": "0x00000000",
+                    "littlefs": "0x000eb000",
+                    "name": "esp8285_1mb_ota"
+                },
+                {
+                    "boot_app0": "0xe000",
+                    "bootloader_qio_80m": "0x1000",
+                    "firmware": "0x10000",
+                    "littlefs": "0x290000",
+                    "name": "esp32s2_4mb",
+                    "partitions": "0x8000"
+                },
+                {
+                    "boot_app0": "0xe000",
+                    "bootloader_qio_80m": "0x1000",
+                    "firmware": "0x10000",
+                    "littlefs": "0x310000",
+                    "name": "esp32c3m_4mb",
+                    "partitions": "0x8000"
+                },
+                {
+                    "boot_app0": "0xe000",
+                    "bootloader_qio_80m": "0x1000",
+                    "firmware": "0x10000",
+                    "littlefs": "0x910000",
+                    "name": "esp32s3_16mb",
+                    "partitions": "0x8000"
+                },
+                {
+                    "boot_app0": "0xe000",
+                    "bootloader_qio_80m": "0x1000",
+                    "firmware": "0x10000",
+                    "littlefs": "0x310000",
+                    "name": "esp32c6_4mb",
+                    "partitions": "0x8000"
+                },
+                {
+                    "boot_app0": "0xe000",
+                    "bootloader_qio_80m": "0x1000",
+                    "firmware": "0x10000",
+                    "littlefs": "0x670000",
+                    "name": "esp32c6_8mb",
+                    "partitions": "0x8000"
+                }
+            ]
+        }
     }
 }

@@ -133,14 +133,38 @@ def _ingest_payload(src_ip, text):
 
 
 def _build_devices_payload():
-    """Текущий список устройств с признаком online/offline, отсортированный."""
+    """Текущий список устройств с признаком online/offline, отсортированный.
+
+    Включает как обнаруженные по сети устройства, так и устройства из папок
+    DEVICE_DIR_ROOT (даже если сейчас офлайн). Отображаемое имя берётся из имени
+    папки (имя папки целиком), подчёркивания убираются на фронте.
+    """
     now = time.time()
+    with _device_folders_lock:
+        folder_names = {ip: e["name"] for ip, e in _device_folders.items()}
+    seen = set()
+    devices = []
     with _devices_lock:
-        devices = []
         for d in _devices.values():
             dev = dict(d)
+            dev["name"] = folder_names.get(d["ip"], d["name"])
             dev["online"] = (now - d["last_seen"]) <= DEVICES_TIMEOUT
             devices.append(dev)
+            seen.add(d["ip"])
+    # Устройства, у которых есть папка на диске, но которые не обнаружены сейчас
+    with _device_folders_lock:
+        for ip, e in _device_folders.items():
+            if ip in seen:
+                continue
+            devices.append({
+                "ip": ip,
+                "name": e["name"],
+                "wg": "",
+                "id": "",
+                "status": False,
+                "fv": "",
+                "online": False,
+            })
     devices.sort(key=lambda x: (not x["online"], x["ip"]))
     return {"success": True, "devices": devices}
 
@@ -148,11 +172,14 @@ def _build_devices_payload():
 def _devices_signature():
     """Сигнатура набора устройств для детекции изменений в SSE-потоке."""
     now = time.time()
+    with _device_folders_lock:
+        folder_keys = tuple(sorted(_device_folders.keys()))
     with _devices_lock:
-        return tuple(sorted(
+        online = tuple(sorted(
             (d["ip"], round(d["last_seen"], 1), (now - d["last_seen"]) <= DEVICES_TIMEOUT)
             for d in _devices.values()
         ))
+    return (folder_keys, online)
 
 
 def start_device_listener():
@@ -236,6 +263,40 @@ def get_device_folder(ip):
     """Возвращает запись папки устройства или None."""
     with _device_folders_lock:
         return _device_folders.get(ip)
+
+
+def _scan_device_folders():
+    """Регистрирует в _device_folders записи для всех папок из DEVICE_DIR_ROOT.
+
+    Папка устройства имеет вид <SSID>_<ip>_<имя>. IP извлекается регуляркой,
+    имя папки (целиком) сохраняется как отображаемое имя устройства.
+    Позволяет показывать в дереве устройства даже если они сейчас офлайн.
+    """
+    if not os.path.isdir(DEVICE_DIR_ROOT):
+        return
+    with _device_folders_lock:
+        for folder_name in sorted(os.listdir(DEVICE_DIR_ROOT)):
+            folder = os.path.join(DEVICE_DIR_ROOT, folder_name)
+            if not os.path.isdir(folder):
+                continue
+            m = re.search(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', folder_name)
+            ip = m.group(0) if m else None
+            if not ip or ip in _device_folders:
+                continue
+            ram_dir = os.path.join(folder, "RAM")
+            fs_dir = os.path.join(folder, "FS")
+            try:
+                os.makedirs(ram_dir, exist_ok=True)
+                os.makedirs(fs_dir, exist_ok=True)
+            except Exception as e:
+                logger.error(f"Не удалось подготовить папку устройства {folder}: {e}")
+            _device_folders[ip] = {
+                "folder": folder,
+                "ram_dir": ram_dir,
+                "fs_dir": fs_dir,
+                "name": folder_name,
+            }
+            logger.info(f"Папка устройства (сканирование): {folder}")
 
 
 def _walk_tree(root):
@@ -463,6 +524,23 @@ def _project_dir(proj):
     return os.path.join(projects.PROJECTS_DIR, proj.get("category", ""), proj.get("name", ""))
 
 
+def _find_data_svelte(proj_dir):
+    """Путь к каталогу data_svelte внутри проекта (корень или iotm/<платформа>).
+
+    Возвращает путь к папке data_svelte или None, если её нет.
+    """
+    root = os.path.join(proj_dir, "data_svelte")
+    if os.path.isdir(root):
+        return root
+    iotm = os.path.join(proj_dir, "iotm")
+    if os.path.isdir(iotm):
+        for p in sorted(os.listdir(iotm)):
+            cand = os.path.join(iotm, p, "data_svelte")
+            if os.path.isdir(cand):
+                return cand
+    return None
+
+
 def _dir_size(path):
     """Суммарный размер файлов в каталоге (байты)."""
     if not path or not os.path.isdir(path):
@@ -482,7 +560,7 @@ def get_fs_usage():
 
     fs_total — ёмкость раздела ФС (total_fs из platforms.json; если его ещё нет —
                размер только что собранного образа .pio/build/<платформа>/littlefs.bin).
-    fs_used  — занятое: размер папки data_svelte проекта (в iotm/<платформа> или в корне).
+    fs_used  — занятое: размер папки data_svelte проекта (в корне проекта).
     """
     fs_total = platforms_cache.get(current_platform, {}).get("total_fs", 0)
     if not fs_total:
@@ -498,11 +576,8 @@ def get_fs_usage():
                 break
     fs_used = 0
     if current_project:
-        if projects.is_platformio(current_project.get("name", "")):
-            # Корневой PlatformIO-проект — data_svelte остаётся в корне проекта
-            data_dir = os.path.join(_project_dir(current_project), "data_svelte")
-        else:
-            data_dir = os.path.join(_project_dir(current_project), "iotm", current_platform, "data_svelte")
+        # data_svelte всегда лежит в корне проекта
+        data_dir = os.path.join(_project_dir(current_project), "data_svelte")
         fs_used = _dir_size(data_dir)
     fs_pct = round(fs_used / fs_total * 100, 1) if fs_total > 0 else 0
     return fs_pct, fs_used, fs_total
@@ -547,6 +622,25 @@ def api_list_projects():
         "tree": projects.list_projects(),
         "about": projects.get_all_abouts(),
     })
+
+
+@app.route('/api/projects/data-svelte', methods=['GET'])
+def api_projects_with_data_svelte():
+    """Проекты, у которых есть папка data_svelte (кроме PlatformIO).
+
+    Используется для привязки прошивки к менеджеру устройства и копирования файлов.
+    """
+    result = []
+    tree = projects.list_projects()
+    for cat, projs in tree.items():
+        for name in projs:
+            if projects.is_platformio(name):
+                continue
+            dsv = _find_data_svelte(os.path.join(projects.PROJECTS_DIR, cat, name))
+            if dsv:
+                result.append({"category": cat, "name": name, "path": dsv})
+    result.sort(key=lambda p: (p["category"], p["name"]))
+    return jsonify({"success": True, "projects": result})
 
 
 # ==================== Маршруты: устройства (multicast) ====================
@@ -948,10 +1042,8 @@ def _resolve_build_config(proj, config):
         "pio": _get_platformio_path(),
         "prepare": prepare_script,
         "cwd": PROJECT_ROOT,
-        # Для корневого PlatformIO-проекта data_svelte в корне; для остальных — в iotm/<платформа>
-        "data_dir": (os.path.join(os.path.dirname(profile), "data_svelte")
-                     if projects.is_platformio(proj.get("name", ""))
-                     else os.path.join(os.path.dirname(profile), "iotm", env, "data_svelte")),
+        # data_svelte всегда лежит в корне проекта (рядом с myProfile.json)
+        "data_dir": os.path.join(os.path.dirname(profile), "data_svelte"),
         "project_label": f"{proj.get('category','')}/{proj.get('name','')}",
     }
 
@@ -1035,7 +1127,7 @@ def api_measure_start():
     else:
         args += ['--mode', '1']
 
-    # Каталог выбранного проекта — для расчёта размера папки data_svelte в iotm/<платформа>
+    # Каталог выбранного проекта — для расчёта размера папки data_svelte в корне проекта
     args += ['--project-dir', _project_dir(current_project)]
 
     # Файл-флаг мягкого прерывания (для /api/measure/abort)
@@ -1301,6 +1393,46 @@ def api_device_write_ram(ip):
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@app.route('/api/device/<ip>/copy-from-project', methods=['POST'])
+def api_device_copy_from_project(ip):
+    """Копирует файл из data_svelte привязанной прошивки в локальную папку устройства.
+
+    Тело запроса: {section, path, category, project}.
+    """
+    entry = get_device_folder(ip)
+    if not entry:
+        return jsonify({"success": False, "error": "Папка устройства ещё не создана"}), 404
+    data = request.json or {}
+    key = data.get('section', '').lower()
+    if key not in ("ram", "fs"):
+        return jsonify({"success": False, "error": "Неизвестный раздел"}), 400
+    rel = data.get('path', '')
+    cat = data.get('category', '')
+    name = data.get('project', '')
+    if projects.is_platformio(name):
+        return jsonify({"success": False, "error": "PlatformIO нельзя привязать"}), 400
+    proj_dir = os.path.join(projects.PROJECTS_DIR, cat, name)
+    dsv = _find_data_svelte(proj_dir)
+    if not dsv:
+        return jsonify({"success": False, "error": "У проекта нет папки data_svelte"}), 404
+    src = _safe_path(dsv, rel)
+    if not src or not os.path.isfile(src):
+        return jsonify({"success": False, "error": f"Файл «{rel}» не найден в прошивке"}), 404
+    dst = _safe_path(entry[f"{key}_dir"], rel)
+    if not dst:
+        return jsonify({"success": False, "error": "Недопустимый путь"}), 400
+    try:
+        with open(src, 'r', encoding='utf-8', errors='replace') as f:
+            content = f.read()
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        with open(dst, 'w', encoding='utf-8') as f:
+            f.write(content)
+    except Exception as e:
+        logger.error(f"copy-from-project {ip} {rel}: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    return jsonify({"success": True, "path": rel, "content": content})
+
+
 # ==================== Инициализация ====================
 
 def init():
@@ -1310,6 +1442,7 @@ def init():
     projects.ensure_dirs()
     load_platforms()
     scan_modinfo()
+    _scan_device_folders()
     start_device_listener()
     logger.info("Готов к работе")
     logger.info("=" * 60)

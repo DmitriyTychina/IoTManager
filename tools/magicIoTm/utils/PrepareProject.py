@@ -158,8 +158,8 @@ for opt, arg in opts:
 # определяем каталог, в котором находится файл профиля,
 # чтобы читать и изменять platformio.ini в той же папке что и myProfile.json
 profileDir = str(Path(profile).parent)
-# Папка данных прошивки — data_svelte. Итоговое расположение — <проект>/iotm/<платформа>/data_svelte
-# (deviceName определяется ниже, поэтому здесь храним промежуточный путь).
+# Папка данных прошивки — data_svelte. Итоговое расположение — корень проекта (<проект>/data_svelte),
+# рядом с myProfile.json. deviceName ниже не влияет на расположение data_svelte.
 DATA_DIR = os.path.join(profileDir, "data_svelte")
 
 # data_svelte проекта заполняется ниже, в зависимости от выбранного устройства.
@@ -208,12 +208,9 @@ else:
         deviceName = profJson['projectProp']['platformio']['default_envs']
         print(f"\x1b[1;31;31m Board ", selectDevice, " not found in ",profile,"!!! Use ",deviceName,"  \x1b[0m")
 
-# Папка данных прошивки. Для корневого PlatformIO-проекта (profileDir == корень репозитория)
-# data_svelte остаётся в корне проекта. Для остальных проектов переносится в iotm/<платформа>/data_svelte.
-if os.path.abspath(profileDir) == os.path.abspath(os.getcwd()):
-    DATA_DIR = os.path.join(profileDir, "data_svelte")
-else:
-    DATA_DIR = os.path.join(profileDir, "iotm", deviceName, "data_svelte")
+# Папка данных прошивки всегда лежит в корне проекта (рядом с myProfile.json),
+# в том числе и для корневого PlatformIO-проекта (profileDir == корень репозитория).
+DATA_DIR = os.path.join(profileDir, "data_svelte")
 
 # заполняем папку /data файлами прошивки в зависимости от устройства
 is_ota_lite = deviceName in ('esp8266_1mb_ota', 'esp8285_1mb_ota', 'esp8266_2mb_ota')
@@ -371,7 +368,7 @@ config[fromitems_sec]["build_flags"] = allDefs
 config["platformio"]["default_envs"] = deviceName
 if "${env:" + deviceName + "_fromitems.build_flags}" not in config["env:" + deviceName]["build_flags"]:
     config["env:" + deviceName]["build_flags"] += "\n${env:" + deviceName + "_fromitems.build_flags}"
-# Папка данных прошивки перенесена в <проект>/iotm/<платформа>/data_svelte.
+# Папка данных прошивки — data_svelte в корне проекта (<проект>/data_svelte).
 # Путь относительный (от корня репозитория — cwd, где запускается pio), чтобы в
 # platformio.ini не было абсолютных путей и кириллических полных адресов диска.
 config["platformio"]["data_dir"] = os.path.relpath(DATA_DIR).replace(os.sep, "/")
