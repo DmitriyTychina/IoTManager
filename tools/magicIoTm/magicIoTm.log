@@ -13830,3 +13830,958 @@
 2026-08-30 09:32:50,795 [INFO] 127.0.0.1 - - [30/Aug/2026 09:32:50] "GET /api/size HTTP/1.1" 200 -
 2026-08-30 09:32:50,799 [INFO] 127.0.0.1 - - [30/Aug/2026 09:32:50] "GET /api/validate/name?value=s2mini&project=Test/esp32s2mini HTTP/1.1" 200 -
 2026-08-30 09:32:50,799 [INFO] 127.0.0.1 - - [30/Aug/2026 09:32:50] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 10:05:26,186 [INFO] 127.0.0.1 - - [30/Aug/2026 10:05:26] "POST /api/config/about HTTP/1.1" 200 -
+2026-08-30 10:05:27,159 [INFO] 127.0.0.1 - - [30/Aug/2026 10:05:27] "POST /api/modules/toggle HTTP/1.1" 200 -
+2026-08-30 10:05:27,167 [INFO] 127.0.0.1 - - [30/Aug/2026 10:05:27] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 10:05:27,964 [INFO] 127.0.0.1 - - [30/Aug/2026 10:05:27] "POST /api/modules/toggle HTTP/1.1" 200 -
+2026-08-30 10:05:27,971 [INFO] 127.0.0.1 - - [30/Aug/2026 10:05:27] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 10:05:30,899 [INFO] Открыт проект: Test/ESP8266
+2026-08-30 10:05:30,900 [INFO] 127.0.0.1 - - [30/Aug/2026 10:05:30] "POST /api/projects/Test/ESP8266/open HTTP/1.1" 200 -
+2026-08-30 10:05:30,906 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 10:05:30,908 [INFO] 127.0.0.1 - - [30/Aug/2026 10:05:30] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 10:05:30,913 [INFO] 127.0.0.1 - - [30/Aug/2026 10:05:30] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 10:05:30,926 [INFO] 127.0.0.1 - - [30/Aug/2026 10:05:30] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 10:05:30,928 [INFO] 127.0.0.1 - - [30/Aug/2026 10:05:30] "GET /api/validate/name?value=ааа&project=Test/ESP8266 HTTP/1.1" 200 -
+2026-08-30 10:05:30,929 [INFO] 127.0.0.1 - - [30/Aug/2026 10:05:30] "GET /api/validate/apssid?value=IoTmanager_V_s2mini&project=Test/ESP8266 HTTP/1.1" 200 -
+2026-08-30 10:05:30,936 [INFO] 127.0.0.1 - - [30/Aug/2026 10:05:30] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 10:05:36,847 [INFO] Открыт проект: Test/esp32s2mini
+2026-08-30 10:05:36,848 [INFO] 127.0.0.1 - - [30/Aug/2026 10:05:36] "POST /api/projects/Test/esp32s2mini/open HTTP/1.1" 200 -
+2026-08-30 10:05:36,901 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 10:05:36,901 [INFO] 127.0.0.1 - - [30/Aug/2026 10:05:36] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 10:05:36,906 [INFO] 127.0.0.1 - - [30/Aug/2026 10:05:36] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 10:05:36,917 [INFO] 127.0.0.1 - - [30/Aug/2026 10:05:36] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 10:05:36,918 [INFO] 127.0.0.1 - - [30/Aug/2026 10:05:36] "GET /api/validate/name?value=s2mini&project=Test/esp32s2mini HTTP/1.1" 200 -
+2026-08-30 10:05:36,919 [INFO] 127.0.0.1 - - [30/Aug/2026 10:05:36] "GET /api/validate/apssid?value=IoTm_s2mini&project=Test/esp32s2mini HTTP/1.1" 200 -
+2026-08-30 10:05:36,921 [INFO] 127.0.0.1 - - [30/Aug/2026 10:05:36] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 10:05:40,839 [INFO] 127.0.0.1 - - [30/Aug/2026 10:05:40] "POST /api/config/about HTTP/1.1" 200 -
+2026-08-30 10:05:41,944 [INFO] Открыт проект: Test/ESP8266
+2026-08-30 10:05:41,946 [INFO] 127.0.0.1 - - [30/Aug/2026 10:05:41] "POST /api/projects/Test/ESP8266/open HTTP/1.1" 200 -
+2026-08-30 10:05:41,950 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 10:05:41,952 [INFO] 127.0.0.1 - - [30/Aug/2026 10:05:41] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 10:05:41,957 [INFO] 127.0.0.1 - - [30/Aug/2026 10:05:41] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 10:05:41,969 [INFO] 127.0.0.1 - - [30/Aug/2026 10:05:41] "GET /api/validate/name?value=ааа&project=Test/ESP8266 HTTP/1.1" 200 -
+2026-08-30 10:05:41,970 [INFO] 127.0.0.1 - - [30/Aug/2026 10:05:41] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 10:05:41,973 [INFO] 127.0.0.1 - - [30/Aug/2026 10:05:41] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 10:05:41,974 [INFO] 127.0.0.1 - - [30/Aug/2026 10:05:41] "GET /api/validate/apssid?value=IoTmanager_V_s2mini&project=Test/ESP8266 HTTP/1.1" 200 -
+2026-08-30 10:05:43,720 [INFO] Открыт проект: 1.База/WiFi Тобольск
+2026-08-30 10:05:43,721 [INFO] 127.0.0.1 - - [30/Aug/2026 10:05:43] "POST /api/projects/1.База/WiFi%20Тобольск/open HTTP/1.1" 200 -
+2026-08-30 10:05:43,775 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 10:05:43,776 [INFO] 127.0.0.1 - - [30/Aug/2026 10:05:43] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 10:05:43,781 [INFO] 127.0.0.1 - - [30/Aug/2026 10:05:43] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 10:05:43,791 [INFO] 127.0.0.1 - - [30/Aug/2026 10:05:43] "GET /api/validate/name?value=IoTmanagerVer4&project=1.База/WiFi%20Тобольск HTTP/1.1" 200 -
+2026-08-30 10:05:43,792 [INFO] 127.0.0.1 - - [30/Aug/2026 10:05:43] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 10:05:43,793 [INFO] 127.0.0.1 - - [30/Aug/2026 10:05:43] "GET /api/validate/apssid?value=IoTmanager&project=1.База/WiFi%20Тобольск HTTP/1.1" 200 -
+2026-08-30 10:05:43,795 [INFO] 127.0.0.1 - - [30/Aug/2026 10:05:43] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 12:25:23,597 [INFO] Открыт проект: 1.База/WiFi Лебедя
+2026-08-30 12:25:23,603 [INFO] 127.0.0.1 - - [30/Aug/2026 12:25:23] "POST /api/projects/1.База/WiFi%20Лебедя/open HTTP/1.1" 200 -
+2026-08-30 12:25:23,620 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 12:25:23,621 [INFO] 127.0.0.1 - - [30/Aug/2026 12:25:23] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 12:25:23,637 [INFO] 127.0.0.1 - - [30/Aug/2026 12:25:23] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 12:25:23,671 [INFO] 127.0.0.1 - - [30/Aug/2026 12:25:23] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 12:25:23,675 [INFO] 127.0.0.1 - - [30/Aug/2026 12:25:23] "GET /api/validate/name?value=IoTmanagerVer4&project=1.База/WiFi%20Лебедя HTTP/1.1" 200 -
+2026-08-30 12:25:23,676 [INFO] 127.0.0.1 - - [30/Aug/2026 12:25:23] "GET /api/validate/apssid?value=IoTmanager&project=1.База/WiFi%20Лебедя HTTP/1.1" 200 -
+2026-08-30 12:25:23,678 [INFO] 127.0.0.1 - - [30/Aug/2026 12:25:23] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 12:27:03,119 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:03] "GET / HTTP/1.1" 200 -
+2026-08-30 12:27:03,220 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:03] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 12:27:03,230 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:03] "GET /api/devices/stream HTTP/1.1" 200 -
+2026-08-30 12:27:03,270 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:03] "GET /favicon.png HTTP/1.1" 200 -
+2026-08-30 12:27:03,271 [INFO] Открыт проект: PlatformIO
+2026-08-30 12:27:03,273 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:03] "POST /api/platformio/open HTTP/1.1" 200 -
+2026-08-30 12:27:03,282 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 12:27:03,283 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:03] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 12:27:03,290 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:03] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 12:27:03,305 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:03] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 12:27:03,378 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:03] "[36mGET /favicon.png HTTP/1.1[0m" 304 -
+2026-08-30 12:27:03,380 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:03] "GET /api/validate/name?value=IoTmanagerVer4&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 12:27:03,381 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:03] "GET /api/validate/apssid?value=IoTmanager&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 12:27:03,383 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:03] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 12:27:03,389 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:03] "[36mGET /favicon.png HTTP/1.1[0m" 304 -
+2026-08-30 12:27:18,144 [INFO] Открыт проект: 1.База/WiFi Лебедя
+2026-08-30 12:27:18,145 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:18] "POST /api/projects/1.База/WiFi%20Лебедя/open HTTP/1.1" 200 -
+2026-08-30 12:27:18,150 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 12:27:18,150 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:18] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 12:27:18,155 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:18] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 12:27:18,164 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:18] "GET /api/validate/name?value=IoTmanagerVer4&project=1.База/WiFi%20Лебедя HTTP/1.1" 200 -
+2026-08-30 12:27:18,165 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:18] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 12:27:18,167 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:18] "GET /api/validate/apssid?value=IoTmanager&project=1.База/WiFi%20Лебедя HTTP/1.1" 200 -
+2026-08-30 12:27:18,169 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:18] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 12:27:21,660 [INFO] Открыт проект: 1.База/WiFi Тобольск
+2026-08-30 12:27:21,661 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:21] "POST /api/projects/1.База/WiFi%20Тобольск/open HTTP/1.1" 200 -
+2026-08-30 12:27:21,718 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 12:27:21,719 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:21] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 12:27:21,724 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:21] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 12:27:21,735 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:21] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 12:27:21,735 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:21] "GET /api/validate/apssid?value=IoTmanager&project=1.База/WiFi%20Тобольск HTTP/1.1" 200 -
+2026-08-30 12:27:21,736 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:21] "GET /api/validate/name?value=IoTmanagerVer4&project=1.База/WiFi%20Тобольск HTTP/1.1" 200 -
+2026-08-30 12:27:21,738 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:21] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 12:27:23,176 [INFO] Открыт проект: Test/ESP8266
+2026-08-30 12:27:23,177 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:23] "POST /api/projects/Test/ESP8266/open HTTP/1.1" 200 -
+2026-08-30 12:27:23,184 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 12:27:23,185 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:23] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 12:27:23,191 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:23] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 12:27:23,200 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:23] "GET /api/validate/apssid?value=IoTmanager_V_s2mini&project=Test/ESP8266 HTTP/1.1" 200 -
+2026-08-30 12:27:23,202 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:23] "GET /api/validate/name?value=ааа&project=Test/ESP8266 HTTP/1.1" 200 -
+2026-08-30 12:27:23,203 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:23] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 12:27:23,204 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:23] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 12:27:27,077 [INFO] Открыт проект: Test/esp32s2mini
+2026-08-30 12:27:27,078 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:27] "POST /api/projects/Test/esp32s2mini/open HTTP/1.1" 200 -
+2026-08-30 12:27:27,085 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 12:27:27,086 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:27] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 12:27:27,090 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:27] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 12:27:27,102 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:27] "GET /api/validate/apssid?value=IoTm_s2mini&project=Test/esp32s2mini HTTP/1.1" 200 -
+2026-08-30 12:27:27,103 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:27] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 12:27:27,105 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:27] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 12:27:27,107 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:27] "GET /api/validate/name?value=s2mini&project=Test/esp32s2mini HTTP/1.1" 200 -
+2026-08-30 12:27:30,846 [INFO] Открыт проект: Test/ESP8266
+2026-08-30 12:27:30,846 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:30] "POST /api/projects/Test/ESP8266/open HTTP/1.1" 200 -
+2026-08-30 12:27:30,852 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 12:27:30,852 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:30] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 12:27:30,856 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:30] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 12:27:30,871 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:30] "GET /api/validate/name?value=ааа&project=Test/ESP8266 HTTP/1.1" 200 -
+2026-08-30 12:27:30,872 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:30] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 12:27:30,873 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:30] "GET /api/validate/apssid?value=IoTmanager_V_s2mini&project=Test/ESP8266 HTTP/1.1" 200 -
+2026-08-30 12:27:30,875 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:30] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 12:27:40,320 [INFO] Открыт проект: 1.База/WiFi Тобольск
+2026-08-30 12:27:40,321 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:40] "POST /api/projects/1.База/WiFi%20Тобольск/open HTTP/1.1" 200 -
+2026-08-30 12:27:40,326 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 12:27:40,327 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:40] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 12:27:40,332 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:40] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 12:27:40,341 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:40] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 12:27:40,343 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:40] "GET /api/validate/name?value=IoTmanagerVer4&project=1.База/WiFi%20Тобольск HTTP/1.1" 200 -
+2026-08-30 12:27:40,344 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:40] "GET /api/validate/apssid?value=IoTmanager&project=1.База/WiFi%20Тобольск HTTP/1.1" 200 -
+2026-08-30 12:27:40,347 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:40] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 12:27:42,393 [INFO] Открыт проект: 1.База/WiFi Лебедя
+2026-08-30 12:27:42,394 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:42] "POST /api/projects/1.База/WiFi%20Лебедя/open HTTP/1.1" 200 -
+2026-08-30 12:27:42,399 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 12:27:42,400 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:42] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 12:27:42,405 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:42] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 12:27:42,413 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:42] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 12:27:42,417 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:42] "GET /api/validate/apssid?value=IoTmanager&project=1.База/WiFi%20Лебедя HTTP/1.1" 200 -
+2026-08-30 12:27:42,419 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:42] "GET /api/validate/name?value=IoTmanagerVer4&project=1.База/WiFi%20Лебедя HTTP/1.1" 200 -
+2026-08-30 12:27:42,421 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:42] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 12:27:49,092 [INFO] Открыт проект: 1.База/WiFi Тобольск
+2026-08-30 12:27:49,093 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:49] "POST /api/projects/1.База/WiFi%20Тобольск/open HTTP/1.1" 200 -
+2026-08-30 12:27:49,097 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 12:27:49,098 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:49] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 12:27:49,102 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:49] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 12:27:49,114 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:49] "GET /api/validate/name?value=IoTmanagerVer4&project=1.База/WiFi%20Тобольск HTTP/1.1" 200 -
+2026-08-30 12:27:49,114 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:49] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 12:27:49,116 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:49] "GET /api/validate/apssid?value=IoTmanager&project=1.База/WiFi%20Тобольск HTTP/1.1" 200 -
+2026-08-30 12:27:49,119 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:49] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 12:27:50,832 [INFO] Открыт проект: 1.База/WiFi Лебедя
+2026-08-30 12:27:50,833 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:50] "POST /api/projects/1.База/WiFi%20Лебедя/open HTTP/1.1" 200 -
+2026-08-30 12:27:50,837 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 12:27:50,838 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:50] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 12:27:50,842 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:50] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 12:27:50,852 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:50] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 12:27:50,853 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:50] "GET /api/validate/apssid?value=IoTmanager&project=1.База/WiFi%20Лебедя HTTP/1.1" 200 -
+2026-08-30 12:27:50,854 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:50] "GET /api/validate/name?value=IoTmanagerVer4&project=1.База/WiFi%20Лебедя HTTP/1.1" 200 -
+2026-08-30 12:27:50,857 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:50] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 12:27:52,304 [INFO] Открыт проект: Test/ESP8266
+2026-08-30 12:27:52,305 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:52] "POST /api/projects/Test/ESP8266/open HTTP/1.1" 200 -
+2026-08-30 12:27:52,311 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 12:27:52,311 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:52] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 12:27:52,318 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:52] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 12:27:52,326 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:52] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 12:27:52,328 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:52] "GET /api/validate/apssid?value=IoTmanager_V_s2mini&project=Test/ESP8266 HTTP/1.1" 200 -
+2026-08-30 12:27:52,329 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:52] "GET /api/validate/name?value=ааа&project=Test/ESP8266 HTTP/1.1" 200 -
+2026-08-30 12:27:52,331 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:52] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 12:27:53,644 [INFO] Открыт проект: Test/esp32s2mini
+2026-08-30 12:27:53,644 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:53] "POST /api/projects/Test/esp32s2mini/open HTTP/1.1" 200 -
+2026-08-30 12:27:53,649 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 12:27:53,650 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:53] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 12:27:53,655 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:53] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 12:27:53,663 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:53] "GET /api/validate/apssid?value=IoTm_s2mini&project=Test/esp32s2mini HTTP/1.1" 200 -
+2026-08-30 12:27:53,663 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:53] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 12:27:53,664 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:53] "GET /api/validate/name?value=s2mini&project=Test/esp32s2mini HTTP/1.1" 200 -
+2026-08-30 12:27:53,667 [INFO] 127.0.0.1 - - [30/Aug/2026 12:27:53] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 12:30:21,806 [INFO] 127.0.0.1 - - [30/Aug/2026 12:30:21] "POST /api/config/save HTTP/1.1" 200 -
+2026-08-30 12:30:21,822 [INFO] Сборка запущена: Test/esp32s2mini, env=esp32s2_4mb
+2026-08-30 12:30:21,823 [INFO] 127.0.0.1 - - [30/Aug/2026 12:30:21] "POST /api/build/start HTTP/1.1" 200 -
+2026-08-30 12:30:21,832 [INFO] 127.0.0.1 - - [30/Aug/2026 12:30:21] "GET /api/build/stream HTTP/1.1" 200 -
+2026-08-30 12:30:55,643 [INFO] 127.0.0.1 - - [30/Aug/2026 12:30:55] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 12:31:51,791 [INFO] 127.0.0.1 - - [30/Aug/2026 12:31:51] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2026-08-30 13:19:37,338 [INFO] 127.0.0.1 - - [30/Aug/2026 13:19:37] "GET /api/devices/stream HTTP/1.1" 200 -
+2026-08-30 13:19:37,394 [INFO] Открыт проект: PlatformIO
+2026-08-30 13:19:37,396 [INFO] 127.0.0.1 - - [30/Aug/2026 13:19:37] "POST /api/platformio/open HTTP/1.1" 200 -
+2026-08-30 13:19:37,404 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 13:19:37,406 [INFO] 127.0.0.1 - - [30/Aug/2026 13:19:37] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 13:19:37,422 [INFO] 127.0.0.1 - - [30/Aug/2026 13:19:37] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 13:19:37,479 [INFO] 127.0.0.1 - - [30/Aug/2026 13:19:37] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 13:19:37,484 [INFO] 127.0.0.1 - - [30/Aug/2026 13:19:37] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 13:19:37,486 [INFO] 127.0.0.1 - - [30/Aug/2026 13:19:37] "GET /api/validate/apssid?value=IoTmanager&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 13:19:37,487 [INFO] 127.0.0.1 - - [30/Aug/2026 13:19:37] "GET /api/validate/name?value=IoTmanagerVer4&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 13:20:46,505 [INFO] Открыт проект: Test/esp32s2mini
+2026-08-30 13:20:46,507 [INFO] 127.0.0.1 - - [30/Aug/2026 13:20:46] "POST /api/projects/Test/esp32s2mini/open HTTP/1.1" 200 -
+2026-08-30 13:20:46,514 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 13:20:46,514 [INFO] 127.0.0.1 - - [30/Aug/2026 13:20:46] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 13:20:46,522 [INFO] 127.0.0.1 - - [30/Aug/2026 13:20:46] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 13:20:46,534 [INFO] 127.0.0.1 - - [30/Aug/2026 13:20:46] "GET /api/validate/name?value=s2mini&project=Test/esp32s2mini HTTP/1.1" 200 -
+2026-08-30 13:20:46,536 [INFO] 127.0.0.1 - - [30/Aug/2026 13:20:46] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 13:20:46,536 [INFO] 127.0.0.1 - - [30/Aug/2026 13:20:46] "GET /api/validate/apssid?value=IoTm_s2mini&project=Test/esp32s2mini HTTP/1.1" 200 -
+2026-08-30 13:20:46,538 [INFO] 127.0.0.1 - - [30/Aug/2026 13:20:46] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 13:22:53,108 [INFO] ============================================================
+2026-08-30 13:22:53,109 [INFO] MagicIoTm запускается...
+2026-08-30 13:22:53,110 [INFO] ============================================================
+2026-08-30 13:22:53,111 [INFO] Загружено платформ: 19
+2026-08-30 13:22:53,154 [INFO] Кэш modinfo: 109 модулей
+2026-08-30 13:22:53,155 [INFO] Multicast слушатель: 239.255.255.255:4210
+2026-08-30 13:22:53,155 [INFO] Готов к работе
+2026-08-30 13:22:53,156 [INFO] ============================================================
+2026-08-30 13:22:53,156 [INFO] Сервер: http://127.0.0.1:5005
+2026-08-30 13:22:53,206 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5005
+2026-08-30 13:22:53,206 [INFO] [33mPress CTRL+C to quit[0m
+2026-08-30 13:23:46,605 [WARNING] Не удалось определить SSID ноутбука: 'NoneType' object has no attribute 'splitlines'
+2026-08-30 13:23:46,655 [INFO] Папка устройства: e:\GitHub\IoTManager\tools\magicIoTm\NET_192.168.0.7_s2mini
+2026-08-30 13:28:43,330 [INFO] 127.0.0.1 - - [30/Aug/2026 13:28:43] "GET / HTTP/1.1" 200 -
+2026-08-30 13:28:43,365 [INFO] Открыт проект: PlatformIO
+2026-08-30 13:28:43,367 [INFO] 127.0.0.1 - - [30/Aug/2026 13:28:43] "POST /api/platformio/open HTTP/1.1" 200 -
+2026-08-30 13:28:43,369 [INFO] 127.0.0.1 - - [30/Aug/2026 13:28:43] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 13:28:43,455 [INFO] 127.0.0.1 - - [30/Aug/2026 13:28:43] "GET /api/devices/stream HTTP/1.1" 200 -
+2026-08-30 13:28:43,462 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 13:28:43,465 [INFO] 127.0.0.1 - - [30/Aug/2026 13:28:43] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 13:28:43,465 [INFO] 127.0.0.1 - - [30/Aug/2026 13:28:43] "GET /favicon.png HTTP/1.1" 200 -
+2026-08-30 13:28:43,475 [INFO] 127.0.0.1 - - [30/Aug/2026 13:28:43] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 13:28:43,660 [INFO] 127.0.0.1 - - [30/Aug/2026 13:28:43] "GET /api/validate/apssid?value=IoTmanager&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 13:28:43,690 [INFO] 127.0.0.1 - - [30/Aug/2026 13:28:43] "GET /api/validate/name?value=IoTmanagerVer4&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 13:28:43,756 [INFO] 127.0.0.1 - - [30/Aug/2026 13:28:43] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 13:28:43,768 [INFO] 127.0.0.1 - - [30/Aug/2026 13:28:43] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 13:30:00,873 [INFO] ============================================================
+2026-08-30 13:30:00,873 [INFO] MagicIoTm запускается...
+2026-08-30 13:30:00,873 [INFO] ============================================================
+2026-08-30 13:30:00,874 [INFO] Загружено платформ: 19
+2026-08-30 13:30:00,914 [INFO] Кэш modinfo: 109 модулей
+2026-08-30 13:30:00,915 [INFO] Multicast слушатель: 239.255.255.255:4210
+2026-08-30 13:30:00,916 [INFO] Готов к работе
+2026-08-30 13:30:00,916 [INFO] ============================================================
+2026-08-30 13:30:00,916 [INFO] Сервер: http://127.0.0.1:5005
+2026-08-30 13:30:00,965 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5005
+2026-08-30 13:30:00,965 [INFO] [33mPress CTRL+C to quit[0m
+2026-08-30 13:30:01,864 [INFO] 127.0.0.1 - - [30/Aug/2026 13:30:01] "GET /api/devices/stream HTTP/1.1" 200 -
+2026-08-30 13:30:12,203 [INFO] 127.0.0.1 - - [30/Aug/2026 13:30:12] "GET / HTTP/1.1" 200 -
+2026-08-30 13:30:12,231 [INFO] Открыт проект: PlatformIO
+2026-08-30 13:30:12,232 [INFO] 127.0.0.1 - - [30/Aug/2026 13:30:12] "POST /api/platformio/open HTTP/1.1" 200 -
+2026-08-30 13:30:12,235 [INFO] 127.0.0.1 - - [30/Aug/2026 13:30:12] "GET /api/devices/stream HTTP/1.1" 200 -
+2026-08-30 13:30:12,236 [INFO] 127.0.0.1 - - [30/Aug/2026 13:30:12] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 13:30:12,240 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 13:30:12,241 [INFO] 127.0.0.1 - - [30/Aug/2026 13:30:12] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 13:30:12,251 [INFO] 127.0.0.1 - - [30/Aug/2026 13:30:12] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 13:30:12,254 [INFO] 127.0.0.1 - - [30/Aug/2026 13:30:12] "GET /favicon.png HTTP/1.1" 200 -
+2026-08-30 13:30:12,263 [INFO] 127.0.0.1 - - [30/Aug/2026 13:30:12] "[36mGET /favicon.png HTTP/1.1[0m" 304 -
+2026-08-30 13:30:12,273 [INFO] 127.0.0.1 - - [30/Aug/2026 13:30:12] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 13:30:12,274 [INFO] 127.0.0.1 - - [30/Aug/2026 13:30:12] "GET /api/validate/name?value=IoTmanagerVer4&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 13:30:12,275 [INFO] 127.0.0.1 - - [30/Aug/2026 13:30:12] "GET /api/validate/apssid?value=IoTmanager&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 13:30:12,277 [INFO] 127.0.0.1 - - [30/Aug/2026 13:30:12] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 13:30:12,286 [INFO] 127.0.0.1 - - [30/Aug/2026 13:30:12] "[36mGET /favicon.png HTTP/1.1[0m" 304 -
+2026-08-30 13:30:14,356 [INFO] Открыт проект: Test/esp32s2mini
+2026-08-30 13:30:14,358 [INFO] 127.0.0.1 - - [30/Aug/2026 13:30:14] "POST /api/projects/Test/esp32s2mini/open HTTP/1.1" 200 -
+2026-08-30 13:30:14,366 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 13:30:14,367 [INFO] 127.0.0.1 - - [30/Aug/2026 13:30:14] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 13:30:14,372 [INFO] 127.0.0.1 - - [30/Aug/2026 13:30:14] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 13:30:14,383 [INFO] 127.0.0.1 - - [30/Aug/2026 13:30:14] "GET /api/validate/apssid?value=IoTm_s2mini&project=Test/esp32s2mini HTTP/1.1" 200 -
+2026-08-30 13:30:14,384 [INFO] 127.0.0.1 - - [30/Aug/2026 13:30:14] "GET /api/validate/name?value=s2mini&project=Test/esp32s2mini HTTP/1.1" 200 -
+2026-08-30 13:30:14,385 [INFO] 127.0.0.1 - - [30/Aug/2026 13:30:14] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 13:30:14,386 [INFO] 127.0.0.1 - - [30/Aug/2026 13:30:14] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 13:30:46,591 [INFO] Папка устройства: E:\GitHub\IoTManager\tools\magicIoTm\RT-5GPON-8A68_192.168.0.7_s2mini
+2026-08-30 13:30:50,010 [INFO] 127.0.0.1 - - [30/Aug/2026 13:30:50] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 13:30:50,012 [INFO] 127.0.0.1 - - [30/Aug/2026 13:30:50] "GET /api/device/192.168.0.7/tree/fs HTTP/1.1" 200 -
+2026-08-30 13:31:14,946 [INFO] 127.0.0.1 - - [30/Aug/2026 13:31:14] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 13:31:14,947 [INFO] 127.0.0.1 - - [30/Aug/2026 13:31:14] "GET /api/device/192.168.0.7/tree/fs HTTP/1.1" 200 -
+2026-08-30 13:31:17,726 [INFO] Открыт проект: Test/esp32s2mini
+2026-08-30 13:31:17,727 [INFO] 127.0.0.1 - - [30/Aug/2026 13:31:17] "POST /api/projects/Test/esp32s2mini/open HTTP/1.1" 200 -
+2026-08-30 13:31:17,733 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 13:31:17,734 [INFO] 127.0.0.1 - - [30/Aug/2026 13:31:17] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 13:31:17,739 [INFO] 127.0.0.1 - - [30/Aug/2026 13:31:17] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 13:31:17,753 [INFO] 127.0.0.1 - - [30/Aug/2026 13:31:17] "GET /api/validate/apssid?value=IoTm_s2mini&project=Test/esp32s2mini HTTP/1.1" 200 -
+2026-08-30 13:31:17,753 [INFO] 127.0.0.1 - - [30/Aug/2026 13:31:17] "GET /api/validate/name?value=s2mini&project=Test/esp32s2mini HTTP/1.1" 200 -
+2026-08-30 13:31:17,754 [INFO] 127.0.0.1 - - [30/Aug/2026 13:31:17] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 13:31:17,758 [INFO] 127.0.0.1 - - [30/Aug/2026 13:31:17] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 13:31:19,680 [INFO] 127.0.0.1 - - [30/Aug/2026 13:31:19] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 13:31:19,682 [INFO] 127.0.0.1 - - [30/Aug/2026 13:31:19] "GET /api/device/192.168.0.7/tree/fs HTTP/1.1" 200 -
+2026-08-30 13:31:50,004 [INFO] 127.0.0.1 - - [30/Aug/2026 13:31:50] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 13:31:50,005 [INFO] 127.0.0.1 - - [30/Aug/2026 13:31:50] "GET /api/device/192.168.0.7/tree/fs HTTP/1.1" 200 -
+2026-08-30 13:31:50,061 [ERROR] fetch RAM 192.168.0.7: Ошибка команды '/profile|': [WinError 10054] Удаленный хост принудительно разорвал существующее подключение
+2026-08-30 13:31:50,062 [INFO] 127.0.0.1 - - [30/Aug/2026 13:31:50] "[35m[1mPOST /api/device/192.168.0.7/fetch/ram HTTP/1.1[0m" 500 -
+2026-08-30 13:31:54,538 [INFO] 127.0.0.1 - - [30/Aug/2026 13:31:54] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 13:31:54,538 [INFO] 127.0.0.1 - - [30/Aug/2026 13:31:54] "GET /api/device/192.168.0.7/tree/fs HTTP/1.1" 200 -
+2026-08-30 13:32:33,710 [INFO] 127.0.0.1 - - [30/Aug/2026 13:32:33] "GET /api/device/192.168.0.7/file/ram?path=config.json HTTP/1.1" 200 -
+2026-08-30 13:32:35,679 [INFO] 127.0.0.1 - - [30/Aug/2026 13:32:35] "GET /api/device/192.168.0.7/file/ram?path=items.json HTTP/1.1" 200 -
+2026-08-30 13:32:37,963 [INFO] 127.0.0.1 - - [30/Aug/2026 13:32:37] "GET /api/device/192.168.0.7/file/ram?path=scenario.txt HTTP/1.1" 200 -
+2026-08-30 13:32:40,118 [INFO] 127.0.0.1 - - [30/Aug/2026 13:32:40] "GET /api/device/192.168.0.7/file/ram?path=settings.json HTTP/1.1" 200 -
+2026-08-30 13:33:03,851 [INFO] 127.0.0.1 - - [30/Aug/2026 13:33:03] "GET /api/device/192.168.0.7/file/ram?path=widgets.json HTTP/1.1" 200 -
+2026-08-30 13:33:17,750 [ERROR] fetch RAM 192.168.0.7: Ошибка команды '/profile|': [WinError 10054] Удаленный хост принудительно разорвал существующее подключение
+2026-08-30 13:33:17,751 [INFO] 127.0.0.1 - - [30/Aug/2026 13:33:17] "[35m[1mPOST /api/device/192.168.0.7/fetch/ram HTTP/1.1[0m" 500 -
+2026-08-30 13:33:30,253 [INFO] 127.0.0.1 - - [30/Aug/2026 13:33:30] "POST /api/device/192.168.0.7/file/ram HTTP/1.1" 200 -
+2026-08-30 13:40:57,607 [INFO] ============================================================
+2026-08-30 13:40:57,607 [INFO] MagicIoTm запускается...
+2026-08-30 13:40:57,608 [INFO] ============================================================
+2026-08-30 13:40:57,610 [INFO] Загружено платформ: 19
+2026-08-30 13:40:57,657 [INFO] Кэш modinfo: 109 модулей
+2026-08-30 13:40:57,658 [INFO] Multicast слушатель: 239.255.255.255:4210
+2026-08-30 13:40:57,658 [INFO] Готов к работе
+2026-08-30 13:40:57,658 [INFO] ============================================================
+2026-08-30 13:40:57,659 [INFO] Сервер: http://127.0.0.1:5005
+2026-08-30 13:40:57,713 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5005
+2026-08-30 13:40:57,713 [INFO] [33mPress CTRL+C to quit[0m
+2026-08-30 13:40:58,829 [INFO] 127.0.0.1 - - [30/Aug/2026 13:40:58] "GET /api/devices/stream HTTP/1.1" 200 -
+2026-08-30 13:41:02,973 [INFO] 127.0.0.1 - - [30/Aug/2026 13:41:02] "GET / HTTP/1.1" 200 -
+2026-08-30 13:41:02,988 [INFO] Открыт проект: PlatformIO
+2026-08-30 13:41:02,989 [INFO] 127.0.0.1 - - [30/Aug/2026 13:41:02] "POST /api/platformio/open HTTP/1.1" 200 -
+2026-08-30 13:41:02,989 [INFO] 127.0.0.1 - - [30/Aug/2026 13:41:02] "GET /api/devices/stream HTTP/1.1" 200 -
+2026-08-30 13:41:02,994 [INFO] 127.0.0.1 - - [30/Aug/2026 13:41:02] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 13:41:02,996 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 13:41:02,996 [INFO] 127.0.0.1 - - [30/Aug/2026 13:41:02] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 13:41:03,002 [INFO] 127.0.0.1 - - [30/Aug/2026 13:41:03] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 13:41:03,014 [INFO] 127.0.0.1 - - [30/Aug/2026 13:41:03] "GET /api/validate/name?value=IoTmanagerVer4&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 13:41:03,015 [INFO] 127.0.0.1 - - [30/Aug/2026 13:41:03] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 13:41:03,018 [INFO] 127.0.0.1 - - [30/Aug/2026 13:41:03] "GET /api/validate/apssid?value=IoTmanager&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 13:41:03,021 [INFO] 127.0.0.1 - - [30/Aug/2026 13:41:03] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 13:41:03,039 [INFO] 127.0.0.1 - - [30/Aug/2026 13:41:03] "GET /favicon.png HTTP/1.1" 200 -
+2026-08-30 13:41:03,042 [INFO] 127.0.0.1 - - [30/Aug/2026 13:41:03] "[36mGET /favicon.png HTTP/1.1[0m" 304 -
+2026-08-30 13:41:03,053 [INFO] 127.0.0.1 - - [30/Aug/2026 13:41:03] "[36mGET /favicon.png HTTP/1.1[0m" 304 -
+2026-08-30 13:41:22,710 [INFO] Открыт проект: Test/esp32s2mini
+2026-08-30 13:41:22,711 [INFO] 127.0.0.1 - - [30/Aug/2026 13:41:22] "POST /api/projects/Test/esp32s2mini/open HTTP/1.1" 200 -
+2026-08-30 13:41:22,718 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 13:41:22,718 [INFO] 127.0.0.1 - - [30/Aug/2026 13:41:22] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 13:41:22,723 [INFO] 127.0.0.1 - - [30/Aug/2026 13:41:22] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 13:41:22,732 [INFO] 127.0.0.1 - - [30/Aug/2026 13:41:22] "GET /api/validate/name?value=s2mini&project=Test/esp32s2mini HTTP/1.1" 200 -
+2026-08-30 13:41:22,733 [INFO] 127.0.0.1 - - [30/Aug/2026 13:41:22] "GET /api/validate/apssid?value=IoTm_s2mini&project=Test/esp32s2mini HTTP/1.1" 200 -
+2026-08-30 13:41:22,734 [INFO] 127.0.0.1 - - [30/Aug/2026 13:41:22] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 13:41:22,737 [INFO] 127.0.0.1 - - [30/Aug/2026 13:41:22] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 13:41:46,391 [INFO] Папка устройства: E:\GitHub\IoTManager\tools\magicIoTm\devices\RT-5GPON-8A68_192.168.0.7_s2mini
+2026-08-30 13:41:48,098 [INFO] 127.0.0.1 - - [30/Aug/2026 13:41:48] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 13:41:48,100 [INFO] 127.0.0.1 - - [30/Aug/2026 13:41:48] "GET /api/device/192.168.0.7/tree/fs HTTP/1.1" 200 -
+2026-08-30 13:42:05,992 [INFO] 127.0.0.1 - - [30/Aug/2026 13:42:05] "POST /api/device/192.168.0.7/fetch/ram HTTP/1.1" 200 -
+2026-08-30 13:42:05,997 [INFO] 127.0.0.1 - - [30/Aug/2026 13:42:05] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 13:42:07,764 [INFO] 127.0.0.1 - - [30/Aug/2026 13:42:07] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 13:42:07,765 [INFO] 127.0.0.1 - - [30/Aug/2026 13:42:07] "GET /api/device/192.168.0.7/tree/fs HTTP/1.1" 200 -
+2026-08-30 13:42:12,262 [INFO] 127.0.0.1 - - [30/Aug/2026 13:42:12] "GET /api/device/192.168.0.7/file/ram?path=profile.json HTTP/1.1" 200 -
+2026-08-30 13:42:22,628 [INFO] 127.0.0.1 - - [30/Aug/2026 13:42:22] "GET /api/device/192.168.0.7/file/ram?path=ota.json HTTP/1.1" 200 -
+2026-08-30 13:42:23,651 [INFO] 127.0.0.1 - - [30/Aug/2026 13:42:23] "GET /api/device/192.168.0.7/file/ram?path=items.json HTTP/1.1" 200 -
+2026-08-30 13:42:25,336 [INFO] 127.0.0.1 - - [30/Aug/2026 13:42:25] "GET /api/device/192.168.0.7/file/ram?path=config.json HTTP/1.1" 200 -
+2026-08-30 13:42:27,586 [INFO] 127.0.0.1 - - [30/Aug/2026 13:42:27] "GET /api/device/192.168.0.7/file/ram?path=scenario.txt HTTP/1.1" 200 -
+2026-08-30 13:42:28,717 [INFO] 127.0.0.1 - - [30/Aug/2026 13:42:28] "GET /api/device/192.168.0.7/file/ram?path=settings.json HTTP/1.1" 200 -
+2026-08-30 13:42:29,960 [INFO] 127.0.0.1 - - [30/Aug/2026 13:42:29] "GET /api/device/192.168.0.7/file/ram?path=widgets.json HTTP/1.1" 200 -
+2026-08-30 13:47:07,059 [INFO] 127.0.0.1 - - [30/Aug/2026 13:47:07] "GET /api/device/192.168.0.7/file/ram?path=config.json HTTP/1.1" 200 -
+2026-08-30 13:48:30,659 [INFO] 127.0.0.1 - - [30/Aug/2026 13:48:30] "GET /api/device/192.168.0.7/file/ram?path=items.json HTTP/1.1" 200 -
+2026-08-30 13:48:32,334 [INFO] 127.0.0.1 - - [30/Aug/2026 13:48:32] "GET /api/device/192.168.0.7/file/ram?path=config.json HTTP/1.1" 200 -
+2026-08-30 13:48:55,073 [INFO] 127.0.0.1 - - [30/Aug/2026 13:48:55] "POST /api/device/192.168.0.7/write/ram HTTP/1.1" 200 -
+2026-08-30 13:49:05,226 [INFO] 127.0.0.1 - - [30/Aug/2026 13:49:05] "GET /api/device/192.168.0.7/file/ram?path=items.json HTTP/1.1" 200 -
+2026-08-30 13:49:06,449 [INFO] 127.0.0.1 - - [30/Aug/2026 13:49:06] "GET /api/device/192.168.0.7/file/ram?path=config.json HTTP/1.1" 200 -
+2026-08-30 13:49:10,214 [INFO] 127.0.0.1 - - [30/Aug/2026 13:49:10] "GET /api/device/192.168.0.7/file/ram?path=items.json HTTP/1.1" 200 -
+2026-08-30 13:49:11,241 [INFO] 127.0.0.1 - - [30/Aug/2026 13:49:11] "POST /api/device/192.168.0.7/fetch/ram HTTP/1.1" 200 -
+2026-08-30 13:49:11,245 [INFO] 127.0.0.1 - - [30/Aug/2026 13:49:11] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 13:49:21,212 [INFO] 127.0.0.1 - - [30/Aug/2026 13:49:21] "POST /api/device/192.168.0.7/file/ram HTTP/1.1" 200 -
+2026-08-30 13:49:41,897 [INFO] 127.0.0.1 - - [30/Aug/2026 13:49:41] "GET /api/device/192.168.0.7/file/ram?path=items.json HTTP/1.1" 200 -
+2026-08-30 13:49:46,208 [INFO] 127.0.0.1 - - [30/Aug/2026 13:49:46] "POST /api/device/192.168.0.7/fetch/ram HTTP/1.1" 200 -
+2026-08-30 13:49:46,217 [INFO] 127.0.0.1 - - [30/Aug/2026 13:49:46] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 13:49:58,060 [INFO] 127.0.0.1 - - [30/Aug/2026 13:49:58] "GET /api/device/192.168.0.7/file/ram?path=items.json HTTP/1.1" 200 -
+2026-08-30 13:50:01,744 [INFO] 127.0.0.1 - - [30/Aug/2026 13:50:01] "GET /api/device/192.168.0.7/file/ram?path=items.json HTTP/1.1" 200 -
+2026-08-30 13:50:06,210 [INFO] 127.0.0.1 - - [30/Aug/2026 13:50:06] "POST /api/device/192.168.0.7/file/ram HTTP/1.1" 200 -
+2026-08-30 13:50:09,009 [INFO] 127.0.0.1 - - [30/Aug/2026 13:50:09] "GET /api/device/192.168.0.7/file/ram?path=ota.json HTTP/1.1" 200 -
+2026-08-30 13:50:09,497 [INFO] 127.0.0.1 - - [30/Aug/2026 13:50:09] "GET /api/device/192.168.0.7/file/ram?path=items.json HTTP/1.1" 200 -
+2026-08-30 13:50:16,062 [INFO] 127.0.0.1 - - [30/Aug/2026 13:50:16] "GET /api/device/192.168.0.7/file/ram?path=config.json HTTP/1.1" 200 -
+2026-08-30 13:50:16,791 [INFO] 127.0.0.1 - - [30/Aug/2026 13:50:16] "GET /api/device/192.168.0.7/file/ram?path=items.json HTTP/1.1" 200 -
+2026-08-30 13:50:22,225 [INFO] 127.0.0.1 - - [30/Aug/2026 13:50:22] "GET /api/device/192.168.0.7/file/ram?path=ota.json HTTP/1.1" 200 -
+2026-08-30 13:50:23,516 [INFO] 127.0.0.1 - - [30/Aug/2026 13:50:23] "GET /api/device/192.168.0.7/file/ram?path=profile.json HTTP/1.1" 200 -
+2026-08-30 13:50:25,087 [INFO] 127.0.0.1 - - [30/Aug/2026 13:50:25] "GET /api/device/192.168.0.7/file/ram?path=items.json HTTP/1.1" 200 -
+2026-08-30 13:50:28,864 [INFO] 127.0.0.1 - - [30/Aug/2026 13:50:28] "GET /api/device/192.168.0.7/file/ram?path=scenario.txt HTTP/1.1" 200 -
+2026-08-30 13:50:33,863 [INFO] 127.0.0.1 - - [30/Aug/2026 13:50:33] "POST /api/device/192.168.0.7/write/ram HTTP/1.1" 200 -
+2026-08-30 13:50:42,048 [INFO] 127.0.0.1 - - [30/Aug/2026 13:50:42] "GET /api/device/192.168.0.7/file/ram?path=config.json HTTP/1.1" 200 -
+2026-08-30 13:50:42,960 [INFO] 127.0.0.1 - - [30/Aug/2026 13:50:42] "GET /api/device/192.168.0.7/file/ram?path=settings.json HTTP/1.1" 200 -
+2026-08-30 13:50:43,999 [INFO] 127.0.0.1 - - [30/Aug/2026 13:50:43] "GET /api/device/192.168.0.7/file/ram?path=scenario.txt HTTP/1.1" 200 -
+2026-08-30 13:50:50,662 [INFO] 127.0.0.1 - - [30/Aug/2026 13:50:50] "GET /api/device/192.168.0.7/file/ram?path=profile.json HTTP/1.1" 200 -
+2026-08-30 13:50:51,630 [INFO] 127.0.0.1 - - [30/Aug/2026 13:50:51] "GET /api/device/192.168.0.7/file/ram?path=scenario.txt HTTP/1.1" 200 -
+2026-08-30 13:50:53,606 [INFO] 127.0.0.1 - - [30/Aug/2026 13:50:53] "GET /api/device/192.168.0.7/file/ram?path=settings.json HTTP/1.1" 200 -
+2026-08-30 13:50:54,145 [INFO] 127.0.0.1 - - [30/Aug/2026 13:50:54] "GET /api/device/192.168.0.7/file/ram?path=scenario.txt HTTP/1.1" 200 -
+2026-08-30 13:50:56,375 [INFO] 127.0.0.1 - - [30/Aug/2026 13:50:56] "POST /api/device/192.168.0.7/fetch/ram HTTP/1.1" 200 -
+2026-08-30 13:50:56,382 [INFO] 127.0.0.1 - - [30/Aug/2026 13:50:56] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 13:50:57,698 [INFO] 127.0.0.1 - - [30/Aug/2026 13:50:57] "GET /api/device/192.168.0.7/file/ram?path=profile.json HTTP/1.1" 200 -
+2026-08-30 13:50:58,200 [INFO] 127.0.0.1 - - [30/Aug/2026 13:50:58] "GET /api/device/192.168.0.7/file/ram?path=scenario.txt HTTP/1.1" 200 -
+2026-08-30 13:51:04,039 [INFO] 127.0.0.1 - - [30/Aug/2026 13:51:04] "POST /api/device/192.168.0.7/write/ram HTTP/1.1" 200 -
+2026-08-30 13:51:10,037 [INFO] 127.0.0.1 - - [30/Aug/2026 13:51:10] "GET /api/device/192.168.0.7/file/ram?path=config.json HTTP/1.1" 200 -
+2026-08-30 13:51:15,973 [INFO] 127.0.0.1 - - [30/Aug/2026 13:51:15] "GET /api/device/192.168.0.7/file/ram?path=profile.json HTTP/1.1" 200 -
+2026-08-30 13:51:35,621 [INFO] 127.0.0.1 - - [30/Aug/2026 13:51:35] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 13:51:35,622 [INFO] 127.0.0.1 - - [30/Aug/2026 13:51:35] "GET /api/device/192.168.0.7/tree/fs HTTP/1.1" 200 -
+2026-08-30 13:51:37,105 [INFO] 127.0.0.1 - - [30/Aug/2026 13:51:37] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 13:51:37,105 [INFO] 127.0.0.1 - - [30/Aug/2026 13:51:37] "GET /api/device/192.168.0.7/tree/fs HTTP/1.1" 200 -
+2026-08-30 13:55:47,546 [INFO] 127.0.0.1 - - [30/Aug/2026 13:55:47] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-08-30 13:55:47,549 [INFO] 127.0.0.1 - - [30/Aug/2026 13:55:47] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-08-30 13:55:52,891 [INFO] 127.0.0.1 - - [30/Aug/2026 13:55:52] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2026-08-30 14:01:23,152 [INFO] Открыт проект: Test/esp32s2mini
+2026-08-30 14:01:23,154 [INFO] 127.0.0.1 - - [30/Aug/2026 14:01:23] "POST /api/projects/Test/esp32s2mini/open HTTP/1.1" 200 -
+2026-08-30 14:01:23,162 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 14:01:23,164 [INFO] 127.0.0.1 - - [30/Aug/2026 14:01:23] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 14:01:23,177 [INFO] 127.0.0.1 - - [30/Aug/2026 14:01:23] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 14:01:23,196 [INFO] 127.0.0.1 - - [30/Aug/2026 14:01:23] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 14:01:23,198 [INFO] 127.0.0.1 - - [30/Aug/2026 14:01:23] "GET /api/validate/name?value=s2mini&project=Test/esp32s2mini HTTP/1.1" 200 -
+2026-08-30 14:01:23,198 [INFO] 127.0.0.1 - - [30/Aug/2026 14:01:23] "GET /api/validate/apssid?value=IoTm_s2mini&project=Test/esp32s2mini HTTP/1.1" 200 -
+2026-08-30 14:01:23,200 [INFO] 127.0.0.1 - - [30/Aug/2026 14:01:23] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 14:01:25,265 [INFO] 127.0.0.1 - - [30/Aug/2026 14:01:25] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 14:01:25,266 [INFO] 127.0.0.1 - - [30/Aug/2026 14:01:25] "GET /api/device/192.168.0.7/tree/fs HTTP/1.1" 200 -
+2026-08-30 14:11:05,680 [INFO] 127.0.0.1 - - [30/Aug/2026 14:11:05] "GET / HTTP/1.1" 200 -
+2026-08-30 14:11:05,739 [INFO] Открыт проект: PlatformIO
+2026-08-30 14:11:05,742 [INFO] 127.0.0.1 - - [30/Aug/2026 14:11:05] "POST /api/platformio/open HTTP/1.1" 200 -
+2026-08-30 14:11:05,748 [INFO] 127.0.0.1 - - [30/Aug/2026 14:11:05] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 14:11:05,836 [INFO] 127.0.0.1 - - [30/Aug/2026 14:11:05] "GET /api/devices/stream HTTP/1.1" 200 -
+2026-08-30 14:11:05,844 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 14:11:05,846 [INFO] 127.0.0.1 - - [30/Aug/2026 14:11:05] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 14:11:05,852 [INFO] 127.0.0.1 - - [30/Aug/2026 14:11:05] "GET /favicon.png HTTP/1.1" 200 -
+2026-08-30 14:11:05,857 [INFO] 127.0.0.1 - - [30/Aug/2026 14:11:05] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 14:11:05,884 [INFO] 127.0.0.1 - - [30/Aug/2026 14:11:05] "GET /api/validate/apssid?value=IoTmanager&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 14:11:05,885 [INFO] 127.0.0.1 - - [30/Aug/2026 14:11:05] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 14:11:05,886 [INFO] 127.0.0.1 - - [30/Aug/2026 14:11:05] "GET /api/validate/name?value=IoTmanagerVer4&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 14:11:05,891 [INFO] 127.0.0.1 - - [30/Aug/2026 14:11:05] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 14:11:36,955 [INFO] 127.0.0.1 - - [30/Aug/2026 14:11:36] "GET / HTTP/1.1" 200 -
+2026-08-30 14:11:37,036 [INFO] Открыт проект: PlatformIO
+2026-08-30 14:11:37,038 [INFO] 127.0.0.1 - - [30/Aug/2026 14:11:37] "POST /api/platformio/open HTTP/1.1" 200 -
+2026-08-30 14:11:37,042 [INFO] 127.0.0.1 - - [30/Aug/2026 14:11:37] "GET /api/devices/stream HTTP/1.1" 200 -
+2026-08-30 14:11:37,043 [INFO] 127.0.0.1 - - [30/Aug/2026 14:11:37] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 14:11:37,045 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 14:11:37,046 [INFO] 127.0.0.1 - - [30/Aug/2026 14:11:37] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 14:11:37,054 [INFO] 127.0.0.1 - - [30/Aug/2026 14:11:37] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 14:11:37,138 [INFO] 127.0.0.1 - - [30/Aug/2026 14:11:37] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 14:11:37,142 [INFO] 127.0.0.1 - - [30/Aug/2026 14:11:37] "GET /api/validate/name?value=IoTmanagerVer4&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 14:11:37,142 [INFO] 127.0.0.1 - - [30/Aug/2026 14:11:37] "GET /api/validate/apssid?value=IoTmanager&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 14:11:37,145 [INFO] 127.0.0.1 - - [30/Aug/2026 14:11:37] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 14:11:37,153 [INFO] 127.0.0.1 - - [30/Aug/2026 14:11:37] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2026-08-30 14:11:37,201 [INFO] 127.0.0.1 - - [30/Aug/2026 14:11:37] "GET /favicon.png HTTP/1.1" 200 -
+2026-08-30 14:11:37,201 [INFO] 127.0.0.1 - - [30/Aug/2026 14:11:37] "GET /favicon.png HTTP/1.1" 200 -
+2026-08-30 14:11:37,259 [INFO] 127.0.0.1 - - [30/Aug/2026 14:11:37] "GET /favicon.png HTTP/1.1" 200 -
+2026-08-30 14:11:41,026 [INFO] 127.0.0.1 - - [30/Aug/2026 14:11:41] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 14:11:41,027 [INFO] 127.0.0.1 - - [30/Aug/2026 14:11:41] "GET /api/device/192.168.0.7/tree/fs HTTP/1.1" 200 -
+2026-08-30 14:11:47,122 [INFO] 127.0.0.1 - - [30/Aug/2026 14:11:47] "GET /api/device/192.168.0.7/file/ram?path=config.json HTTP/1.1" 200 -
+2026-08-30 14:11:49,011 [INFO] 127.0.0.1 - - [30/Aug/2026 14:11:49] "GET /api/device/192.168.0.7/file/ram?path=items.json HTTP/1.1" 200 -
+2026-08-30 14:11:51,057 [INFO] 127.0.0.1 - - [30/Aug/2026 14:11:51] "GET /api/device/192.168.0.7/file/ram?path=ota.json HTTP/1.1" 200 -
+2026-08-30 14:11:52,695 [INFO] 127.0.0.1 - - [30/Aug/2026 14:11:52] "GET /api/device/192.168.0.7/file/ram?path=profile.json HTTP/1.1" 200 -
+2026-08-30 14:11:54,510 [INFO] 127.0.0.1 - - [30/Aug/2026 14:11:54] "GET /api/device/192.168.0.7/file/ram?path=scenario.txt HTTP/1.1" 200 -
+2026-08-30 14:11:55,768 [INFO] 127.0.0.1 - - [30/Aug/2026 14:11:55] "GET /api/device/192.168.0.7/file/ram?path=settings.json HTTP/1.1" 200 -
+2026-08-30 14:11:58,324 [INFO] 127.0.0.1 - - [30/Aug/2026 14:11:58] "GET /api/device/192.168.0.7/file/ram?path=widgets.json HTTP/1.1" 200 -
+2026-08-30 14:11:59,857 [INFO] 127.0.0.1 - - [30/Aug/2026 14:11:59] "GET /api/device/192.168.0.7/file/ram?path=settings.json HTTP/1.1" 200 -
+2026-08-30 14:12:06,727 [INFO] 127.0.0.1 - - [30/Aug/2026 14:12:06] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2026-08-30 14:16:29,536 [INFO] 127.0.0.1 - - [30/Aug/2026 14:16:29] "GET / HTTP/1.1" 200 -
+2026-08-30 14:16:29,633 [INFO] Открыт проект: PlatformIO
+2026-08-30 14:16:29,634 [INFO] 127.0.0.1 - - [30/Aug/2026 14:16:29] "POST /api/platformio/open HTTP/1.1" 200 -
+2026-08-30 14:16:29,637 [INFO] 127.0.0.1 - - [30/Aug/2026 14:16:29] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 14:16:29,805 [INFO] 127.0.0.1 - - [30/Aug/2026 14:16:29] "GET /api/devices/stream HTTP/1.1" 200 -
+2026-08-30 14:16:29,825 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 14:16:29,825 [INFO] 127.0.0.1 - - [30/Aug/2026 14:16:29] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 14:16:29,826 [INFO] 127.0.0.1 - - [30/Aug/2026 14:16:29] "GET /favicon.png HTTP/1.1" 200 -
+2026-08-30 14:16:29,837 [INFO] 127.0.0.1 - - [30/Aug/2026 14:16:29] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 14:16:29,854 [INFO] 127.0.0.1 - - [30/Aug/2026 14:16:29] "GET /api/validate/name?value=IoTmanagerVer4&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 14:16:29,854 [INFO] 127.0.0.1 - - [30/Aug/2026 14:16:29] "GET /api/validate/apssid?value=IoTmanager&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 14:16:29,858 [INFO] 127.0.0.1 - - [30/Aug/2026 14:16:29] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 14:16:29,862 [INFO] 127.0.0.1 - - [30/Aug/2026 14:16:29] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 14:17:18,353 [INFO] 127.0.0.1 - - [30/Aug/2026 14:17:18] "GET / HTTP/1.1" 200 -
+2026-08-30 14:17:18,373 [INFO] Открыт проект: PlatformIO
+2026-08-30 14:17:18,374 [INFO] 127.0.0.1 - - [30/Aug/2026 14:17:18] "POST /api/platformio/open HTTP/1.1" 200 -
+2026-08-30 14:17:18,378 [INFO] 127.0.0.1 - - [30/Aug/2026 14:17:18] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 14:17:18,379 [INFO] 127.0.0.1 - - [30/Aug/2026 14:17:18] "GET /api/devices/stream HTTP/1.1" 200 -
+2026-08-30 14:17:18,382 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 14:17:18,383 [INFO] 127.0.0.1 - - [30/Aug/2026 14:17:18] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 14:17:18,389 [INFO] 127.0.0.1 - - [30/Aug/2026 14:17:18] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 14:17:18,401 [INFO] 127.0.0.1 - - [30/Aug/2026 14:17:18] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 14:17:18,406 [INFO] 127.0.0.1 - - [30/Aug/2026 14:17:18] "GET /api/validate/name?value=IoTmanagerVer4&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 14:17:18,407 [INFO] 127.0.0.1 - - [30/Aug/2026 14:17:18] "GET /api/validate/apssid?value=IoTmanager&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 14:17:18,409 [INFO] 127.0.0.1 - - [30/Aug/2026 14:17:18] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 14:17:18,426 [INFO] 127.0.0.1 - - [30/Aug/2026 14:17:18] "GET /favicon.png HTTP/1.1" 200 -
+2026-08-30 14:17:18,433 [INFO] 127.0.0.1 - - [30/Aug/2026 14:17:18] "[36mGET /favicon.png HTTP/1.1[0m" 304 -
+2026-08-30 14:17:18,438 [INFO] 127.0.0.1 - - [30/Aug/2026 14:17:18] "[36mGET /favicon.png HTTP/1.1[0m" 304 -
+2026-08-30 14:17:20,487 [INFO] 127.0.0.1 - - [30/Aug/2026 14:17:20] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 14:17:20,489 [INFO] 127.0.0.1 - - [30/Aug/2026 14:17:20] "GET /api/device/192.168.0.7/tree/fs HTTP/1.1" 200 -
+2026-08-30 14:17:21,934 [INFO] 127.0.0.1 - - [30/Aug/2026 14:17:21] "GET /api/device/192.168.0.7/file/ram?path=config.json HTTP/1.1" 200 -
+2026-08-30 14:17:23,148 [INFO] 127.0.0.1 - - [30/Aug/2026 14:17:23] "GET /api/device/192.168.0.7/file/ram?path=items.json HTTP/1.1" 200 -
+2026-08-30 14:17:51,848 [INFO] 127.0.0.1 - - [30/Aug/2026 14:17:51] "GET /api/device/192.168.0.7/file/ram?path=ota.json HTTP/1.1" 200 -
+2026-08-30 14:17:53,237 [INFO] 127.0.0.1 - - [30/Aug/2026 14:17:53] "GET /api/device/192.168.0.7/file/ram?path=profile.json HTTP/1.1" 200 -
+2026-08-30 14:18:04,932 [INFO] 127.0.0.1 - - [30/Aug/2026 14:18:04] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2026-08-30 14:20:05,162 [INFO] 127.0.0.1 - - [30/Aug/2026 14:20:05] "GET /api/device/192.168.0.7/file/ram?path=scenario.txt HTTP/1.1" 200 -
+2026-08-30 14:20:07,951 [INFO] 127.0.0.1 - - [30/Aug/2026 14:20:07] "GET /api/device/192.168.0.7/file/ram?path=settings.json HTTP/1.1" 200 -
+2026-08-30 14:20:17,393 [INFO] 127.0.0.1 - - [30/Aug/2026 14:20:17] "GET /api/device/192.168.0.7/file/ram?path=widgets.json HTTP/1.1" 200 -
+2026-08-30 14:20:32,237 [INFO] 127.0.0.1 - - [30/Aug/2026 14:20:32] "GET /api/device/192.168.0.7/file/ram?path=settings.json HTTP/1.1" 200 -
+2026-08-30 14:20:44,093 [INFO] 127.0.0.1 - - [30/Aug/2026 14:20:44] "GET / HTTP/1.1" 200 -
+2026-08-30 14:20:44,112 [INFO] Открыт проект: PlatformIO
+2026-08-30 14:20:44,113 [INFO] 127.0.0.1 - - [30/Aug/2026 14:20:44] "POST /api/platformio/open HTTP/1.1" 200 -
+2026-08-30 14:20:44,114 [INFO] 127.0.0.1 - - [30/Aug/2026 14:20:44] "GET /api/devices/stream HTTP/1.1" 200 -
+2026-08-30 14:20:44,119 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 14:20:44,119 [INFO] 127.0.0.1 - - [30/Aug/2026 14:20:44] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 14:20:44,121 [INFO] 127.0.0.1 - - [30/Aug/2026 14:20:44] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 14:20:44,126 [INFO] 127.0.0.1 - - [30/Aug/2026 14:20:44] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 14:20:44,139 [INFO] 127.0.0.1 - - [30/Aug/2026 14:20:44] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 14:20:44,143 [INFO] 127.0.0.1 - - [30/Aug/2026 14:20:44] "GET /api/validate/name?value=IoTmanagerVer4&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 14:20:44,143 [INFO] 127.0.0.1 - - [30/Aug/2026 14:20:44] "GET /api/validate/apssid?value=IoTmanager&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 14:20:44,148 [INFO] 127.0.0.1 - - [30/Aug/2026 14:20:44] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 14:20:44,157 [INFO] 127.0.0.1 - - [30/Aug/2026 14:20:44] "GET /favicon.png HTTP/1.1" 200 -
+2026-08-30 14:20:44,161 [INFO] 127.0.0.1 - - [30/Aug/2026 14:20:44] "[36mGET /favicon.png HTTP/1.1[0m" 304 -
+2026-08-30 14:20:44,166 [INFO] 127.0.0.1 - - [30/Aug/2026 14:20:44] "[36mGET /favicon.png HTTP/1.1[0m" 304 -
+2026-08-30 14:20:45,375 [INFO] 127.0.0.1 - - [30/Aug/2026 14:20:45] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 14:20:45,378 [INFO] 127.0.0.1 - - [30/Aug/2026 14:20:45] "GET /api/device/192.168.0.7/tree/fs HTTP/1.1" 200 -
+2026-08-30 14:20:46,941 [INFO] 127.0.0.1 - - [30/Aug/2026 14:20:46] "GET /api/device/192.168.0.7/file/ram?path=ota.json HTTP/1.1" 200 -
+2026-08-30 14:20:47,630 [INFO] 127.0.0.1 - - [30/Aug/2026 14:20:47] "GET /api/device/192.168.0.7/file/ram?path=items.json HTTP/1.1" 200 -
+2026-08-30 14:20:58,021 [INFO] 127.0.0.1 - - [30/Aug/2026 14:20:58] "GET /api/device/192.168.0.7/file/ram?path=ota.json HTTP/1.1" 200 -
+2026-08-30 14:20:59,037 [INFO] 127.0.0.1 - - [30/Aug/2026 14:20:59] "GET /api/device/192.168.0.7/file/ram?path=scenario.txt HTTP/1.1" 200 -
+2026-08-30 14:21:10,598 [INFO] 127.0.0.1 - - [30/Aug/2026 14:21:10] "GET /api/device/192.168.0.7/file/ram?path=settings.json HTTP/1.1" 200 -
+2026-08-30 14:21:12,902 [INFO] 127.0.0.1 - - [30/Aug/2026 14:21:12] "GET /api/device/192.168.0.7/file/ram?path=settings.json HTTP/1.1" 200 -
+2026-08-30 14:21:14,341 [INFO] 127.0.0.1 - - [30/Aug/2026 14:21:14] "GET /api/device/192.168.0.7/file/ram?path=settings.json HTTP/1.1" 200 -
+2026-08-30 14:21:15,513 [INFO] 127.0.0.1 - - [30/Aug/2026 14:21:15] "GET /api/device/192.168.0.7/file/ram?path=settings.json HTTP/1.1" 200 -
+2026-08-30 14:23:17,455 [INFO] 127.0.0.1 - - [30/Aug/2026 14:23:17] "GET /api/device/192.168.0.7/file/ram?path=profile.json HTTP/1.1" 200 -
+2026-08-30 14:23:29,895 [INFO] 127.0.0.1 - - [30/Aug/2026 14:23:29] "GET / HTTP/1.1" 200 -
+2026-08-30 14:23:29,926 [INFO] Открыт проект: PlatformIO
+2026-08-30 14:23:29,927 [INFO] 127.0.0.1 - - [30/Aug/2026 14:23:29] "POST /api/platformio/open HTTP/1.1" 200 -
+2026-08-30 14:23:29,929 [INFO] 127.0.0.1 - - [30/Aug/2026 14:23:29] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 14:23:30,032 [INFO] 127.0.0.1 - - [30/Aug/2026 14:23:30] "GET /api/devices/stream HTTP/1.1" 200 -
+2026-08-30 14:23:30,039 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 14:23:30,039 [INFO] 127.0.0.1 - - [30/Aug/2026 14:23:30] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 14:23:30,043 [INFO] 127.0.0.1 - - [30/Aug/2026 14:23:30] "GET /favicon.png HTTP/1.1" 200 -
+2026-08-30 14:23:30,052 [INFO] 127.0.0.1 - - [30/Aug/2026 14:23:30] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 14:23:30,087 [INFO] 127.0.0.1 - - [30/Aug/2026 14:23:30] "GET /api/validate/name?value=IoTmanagerVer4&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 14:23:30,088 [INFO] 127.0.0.1 - - [30/Aug/2026 14:23:30] "GET /api/validate/apssid?value=IoTmanager&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 14:23:30,094 [INFO] 127.0.0.1 - - [30/Aug/2026 14:23:30] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 14:23:30,098 [INFO] 127.0.0.1 - - [30/Aug/2026 14:23:30] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 14:23:42,708 [INFO] 127.0.0.1 - - [30/Aug/2026 14:23:42] "GET /api/device/192.168.0.7/file/ram?path=config.json HTTP/1.1" 200 -
+2026-08-30 14:23:58,442 [INFO] 127.0.0.1 - - [30/Aug/2026 14:23:58] "GET /api/device/192.168.0.7/file/ram?path=config.json HTTP/1.1" 200 -
+2026-08-30 14:24:04,374 [INFO] 127.0.0.1 - - [30/Aug/2026 14:24:04] "POST /api/device/192.168.0.7/write/ram HTTP/1.1" 200 -
+2026-08-30 14:24:06,804 [INFO] 127.0.0.1 - - [30/Aug/2026 14:24:06] "GET /api/device/192.168.0.7/file/ram?path=items.json HTTP/1.1" 200 -
+2026-08-30 14:24:07,398 [INFO] 127.0.0.1 - - [30/Aug/2026 14:24:07] "GET /api/device/192.168.0.7/file/ram?path=config.json HTTP/1.1" 200 -
+2026-08-30 14:24:19,891 [INFO] 127.0.0.1 - - [30/Aug/2026 14:24:19] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2026-08-30 14:24:21,896 [INFO] 127.0.0.1 - - [30/Aug/2026 14:24:21] "POST /api/device/192.168.0.7/fetch/ram HTTP/1.1" 200 -
+2026-08-30 14:24:21,901 [INFO] 127.0.0.1 - - [30/Aug/2026 14:24:21] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 14:25:35,045 [INFO] 127.0.0.1 - - [30/Aug/2026 14:25:35] "GET / HTTP/1.1" 200 -
+2026-08-30 14:25:35,070 [INFO] Открыт проект: PlatformIO
+2026-08-30 14:25:35,072 [INFO] 127.0.0.1 - - [30/Aug/2026 14:25:35] "POST /api/platformio/open HTTP/1.1" 200 -
+2026-08-30 14:25:35,073 [INFO] 127.0.0.1 - - [30/Aug/2026 14:25:35] "GET /api/devices/stream HTTP/1.1" 200 -
+2026-08-30 14:25:35,078 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 14:25:35,079 [INFO] 127.0.0.1 - - [30/Aug/2026 14:25:35] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 14:25:35,080 [INFO] 127.0.0.1 - - [30/Aug/2026 14:25:35] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 14:25:35,090 [INFO] 127.0.0.1 - - [30/Aug/2026 14:25:35] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 14:25:35,103 [INFO] 127.0.0.1 - - [30/Aug/2026 14:25:35] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2026-08-30 14:25:35,112 [INFO] 127.0.0.1 - - [30/Aug/2026 14:25:35] "GET /api/validate/apssid?value=IoTmanager&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 14:25:35,113 [INFO] 127.0.0.1 - - [30/Aug/2026 14:25:35] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 14:25:35,117 [INFO] 127.0.0.1 - - [30/Aug/2026 14:25:35] "GET /api/validate/name?value=IoTmanagerVer4&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 14:25:35,120 [INFO] 127.0.0.1 - - [30/Aug/2026 14:25:35] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 14:25:35,141 [INFO] 127.0.0.1 - - [30/Aug/2026 14:25:35] "GET /favicon.png HTTP/1.1" 200 -
+2026-08-30 14:25:35,142 [INFO] 127.0.0.1 - - [30/Aug/2026 14:25:35] "GET /favicon.png HTTP/1.1" 200 -
+2026-08-30 14:25:35,159 [INFO] 127.0.0.1 - - [30/Aug/2026 14:25:35] "GET /favicon.png HTTP/1.1" 200 -
+2026-08-30 14:25:38,878 [INFO] 127.0.0.1 - - [30/Aug/2026 14:25:38] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 14:25:38,880 [INFO] 127.0.0.1 - - [30/Aug/2026 14:25:38] "GET /api/device/192.168.0.7/tree/fs HTTP/1.1" 200 -
+2026-08-30 14:25:40,369 [INFO] 127.0.0.1 - - [30/Aug/2026 14:25:40] "GET /api/device/192.168.0.7/file/ram?path=config.json HTTP/1.1" 200 -
+2026-08-30 14:25:50,090 [INFO] 127.0.0.1 - - [30/Aug/2026 14:25:50] "GET /api/device/192.168.0.7/file/ram?path=items.json HTTP/1.1" 200 -
+2026-08-30 14:25:51,735 [INFO] 127.0.0.1 - - [30/Aug/2026 14:25:51] "GET /api/device/192.168.0.7/file/ram?path=ota.json HTTP/1.1" 200 -
+2026-08-30 14:25:52,921 [INFO] 127.0.0.1 - - [30/Aug/2026 14:25:52] "GET /api/device/192.168.0.7/file/ram?path=items.json HTTP/1.1" 200 -
+2026-08-30 14:25:56,517 [INFO] 127.0.0.1 - - [30/Aug/2026 14:25:56] "POST /api/device/192.168.0.7/fetch/ram HTTP/1.1" 200 -
+2026-08-30 14:25:56,522 [INFO] 127.0.0.1 - - [30/Aug/2026 14:25:56] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 14:26:01,704 [INFO] 127.0.0.1 - - [30/Aug/2026 14:26:01] "GET /api/device/192.168.0.7/file/ram?path=items.json HTTP/1.1" 200 -
+2026-08-30 14:26:07,126 [INFO] 127.0.0.1 - - [30/Aug/2026 14:26:07] "GET /api/device/192.168.0.7/file/ram?path=ota.json HTTP/1.1" 200 -
+2026-08-30 14:26:07,924 [INFO] 127.0.0.1 - - [30/Aug/2026 14:26:07] "GET /api/device/192.168.0.7/file/ram?path=items.json HTTP/1.1" 200 -
+2026-08-30 14:26:09,041 [INFO] 127.0.0.1 - - [30/Aug/2026 14:26:09] "GET /api/device/192.168.0.7/file/ram?path=config.json HTTP/1.1" 200 -
+2026-08-30 14:26:14,345 [INFO] 127.0.0.1 - - [30/Aug/2026 14:26:14] "POST /api/device/192.168.0.7/write/ram HTTP/1.1" 200 -
+2026-08-30 14:26:18,011 [INFO] 127.0.0.1 - - [30/Aug/2026 14:26:18] "GET /api/device/192.168.0.7/file/ram?path=items.json HTTP/1.1" 200 -
+2026-08-30 14:26:18,760 [INFO] 127.0.0.1 - - [30/Aug/2026 14:26:18] "GET /api/device/192.168.0.7/file/ram?path=config.json HTTP/1.1" 200 -
+2026-08-30 14:26:21,912 [INFO] 127.0.0.1 - - [30/Aug/2026 14:26:21] "GET /api/device/192.168.0.7/file/ram?path=items.json HTTP/1.1" 200 -
+2026-08-30 14:26:23,604 [INFO] 127.0.0.1 - - [30/Aug/2026 14:26:23] "GET /api/device/192.168.0.7/file/ram?path=ota.json HTTP/1.1" 200 -
+2026-08-30 14:26:24,823 [INFO] 127.0.0.1 - - [30/Aug/2026 14:26:24] "GET /api/device/192.168.0.7/file/ram?path=profile.json HTTP/1.1" 200 -
+2026-08-30 14:26:29,879 [INFO] 127.0.0.1 - - [30/Aug/2026 14:26:29] "GET /api/device/192.168.0.7/file/ram?path=scenario.txt HTTP/1.1" 200 -
+2026-08-30 14:26:33,544 [INFO] 127.0.0.1 - - [30/Aug/2026 14:26:33] "GET /api/device/192.168.0.7/file/ram?path=settings.json HTTP/1.1" 200 -
+2026-08-30 14:26:34,612 [INFO] 127.0.0.1 - - [30/Aug/2026 14:26:34] "GET /api/device/192.168.0.7/file/ram?path=scenario.txt HTTP/1.1" 200 -
+2026-08-30 14:26:36,189 [INFO] 127.0.0.1 - - [30/Aug/2026 14:26:36] "GET /api/device/192.168.0.7/file/ram?path=settings.json HTTP/1.1" 200 -
+2026-08-30 14:26:44,623 [INFO] 127.0.0.1 - - [30/Aug/2026 14:26:44] "GET /api/device/192.168.0.7/file/ram?path=widgets.json HTTP/1.1" 200 -
+2026-08-30 14:26:47,823 [INFO] 127.0.0.1 - - [30/Aug/2026 14:26:47] "GET /api/device/192.168.0.7/file/ram?path=settings.json HTTP/1.1" 200 -
+2026-08-30 14:26:50,012 [INFO] 127.0.0.1 - - [30/Aug/2026 14:26:50] "GET /api/device/192.168.0.7/file/ram?path=scenario.txt HTTP/1.1" 200 -
+2026-08-30 14:29:55,898 [INFO] 127.0.0.1 - - [30/Aug/2026 14:29:55] "GET / HTTP/1.1" 200 -
+2026-08-30 14:29:55,919 [INFO] 127.0.0.1 - - [30/Aug/2026 14:29:55] "GET /api/devices/stream HTTP/1.1" 200 -
+2026-08-30 14:29:55,967 [INFO] 127.0.0.1 - - [30/Aug/2026 14:29:55] "GET /favicon.png HTTP/1.1" 200 -
+2026-08-30 14:29:55,967 [INFO] Открыт проект: PlatformIO
+2026-08-30 14:29:55,970 [INFO] 127.0.0.1 - - [30/Aug/2026 14:29:55] "POST /api/platformio/open HTTP/1.1" 200 -
+2026-08-30 14:29:55,972 [INFO] 127.0.0.1 - - [30/Aug/2026 14:29:55] "[36mGET /favicon.png HTTP/1.1[0m" 304 -
+2026-08-30 14:29:55,976 [INFO] 127.0.0.1 - - [30/Aug/2026 14:29:55] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 14:29:55,982 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 14:29:55,983 [INFO] 127.0.0.1 - - [30/Aug/2026 14:29:55] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 14:29:55,987 [INFO] 127.0.0.1 - - [30/Aug/2026 14:29:55] "[36mGET /favicon.png HTTP/1.1[0m" 304 -
+2026-08-30 14:29:55,991 [INFO] 127.0.0.1 - - [30/Aug/2026 14:29:55] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 14:29:56,003 [INFO] 127.0.0.1 - - [30/Aug/2026 14:29:56] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 14:29:56,009 [INFO] 127.0.0.1 - - [30/Aug/2026 14:29:56] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 14:29:56,010 [INFO] 127.0.0.1 - - [30/Aug/2026 14:29:56] "GET /api/validate/name?value=IoTmanagerVer4&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 14:29:56,011 [INFO] 127.0.0.1 - - [30/Aug/2026 14:29:56] "GET /api/validate/apssid?value=IoTmanager&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 14:29:56,083 [INFO] 127.0.0.1 - - [30/Aug/2026 14:29:56] "POST /api/device/192.168.0.7/fetch/ram HTTP/1.1" 200 -
+2026-08-30 14:29:57,986 [INFO] 127.0.0.1 - - [30/Aug/2026 14:29:57] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 14:29:57,987 [INFO] 127.0.0.1 - - [30/Aug/2026 14:29:57] "GET /api/device/192.168.0.7/tree/fs HTTP/1.1" 200 -
+2026-08-30 14:30:05,628 [INFO] 127.0.0.1 - - [30/Aug/2026 14:30:05] "GET /api/device/192.168.0.7/file/ram?path=config.json HTTP/1.1" 200 -
+2026-08-30 14:30:06,692 [INFO] 127.0.0.1 - - [30/Aug/2026 14:30:06] "GET /api/device/192.168.0.7/file/ram?path=items.json HTTP/1.1" 200 -
+2026-08-30 14:31:18,863 [INFO] ============================================================
+2026-08-30 14:31:18,863 [INFO] MagicIoTm запускается...
+2026-08-30 14:31:18,864 [INFO] ============================================================
+2026-08-30 14:31:18,865 [INFO] Загружено платформ: 19
+2026-08-30 14:31:18,905 [INFO] Кэш modinfo: 109 модулей
+2026-08-30 14:31:18,906 [INFO] Multicast слушатель: 239.255.255.255:4210
+2026-08-30 14:31:18,906 [INFO] Готов к работе
+2026-08-30 14:31:18,907 [INFO] ============================================================
+2026-08-30 14:31:18,907 [INFO] Сервер: http://127.0.0.1:5005
+2026-08-30 14:31:18,981 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5005
+2026-08-30 14:31:18,982 [INFO] [33mPress CTRL+C to quit[0m
+2026-08-30 14:31:20,748 [INFO] 127.0.0.1 - - [30/Aug/2026 14:31:20] "GET /api/devices/stream HTTP/1.1" 200 -
+2026-08-30 14:31:41,157 [INFO] 127.0.0.1 - - [30/Aug/2026 14:31:41] "GET / HTTP/1.1" 200 -
+2026-08-30 14:31:41,176 [INFO] Открыт проект: PlatformIO
+2026-08-30 14:31:41,177 [INFO] 127.0.0.1 - - [30/Aug/2026 14:31:41] "POST /api/platformio/open HTTP/1.1" 200 -
+2026-08-30 14:31:41,177 [INFO] 127.0.0.1 - - [30/Aug/2026 14:31:41] "GET /api/devices/stream HTTP/1.1" 200 -
+2026-08-30 14:31:41,181 [INFO] 127.0.0.1 - - [30/Aug/2026 14:31:41] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 14:31:41,184 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 14:31:41,185 [INFO] 127.0.0.1 - - [30/Aug/2026 14:31:41] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 14:31:41,190 [INFO] 127.0.0.1 - - [30/Aug/2026 14:31:41] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 14:31:41,203 [INFO] 127.0.0.1 - - [30/Aug/2026 14:31:41] "GET /api/validate/name?value=IoTmanagerVer4&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 14:31:41,205 [INFO] 127.0.0.1 - - [30/Aug/2026 14:31:41] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 14:31:41,206 [INFO] 127.0.0.1 - - [30/Aug/2026 14:31:41] "GET /api/validate/apssid?value=IoTmanager&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 14:31:41,209 [INFO] 127.0.0.1 - - [30/Aug/2026 14:31:41] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 14:31:41,219 [INFO] 127.0.0.1 - - [30/Aug/2026 14:31:41] "GET /favicon.png HTTP/1.1" 200 -
+2026-08-30 14:31:41,223 [INFO] 127.0.0.1 - - [30/Aug/2026 14:31:41] "[36mGET /favicon.png HTTP/1.1[0m" 304 -
+2026-08-30 14:31:41,241 [INFO] 127.0.0.1 - - [30/Aug/2026 14:31:41] "[36mGET /favicon.png HTTP/1.1[0m" 304 -
+2026-08-30 14:31:46,276 [INFO] Папка устройства: E:\GitHub\IoTManager\tools\magicIoTm\devices\RT-5GPON-8A68_192.168.0.7_s2mini
+2026-08-30 14:31:48,415 [INFO] 127.0.0.1 - - [30/Aug/2026 14:31:48] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 14:31:48,417 [INFO] 127.0.0.1 - - [30/Aug/2026 14:31:48] "GET /api/device/192.168.0.7/tree/fs HTTP/1.1" 200 -
+2026-08-30 14:31:49,743 [INFO] 127.0.0.1 - - [30/Aug/2026 14:31:49] "GET /api/device/192.168.0.7/file/ram?path=config.json HTTP/1.1" 200 -
+2026-08-30 14:31:53,163 [INFO] 127.0.0.1 - - [30/Aug/2026 14:31:53] "GET /api/device/192.168.0.7/file/ram?path=items.json HTTP/1.1" 200 -
+2026-08-30 14:31:56,848 [INFO] 127.0.0.1 - - [30/Aug/2026 14:31:56] "GET /api/device/192.168.0.7/file/ram?path=ota.json HTTP/1.1" 200 -
+2026-08-30 14:32:01,392 [INFO] 127.0.0.1 - - [30/Aug/2026 14:32:01] "GET /api/device/192.168.0.7/file/ram?path=profile.json HTTP/1.1" 200 -
+2026-08-30 14:32:03,363 [INFO] 127.0.0.1 - - [30/Aug/2026 14:32:03] "GET /api/device/192.168.0.7/file/ram?path=scenario.txt HTTP/1.1" 200 -
+2026-08-30 14:32:04,776 [INFO] 127.0.0.1 - - [30/Aug/2026 14:32:04] "GET /api/device/192.168.0.7/file/ram?path=settings.json HTTP/1.1" 200 -
+2026-08-30 14:32:06,167 [INFO] 127.0.0.1 - - [30/Aug/2026 14:32:06] "GET /api/device/192.168.0.7/file/ram?path=widgets.json HTTP/1.1" 200 -
+2026-08-30 14:32:50,443 [INFO] 127.0.0.1 - - [30/Aug/2026 14:32:50] "GET /api/device/192.168.0.7/tree/fs HTTP/1.1" 200 -
+2026-08-30 14:32:50,444 [INFO] 127.0.0.1 - - [30/Aug/2026 14:32:50] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 14:32:53,708 [INFO] Открыт проект: Test/esp32s2mini
+2026-08-30 14:32:53,708 [INFO] 127.0.0.1 - - [30/Aug/2026 14:32:53] "POST /api/projects/Test/esp32s2mini/open HTTP/1.1" 200 -
+2026-08-30 14:32:53,714 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 14:32:53,715 [INFO] 127.0.0.1 - - [30/Aug/2026 14:32:53] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 14:32:53,721 [INFO] 127.0.0.1 - - [30/Aug/2026 14:32:53] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 14:32:53,734 [INFO] 127.0.0.1 - - [30/Aug/2026 14:32:53] "GET /api/validate/apssid?value=IoTm_s2mini&project=Test/esp32s2mini HTTP/1.1" 200 -
+2026-08-30 14:32:53,735 [INFO] 127.0.0.1 - - [30/Aug/2026 14:32:53] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 14:32:53,735 [INFO] 127.0.0.1 - - [30/Aug/2026 14:32:53] "GET /api/validate/name?value=s2mini&project=Test/esp32s2mini HTTP/1.1" 200 -
+2026-08-30 14:32:53,737 [INFO] 127.0.0.1 - - [30/Aug/2026 14:32:53] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 14:32:57,190 [INFO] 127.0.0.1 - - [30/Aug/2026 14:32:57] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 14:32:57,193 [INFO] 127.0.0.1 - - [30/Aug/2026 14:32:57] "GET /api/device/192.168.0.7/tree/fs HTTP/1.1" 200 -
+2026-08-30 14:33:03,006 [INFO] 127.0.0.1 - - [30/Aug/2026 14:33:03] "GET /api/device/192.168.0.7/file/ram?path=config.json HTTP/1.1" 200 -
+2026-08-30 14:33:04,027 [INFO] 127.0.0.1 - - [30/Aug/2026 14:33:04] "GET /api/device/192.168.0.7/file/ram?path=profile.json HTTP/1.1" 200 -
+2026-08-30 14:33:44,031 [INFO] 127.0.0.1 - - [30/Aug/2026 14:33:44] "GET /api/device/192.168.0.7/file/ram?path=widgets.json HTTP/1.1" 200 -
+2026-08-30 14:33:45,518 [INFO] 127.0.0.1 - - [30/Aug/2026 14:33:45] "GET / HTTP/1.1" 200 -
+2026-08-30 14:33:45,540 [INFO] Открыт проект: PlatformIO
+2026-08-30 14:33:45,541 [INFO] 127.0.0.1 - - [30/Aug/2026 14:33:45] "POST /api/platformio/open HTTP/1.1" 200 -
+2026-08-30 14:33:45,542 [INFO] 127.0.0.1 - - [30/Aug/2026 14:33:45] "GET /api/devices/stream HTTP/1.1" 200 -
+2026-08-30 14:33:45,545 [INFO] 127.0.0.1 - - [30/Aug/2026 14:33:45] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 14:33:45,551 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 14:33:45,553 [INFO] 127.0.0.1 - - [30/Aug/2026 14:33:45] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 14:33:45,560 [INFO] 127.0.0.1 - - [30/Aug/2026 14:33:45] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 14:33:45,576 [INFO] 127.0.0.1 - - [30/Aug/2026 14:33:45] "GET /favicon.png HTTP/1.1" 200 -
+2026-08-30 14:33:45,585 [INFO] 127.0.0.1 - - [30/Aug/2026 14:33:45] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 14:33:45,591 [INFO] 127.0.0.1 - - [30/Aug/2026 14:33:45] "GET /api/validate/name?value=IoTmanagerVer4&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 14:33:45,594 [INFO] 127.0.0.1 - - [30/Aug/2026 14:33:45] "GET /api/validate/apssid?value=IoTmanager&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 14:33:45,595 [INFO] 127.0.0.1 - - [30/Aug/2026 14:33:45] "[36mGET /favicon.png HTTP/1.1[0m" 304 -
+2026-08-30 14:33:45,603 [INFO] 127.0.0.1 - - [30/Aug/2026 14:33:45] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 14:33:45,618 [INFO] 127.0.0.1 - - [30/Aug/2026 14:33:45] "[36mGET /favicon.png HTTP/1.1[0m" 304 -
+2026-08-30 14:33:47,186 [INFO] 127.0.0.1 - - [30/Aug/2026 14:33:47] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 14:33:47,186 [INFO] 127.0.0.1 - - [30/Aug/2026 14:33:47] "GET /api/device/192.168.0.7/tree/fs HTTP/1.1" 200 -
+2026-08-30 14:33:49,134 [INFO] 127.0.0.1 - - [30/Aug/2026 14:33:49] "GET /api/device/192.168.0.7/file/ram?path=scenario.txt HTTP/1.1" 200 -
+2026-08-30 14:34:20,366 [INFO] 127.0.0.1 - - [30/Aug/2026 14:34:20] "GET / HTTP/1.1" 200 -
+2026-08-30 14:34:20,387 [INFO] Открыт проект: PlatformIO
+2026-08-30 14:34:20,388 [INFO] 127.0.0.1 - - [30/Aug/2026 14:34:20] "POST /api/platformio/open HTTP/1.1" 200 -
+2026-08-30 14:34:20,388 [INFO] 127.0.0.1 - - [30/Aug/2026 14:34:20] "GET /api/devices/stream HTTP/1.1" 200 -
+2026-08-30 14:34:20,393 [INFO] 127.0.0.1 - - [30/Aug/2026 14:34:20] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 14:34:20,394 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 14:34:20,394 [INFO] 127.0.0.1 - - [30/Aug/2026 14:34:20] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 14:34:20,401 [INFO] 127.0.0.1 - - [30/Aug/2026 14:34:20] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 14:34:20,406 [INFO] 127.0.0.1 - - [30/Aug/2026 14:34:20] "GET /favicon.png HTTP/1.1" 200 -
+2026-08-30 14:34:20,418 [INFO] 127.0.0.1 - - [30/Aug/2026 14:34:20] "[36mGET /favicon.png HTTP/1.1[0m" 304 -
+2026-08-30 14:34:20,420 [INFO] 127.0.0.1 - - [30/Aug/2026 14:34:20] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 14:34:20,423 [INFO] 127.0.0.1 - - [30/Aug/2026 14:34:20] "GET /api/validate/name?value=IoTmanagerVer4&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 14:34:20,424 [INFO] 127.0.0.1 - - [30/Aug/2026 14:34:20] "GET /api/validate/apssid?value=IoTmanager&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 14:34:20,429 [INFO] 127.0.0.1 - - [30/Aug/2026 14:34:20] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 14:34:20,436 [INFO] 127.0.0.1 - - [30/Aug/2026 14:34:20] "[36mGET /favicon.png HTTP/1.1[0m" 304 -
+2026-08-30 14:34:21,957 [INFO] 127.0.0.1 - - [30/Aug/2026 14:34:21] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 14:34:21,958 [INFO] 127.0.0.1 - - [30/Aug/2026 14:34:21] "GET /api/device/192.168.0.7/tree/fs HTTP/1.1" 200 -
+2026-08-30 14:34:23,258 [INFO] 127.0.0.1 - - [30/Aug/2026 14:34:23] "GET /api/device/192.168.0.7/file/ram?path=items.json HTTP/1.1" 200 -
+2026-08-30 14:34:24,285 [INFO] 127.0.0.1 - - [30/Aug/2026 14:34:24] "GET /api/device/192.168.0.7/file/ram?path=ota.json HTTP/1.1" 200 -
+2026-08-30 14:34:26,271 [INFO] 127.0.0.1 - - [30/Aug/2026 14:34:26] "GET /api/device/192.168.0.7/file/ram?path=scenario.txt HTTP/1.1" 200 -
+2026-08-30 14:51:08,914 [INFO] 127.0.0.1 - - [30/Aug/2026 14:51:08] "GET / HTTP/1.1" 200 -
+2026-08-30 14:51:08,994 [INFO] Открыт проект: PlatformIO
+2026-08-30 14:51:08,995 [INFO] 127.0.0.1 - - [30/Aug/2026 14:51:08] "POST /api/platformio/open HTTP/1.1" 200 -
+2026-08-30 14:51:09,000 [INFO] 127.0.0.1 - - [30/Aug/2026 14:51:09] "GET /api/devices/stream HTTP/1.1" 200 -
+2026-08-30 14:51:09,002 [INFO] 127.0.0.1 - - [30/Aug/2026 14:51:09] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 14:51:09,004 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 14:51:09,005 [INFO] 127.0.0.1 - - [30/Aug/2026 14:51:09] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 14:51:09,015 [INFO] 127.0.0.1 - - [30/Aug/2026 14:51:09] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 14:51:09,018 [INFO] 127.0.0.1 - - [30/Aug/2026 14:51:09] "GET /favicon.png HTTP/1.1" 200 -
+2026-08-30 14:51:09,028 [INFO] 127.0.0.1 - - [30/Aug/2026 14:51:09] "[36mGET /favicon.png HTTP/1.1[0m" 304 -
+2026-08-30 14:51:09,038 [INFO] 127.0.0.1 - - [30/Aug/2026 14:51:09] "[36mGET /favicon.png HTTP/1.1[0m" 304 -
+2026-08-30 14:51:09,041 [INFO] 127.0.0.1 - - [30/Aug/2026 14:51:09] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 14:51:09,049 [INFO] 127.0.0.1 - - [30/Aug/2026 14:51:09] "GET /api/validate/name?value=IoTmanagerVer4&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 14:51:09,049 [INFO] 127.0.0.1 - - [30/Aug/2026 14:51:09] "GET /api/validate/apssid?value=IoTmanager&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 14:51:09,051 [INFO] 127.0.0.1 - - [30/Aug/2026 14:51:09] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 14:51:10,857 [INFO] 127.0.0.1 - - [30/Aug/2026 14:51:10] "GET /api/device/192.168.0.7/tree/fs HTTP/1.1" 200 -
+2026-08-30 14:51:10,857 [INFO] 127.0.0.1 - - [30/Aug/2026 14:51:10] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 14:51:13,005 [INFO] 127.0.0.1 - - [30/Aug/2026 14:51:13] "GET /api/device/192.168.0.7/file/ram?path=scenario.txt HTTP/1.1" 200 -
+2026-08-30 14:51:24,575 [INFO] 127.0.0.1 - - [30/Aug/2026 14:51:24] "GET /api/device/192.168.0.7/file/ram?path=settings.json HTTP/1.1" 200 -
+2026-08-30 14:51:28,796 [INFO] 127.0.0.1 - - [30/Aug/2026 14:51:28] "GET /api/device/192.168.0.7/file/ram?path=scenario.txt HTTP/1.1" 200 -
+2026-08-30 14:52:23,411 [INFO] 127.0.0.1 - - [30/Aug/2026 14:52:23] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2026-08-30 15:00:03,825 [INFO] 127.0.0.1 - - [30/Aug/2026 15:00:03] "GET / HTTP/1.1" 200 -
+2026-08-30 15:00:03,848 [INFO] Открыт проект: PlatformIO
+2026-08-30 15:00:03,849 [INFO] 127.0.0.1 - - [30/Aug/2026 15:00:03] "POST /api/platformio/open HTTP/1.1" 200 -
+2026-08-30 15:00:03,851 [INFO] 127.0.0.1 - - [30/Aug/2026 15:00:03] "GET /api/devices/stream HTTP/1.1" 200 -
+2026-08-30 15:00:03,856 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 15:00:03,857 [INFO] 127.0.0.1 - - [30/Aug/2026 15:00:03] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 15:00:03,866 [INFO] 127.0.0.1 - - [30/Aug/2026 15:00:03] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 15:00:03,884 [INFO] 127.0.0.1 - - [30/Aug/2026 15:00:03] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 15:00:03,904 [INFO] 127.0.0.1 - - [30/Aug/2026 15:00:03] "GET /favicon.png HTTP/1.1" 200 -
+2026-08-30 15:00:03,911 [INFO] 127.0.0.1 - - [30/Aug/2026 15:00:03] "[36mGET /favicon.png HTTP/1.1[0m" 304 -
+2026-08-30 15:00:03,917 [INFO] 127.0.0.1 - - [30/Aug/2026 15:00:03] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 15:00:03,921 [INFO] 127.0.0.1 - - [30/Aug/2026 15:00:03] "GET /api/validate/apssid?value=IoTmanager&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 15:00:03,921 [INFO] 127.0.0.1 - - [30/Aug/2026 15:00:03] "GET /api/validate/name?value=IoTmanagerVer4&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 15:00:03,926 [INFO] 127.0.0.1 - - [30/Aug/2026 15:00:03] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 15:00:03,933 [INFO] 127.0.0.1 - - [30/Aug/2026 15:00:03] "[36mGET /favicon.png HTTP/1.1[0m" 304 -
+2026-08-30 15:00:05,579 [INFO] 127.0.0.1 - - [30/Aug/2026 15:00:05] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 15:00:05,582 [INFO] 127.0.0.1 - - [30/Aug/2026 15:00:05] "GET /api/device/192.168.0.7/tree/fs HTTP/1.1" 200 -
+2026-08-30 15:00:07,879 [INFO] 127.0.0.1 - - [30/Aug/2026 15:00:07] "GET /api/device/192.168.0.7/file/ram?path=scenario.txt HTTP/1.1" 200 -
+2026-08-30 15:00:11,147 [INFO] 127.0.0.1 - - [30/Aug/2026 15:00:11] "GET /api/device/192.168.0.7/file/ram?path=settings.json HTTP/1.1" 200 -
+2026-08-30 15:00:12,583 [INFO] 127.0.0.1 - - [30/Aug/2026 15:00:12] "GET /api/device/192.168.0.7/file/ram?path=profile.json HTTP/1.1" 200 -
+2026-08-30 15:00:13,331 [INFO] 127.0.0.1 - - [30/Aug/2026 15:00:13] "GET /api/device/192.168.0.7/file/ram?path=ota.json HTTP/1.1" 200 -
+2026-08-30 15:00:13,954 [INFO] 127.0.0.1 - - [30/Aug/2026 15:00:13] "GET /api/device/192.168.0.7/file/ram?path=items.json HTTP/1.1" 200 -
+2026-08-30 15:00:14,633 [INFO] 127.0.0.1 - - [30/Aug/2026 15:00:14] "GET /api/device/192.168.0.7/file/ram?path=config.json HTTP/1.1" 200 -
+2026-08-30 15:00:15,355 [INFO] 127.0.0.1 - - [30/Aug/2026 15:00:15] "GET /api/device/192.168.0.7/file/ram?path=profile.json HTTP/1.1" 200 -
+2026-08-30 15:00:16,765 [INFO] 127.0.0.1 - - [30/Aug/2026 15:00:16] "GET /api/device/192.168.0.7/file/ram?path=widgets.json HTTP/1.1" 200 -
+2026-08-30 15:01:41,487 [INFO] 127.0.0.1 - - [30/Aug/2026 15:01:41] "GET / HTTP/1.1" 200 -
+2026-08-30 15:01:41,507 [INFO] Открыт проект: PlatformIO
+2026-08-30 15:01:41,508 [INFO] 127.0.0.1 - - [30/Aug/2026 15:01:41] "GET /api/devices/stream HTTP/1.1" 200 -
+2026-08-30 15:01:41,509 [INFO] 127.0.0.1 - - [30/Aug/2026 15:01:41] "POST /api/platformio/open HTTP/1.1" 200 -
+2026-08-30 15:01:41,511 [INFO] 127.0.0.1 - - [30/Aug/2026 15:01:41] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 15:01:41,517 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 15:01:41,517 [INFO] 127.0.0.1 - - [30/Aug/2026 15:01:41] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 15:01:41,527 [INFO] 127.0.0.1 - - [30/Aug/2026 15:01:41] "GET /favicon.png HTTP/1.1" 200 -
+2026-08-30 15:01:41,529 [INFO] 127.0.0.1 - - [30/Aug/2026 15:01:41] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 15:01:41,534 [INFO] 127.0.0.1 - - [30/Aug/2026 15:01:41] "[36mGET /favicon.png HTTP/1.1[0m" 304 -
+2026-08-30 15:01:41,602 [INFO] 127.0.0.1 - - [30/Aug/2026 15:01:41] "[36mGET /favicon.png HTTP/1.1[0m" 304 -
+2026-08-30 15:01:41,604 [INFO] 127.0.0.1 - - [30/Aug/2026 15:01:41] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 15:01:41,609 [INFO] 127.0.0.1 - - [30/Aug/2026 15:01:41] "GET /api/validate/name?value=IoTmanagerVer4&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 15:01:41,610 [INFO] 127.0.0.1 - - [30/Aug/2026 15:01:41] "GET /api/validate/apssid?value=IoTmanager&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 15:01:41,612 [INFO] 127.0.0.1 - - [30/Aug/2026 15:01:41] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 15:01:43,073 [INFO] 127.0.0.1 - - [30/Aug/2026 15:01:43] "GET /api/device/192.168.0.7/tree/fs HTTP/1.1" 200 -
+2026-08-30 15:01:43,073 [INFO] 127.0.0.1 - - [30/Aug/2026 15:01:43] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 15:01:45,386 [INFO] 127.0.0.1 - - [30/Aug/2026 15:01:45] "GET /api/device/192.168.0.7/file/ram?path=scenario.txt HTTP/1.1" 200 -
+2026-08-30 15:05:19,881 [INFO] 127.0.0.1 - - [30/Aug/2026 15:05:19] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 15:05:19,882 [INFO] 127.0.0.1 - - [30/Aug/2026 15:05:19] "GET /api/device/192.168.0.7/tree/fs HTTP/1.1" 200 -
+2026-08-30 15:05:20,874 [INFO] 127.0.0.1 - - [30/Aug/2026 15:05:20] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 15:05:20,875 [INFO] 127.0.0.1 - - [30/Aug/2026 15:05:20] "GET /api/device/192.168.0.7/tree/fs HTTP/1.1" 200 -
+2026-08-30 15:05:22,121 [INFO] 127.0.0.1 - - [30/Aug/2026 15:05:22] "GET /api/device/192.168.0.7/file/ram?path=settings.json HTTP/1.1" 200 -
+2026-08-30 15:05:22,730 [INFO] 127.0.0.1 - - [30/Aug/2026 15:05:22] "GET /api/device/192.168.0.7/file/ram?path=scenario.txt HTTP/1.1" 200 -
+2026-08-30 15:08:46,229 [INFO] 127.0.0.1 - - [30/Aug/2026 15:08:46] "GET / HTTP/1.1" 200 -
+2026-08-30 15:08:46,249 [INFO] Открыт проект: PlatformIO
+2026-08-30 15:08:46,251 [INFO] 127.0.0.1 - - [30/Aug/2026 15:08:46] "POST /api/platformio/open HTTP/1.1" 200 -
+2026-08-30 15:08:46,252 [INFO] 127.0.0.1 - - [30/Aug/2026 15:08:46] "GET /api/devices/stream HTTP/1.1" 200 -
+2026-08-30 15:08:46,257 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 15:08:46,258 [INFO] 127.0.0.1 - - [30/Aug/2026 15:08:46] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 15:08:46,259 [INFO] 127.0.0.1 - - [30/Aug/2026 15:08:46] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 15:08:46,265 [INFO] 127.0.0.1 - - [30/Aug/2026 15:08:46] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 15:08:46,277 [INFO] 127.0.0.1 - - [30/Aug/2026 15:08:46] "GET /api/validate/name?value=IoTmanagerVer4&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 15:08:46,279 [INFO] 127.0.0.1 - - [30/Aug/2026 15:08:46] "GET /api/validate/apssid?value=IoTmanager&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 15:08:46,281 [INFO] 127.0.0.1 - - [30/Aug/2026 15:08:46] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 15:08:46,284 [INFO] 127.0.0.1 - - [30/Aug/2026 15:08:46] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 15:08:46,291 [INFO] 127.0.0.1 - - [30/Aug/2026 15:08:46] "GET /favicon.png HTTP/1.1" 200 -
+2026-08-30 15:08:46,336 [INFO] 127.0.0.1 - - [30/Aug/2026 15:08:46] "[36mGET /favicon.png HTTP/1.1[0m" 304 -
+2026-08-30 15:08:46,341 [INFO] 127.0.0.1 - - [30/Aug/2026 15:08:46] "[36mGET /favicon.png HTTP/1.1[0m" 304 -
+2026-08-30 15:08:47,969 [INFO] 127.0.0.1 - - [30/Aug/2026 15:08:47] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 15:08:47,970 [INFO] 127.0.0.1 - - [30/Aug/2026 15:08:47] "GET /api/device/192.168.0.7/tree/fs HTTP/1.1" 200 -
+2026-08-30 15:08:49,384 [INFO] 127.0.0.1 - - [30/Aug/2026 15:08:49] "GET /api/device/192.168.0.7/file/ram?path=scenario.txt HTTP/1.1" 200 -
+2026-08-30 15:10:11,241 [INFO] 127.0.0.1 - - [30/Aug/2026 15:10:11] "GET / HTTP/1.1" 200 -
+2026-08-30 15:10:11,258 [INFO] Открыт проект: PlatformIO
+2026-08-30 15:10:11,259 [INFO] 127.0.0.1 - - [30/Aug/2026 15:10:11] "POST /api/platformio/open HTTP/1.1" 200 -
+2026-08-30 15:10:11,260 [INFO] 127.0.0.1 - - [30/Aug/2026 15:10:11] "GET /api/devices/stream HTTP/1.1" 200 -
+2026-08-30 15:10:11,264 [INFO] 127.0.0.1 - - [30/Aug/2026 15:10:11] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 15:10:11,267 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 15:10:11,268 [INFO] 127.0.0.1 - - [30/Aug/2026 15:10:11] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 15:10:11,275 [INFO] 127.0.0.1 - - [30/Aug/2026 15:10:11] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 15:10:11,291 [INFO] 127.0.0.1 - - [30/Aug/2026 15:10:11] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 15:10:11,292 [INFO] 127.0.0.1 - - [30/Aug/2026 15:10:11] "GET /api/validate/name?value=IoTmanagerVer4&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 15:10:11,293 [INFO] 127.0.0.1 - - [30/Aug/2026 15:10:11] "GET /api/validate/apssid?value=IoTmanager&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 15:10:11,299 [INFO] 127.0.0.1 - - [30/Aug/2026 15:10:11] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 15:10:11,308 [INFO] 127.0.0.1 - - [30/Aug/2026 15:10:11] "GET /favicon.png HTTP/1.1" 200 -
+2026-08-30 15:10:11,313 [INFO] 127.0.0.1 - - [30/Aug/2026 15:10:11] "[36mGET /favicon.png HTTP/1.1[0m" 304 -
+2026-08-30 15:10:11,319 [INFO] 127.0.0.1 - - [30/Aug/2026 15:10:11] "[36mGET /favicon.png HTTP/1.1[0m" 304 -
+2026-08-30 15:10:14,385 [INFO] 127.0.0.1 - - [30/Aug/2026 15:10:14] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 15:10:14,386 [INFO] 127.0.0.1 - - [30/Aug/2026 15:10:14] "GET /api/device/192.168.0.7/tree/fs HTTP/1.1" 200 -
+2026-08-30 15:10:16,048 [INFO] 127.0.0.1 - - [30/Aug/2026 15:10:16] "GET /api/device/192.168.0.7/file/ram?path=scenario.txt HTTP/1.1" 200 -
+2026-08-30 15:13:57,552 [INFO] 127.0.0.1 - - [30/Aug/2026 15:13:57] "POST /api/device/192.168.0.7/write/ram HTTP/1.1" 200 -
+2026-08-30 15:14:11,885 [INFO] 127.0.0.1 - - [30/Aug/2026 15:14:11] "GET /api/device/192.168.0.7/file/ram?path=settings.json HTTP/1.1" 200 -
+2026-08-30 15:14:12,657 [INFO] 127.0.0.1 - - [30/Aug/2026 15:14:12] "GET /api/device/192.168.0.7/file/ram?path=scenario.txt HTTP/1.1" 200 -
+2026-08-30 15:14:14,169 [INFO] 127.0.0.1 - - [30/Aug/2026 15:14:14] "GET /api/device/192.168.0.7/file/ram?path=profile.json HTTP/1.1" 200 -
+2026-08-30 15:14:14,954 [INFO] 127.0.0.1 - - [30/Aug/2026 15:14:14] "GET /api/device/192.168.0.7/file/ram?path=scenario.txt HTTP/1.1" 200 -
+2026-08-30 15:14:15,998 [INFO] 127.0.0.1 - - [30/Aug/2026 15:14:15] "POST /api/device/192.168.0.7/fetch/ram HTTP/1.1" 200 -
+2026-08-30 15:14:16,002 [INFO] 127.0.0.1 - - [30/Aug/2026 15:14:16] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 15:14:17,249 [INFO] 127.0.0.1 - - [30/Aug/2026 15:14:17] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 15:14:17,249 [INFO] 127.0.0.1 - - [30/Aug/2026 15:14:17] "GET /api/device/192.168.0.7/tree/fs HTTP/1.1" 200 -
+2026-08-30 15:14:19,494 [INFO] 127.0.0.1 - - [30/Aug/2026 15:14:19] "GET /api/device/192.168.0.7/file/ram?path=scenario.txt HTTP/1.1" 200 -
+2026-08-30 15:15:36,843 [INFO] 127.0.0.1 - - [30/Aug/2026 15:15:36] "POST /api/device/192.168.0.7/file/ram HTTP/1.1" 200 -
+2026-08-30 15:17:03,399 [INFO] 127.0.0.1 - - [30/Aug/2026 15:17:03] "POST /api/device/192.168.0.7/file/ram HTTP/1.1" 200 -
+2026-08-30 15:19:26,245 [INFO] 127.0.0.1 - - [30/Aug/2026 15:19:26] "POST /api/device/192.168.0.7/write/ram HTTP/1.1" 200 -
+2026-08-30 15:20:51,331 [INFO] Открыт проект: Test/ESP8266
+2026-08-30 15:20:51,333 [INFO] 127.0.0.1 - - [30/Aug/2026 15:20:51] "POST /api/projects/Test/ESP8266/open HTTP/1.1" 200 -
+2026-08-30 15:20:51,338 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 15:20:51,339 [INFO] 127.0.0.1 - - [30/Aug/2026 15:20:51] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 15:20:51,344 [INFO] 127.0.0.1 - - [30/Aug/2026 15:20:51] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 15:20:51,362 [INFO] 127.0.0.1 - - [30/Aug/2026 15:20:51] "GET /api/validate/name?value=ааа&project=Test/ESP8266 HTTP/1.1" 200 -
+2026-08-30 15:20:51,363 [INFO] 127.0.0.1 - - [30/Aug/2026 15:20:51] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 15:20:51,363 [INFO] 127.0.0.1 - - [30/Aug/2026 15:20:51] "GET /api/validate/apssid?value=IoTmanager_V_s2mini&project=Test/ESP8266 HTTP/1.1" 200 -
+2026-08-30 15:20:51,367 [INFO] 127.0.0.1 - - [30/Aug/2026 15:20:51] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 15:20:59,401 [INFO] Открыт проект: Test/esp32s2mini
+2026-08-30 15:20:59,402 [INFO] 127.0.0.1 - - [30/Aug/2026 15:20:59] "POST /api/projects/Test/esp32s2mini/open HTTP/1.1" 200 -
+2026-08-30 15:20:59,457 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 15:20:59,458 [INFO] 127.0.0.1 - - [30/Aug/2026 15:20:59] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 15:20:59,464 [INFO] 127.0.0.1 - - [30/Aug/2026 15:20:59] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 15:20:59,476 [INFO] 127.0.0.1 - - [30/Aug/2026 15:20:59] "GET /api/validate/name?value=s2mini&project=Test/esp32s2mini HTTP/1.1" 200 -
+2026-08-30 15:20:59,477 [INFO] 127.0.0.1 - - [30/Aug/2026 15:20:59] "GET /api/validate/apssid?value=IoTm_s2mini&project=Test/esp32s2mini HTTP/1.1" 200 -
+2026-08-30 15:20:59,479 [INFO] 127.0.0.1 - - [30/Aug/2026 15:20:59] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 15:20:59,481 [INFO] 127.0.0.1 - - [30/Aug/2026 15:20:59] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 15:21:02,029 [INFO] Открыт проект: Test/ESP8266
+2026-08-30 15:21:02,030 [INFO] 127.0.0.1 - - [30/Aug/2026 15:21:02] "POST /api/projects/Test/ESP8266/open HTTP/1.1" 200 -
+2026-08-30 15:21:02,035 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 15:21:02,036 [INFO] 127.0.0.1 - - [30/Aug/2026 15:21:02] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 15:21:02,040 [INFO] 127.0.0.1 - - [30/Aug/2026 15:21:02] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 15:21:02,049 [INFO] 127.0.0.1 - - [30/Aug/2026 15:21:02] "GET /api/validate/name?value=ааа&project=Test/ESP8266 HTTP/1.1" 200 -
+2026-08-30 15:21:02,050 [INFO] 127.0.0.1 - - [30/Aug/2026 15:21:02] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 15:21:02,051 [INFO] 127.0.0.1 - - [30/Aug/2026 15:21:02] "GET /api/validate/apssid?value=IoTmanager_V_s2mini&project=Test/ESP8266 HTTP/1.1" 200 -
+2026-08-30 15:21:02,055 [INFO] 127.0.0.1 - - [30/Aug/2026 15:21:02] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 15:21:04,746 [INFO] Открыт проект: Test/esp32s2mini
+2026-08-30 15:21:04,747 [INFO] 127.0.0.1 - - [30/Aug/2026 15:21:04] "POST /api/projects/Test/esp32s2mini/open HTTP/1.1" 200 -
+2026-08-30 15:21:04,752 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 15:21:04,752 [INFO] 127.0.0.1 - - [30/Aug/2026 15:21:04] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 15:21:04,757 [INFO] 127.0.0.1 - - [30/Aug/2026 15:21:04] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 15:21:04,765 [INFO] 127.0.0.1 - - [30/Aug/2026 15:21:04] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 15:21:04,767 [INFO] 127.0.0.1 - - [30/Aug/2026 15:21:04] "GET /api/validate/name?value=s2mini&project=Test/esp32s2mini HTTP/1.1" 200 -
+2026-08-30 15:21:04,770 [INFO] 127.0.0.1 - - [30/Aug/2026 15:21:04] "GET /api/validate/apssid?value=IoTm_s2mini&project=Test/esp32s2mini HTTP/1.1" 200 -
+2026-08-30 15:21:04,772 [INFO] 127.0.0.1 - - [30/Aug/2026 15:21:04] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 15:21:07,294 [INFO] Открыт проект: 1.База/WiFi Лебедя
+2026-08-30 15:21:07,295 [INFO] 127.0.0.1 - - [30/Aug/2026 15:21:07] "POST /api/projects/1.База/WiFi%20Лебедя/open HTTP/1.1" 200 -
+2026-08-30 15:21:07,302 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 15:21:07,302 [INFO] 127.0.0.1 - - [30/Aug/2026 15:21:07] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 15:21:07,306 [INFO] 127.0.0.1 - - [30/Aug/2026 15:21:07] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 15:21:07,320 [INFO] 127.0.0.1 - - [30/Aug/2026 15:21:07] "GET /api/validate/name?value=IoTmanagerVer4&project=1.База/WiFi%20Лебедя HTTP/1.1" 200 -
+2026-08-30 15:21:07,321 [INFO] 127.0.0.1 - - [30/Aug/2026 15:21:07] "GET /api/validate/apssid?value=IoTmanager&project=1.База/WiFi%20Лебедя HTTP/1.1" 200 -
+2026-08-30 15:21:07,322 [INFO] 127.0.0.1 - - [30/Aug/2026 15:21:07] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 15:21:07,326 [INFO] 127.0.0.1 - - [30/Aug/2026 15:21:07] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 15:21:10,670 [INFO] Открыт проект: PlatformIO
+2026-08-30 15:21:10,671 [INFO] 127.0.0.1 - - [30/Aug/2026 15:21:10] "POST /api/platformio/open HTTP/1.1" 200 -
+2026-08-30 15:21:10,677 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 15:21:10,678 [INFO] 127.0.0.1 - - [30/Aug/2026 15:21:10] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 15:21:10,684 [INFO] 127.0.0.1 - - [30/Aug/2026 15:21:10] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 15:21:10,695 [INFO] 127.0.0.1 - - [30/Aug/2026 15:21:10] "GET /api/validate/name?value=IoTmanagerVer4&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 15:21:10,696 [INFO] 127.0.0.1 - - [30/Aug/2026 15:21:10] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 15:21:10,700 [INFO] 127.0.0.1 - - [30/Aug/2026 15:21:10] "GET /api/validate/apssid?value=IoTmanager&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 15:21:10,702 [INFO] 127.0.0.1 - - [30/Aug/2026 15:21:10] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 15:27:36,127 [INFO] Открыт проект: 1.База/WiFi Лебедя
+2026-08-30 15:27:36,127 [INFO] 127.0.0.1 - - [30/Aug/2026 15:27:36] "POST /api/projects/1.База/WiFi%20Лебедя/open HTTP/1.1" 200 -
+2026-08-30 15:27:36,133 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 15:27:36,133 [INFO] 127.0.0.1 - - [30/Aug/2026 15:27:36] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 15:27:36,138 [INFO] 127.0.0.1 - - [30/Aug/2026 15:27:36] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 15:27:36,151 [INFO] 127.0.0.1 - - [30/Aug/2026 15:27:36] "GET /api/validate/apssid?value=IoTmanager&project=1.База/WiFi%20Лебедя HTTP/1.1" 200 -
+2026-08-30 15:27:36,151 [INFO] 127.0.0.1 - - [30/Aug/2026 15:27:36] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 15:27:36,153 [INFO] 127.0.0.1 - - [30/Aug/2026 15:27:36] "GET /api/validate/name?value=IoTmanagerVer4&project=1.База/WiFi%20Лебедя HTTP/1.1" 200 -
+2026-08-30 15:27:36,155 [INFO] 127.0.0.1 - - [30/Aug/2026 15:27:36] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 15:27:37,795 [INFO] 127.0.0.1 - - [30/Aug/2026 15:27:37] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 15:27:37,796 [INFO] 127.0.0.1 - - [30/Aug/2026 15:27:37] "GET /api/device/192.168.0.7/tree/fs HTTP/1.1" 200 -
+2026-08-30 15:27:41,302 [INFO] 127.0.0.1 - - [30/Aug/2026 15:27:41] "GET / HTTP/1.1" 200 -
+2026-08-30 15:27:41,323 [INFO] Открыт проект: PlatformIO
+2026-08-30 15:27:41,324 [INFO] 127.0.0.1 - - [30/Aug/2026 15:27:41] "POST /api/platformio/open HTTP/1.1" 200 -
+2026-08-30 15:27:41,328 [INFO] 127.0.0.1 - - [30/Aug/2026 15:27:41] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 15:27:41,333 [INFO] 127.0.0.1 - - [30/Aug/2026 15:27:41] "GET /api/devices/stream HTTP/1.1" 200 -
+2026-08-30 15:27:41,335 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 15:27:41,336 [INFO] 127.0.0.1 - - [30/Aug/2026 15:27:41] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 15:27:41,342 [INFO] 127.0.0.1 - - [30/Aug/2026 15:27:41] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 15:27:41,348 [INFO] 127.0.0.1 - - [30/Aug/2026 15:27:41] "GET /favicon.png HTTP/1.1" 200 -
+2026-08-30 15:27:41,364 [INFO] 127.0.0.1 - - [30/Aug/2026 15:27:41] "GET /api/validate/name?value=IoTmanagerVer4&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 15:27:41,365 [INFO] 127.0.0.1 - - [30/Aug/2026 15:27:41] "GET /api/validate/apssid?value=IoTmanager&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 15:27:41,366 [INFO] 127.0.0.1 - - [30/Aug/2026 15:27:41] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 15:27:41,376 [INFO] 127.0.0.1 - - [30/Aug/2026 15:27:41] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 15:27:41,378 [INFO] 127.0.0.1 - - [30/Aug/2026 15:27:41] "[36mGET /favicon.png HTTP/1.1[0m" 304 -
+2026-08-30 15:27:41,385 [INFO] 127.0.0.1 - - [30/Aug/2026 15:27:41] "[36mGET /favicon.png HTTP/1.1[0m" 304 -
+2026-08-30 15:27:47,287 [INFO] 127.0.0.1 - - [30/Aug/2026 15:27:47] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 15:27:47,289 [INFO] 127.0.0.1 - - [30/Aug/2026 15:27:47] "GET /api/device/192.168.0.7/tree/fs HTTP/1.1" 200 -
+2026-08-30 15:27:49,331 [INFO] Открыт проект: 1.База/WiFi Лебедя
+2026-08-30 15:27:49,332 [INFO] 127.0.0.1 - - [30/Aug/2026 15:27:49] "POST /api/projects/1.База/WiFi%20Лебедя/open HTTP/1.1" 200 -
+2026-08-30 15:27:49,338 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 15:27:49,340 [INFO] 127.0.0.1 - - [30/Aug/2026 15:27:49] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 15:27:49,345 [INFO] 127.0.0.1 - - [30/Aug/2026 15:27:49] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 15:27:49,354 [INFO] 127.0.0.1 - - [30/Aug/2026 15:27:49] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 15:27:49,356 [INFO] 127.0.0.1 - - [30/Aug/2026 15:27:49] "GET /api/validate/name?value=IoTmanagerVer4&project=1.База/WiFi%20Лебедя HTTP/1.1" 200 -
+2026-08-30 15:27:49,357 [INFO] 127.0.0.1 - - [30/Aug/2026 15:27:49] "GET /api/validate/apssid?value=IoTmanager&project=1.База/WiFi%20Лебедя HTTP/1.1" 200 -
+2026-08-30 15:27:49,362 [INFO] 127.0.0.1 - - [30/Aug/2026 15:27:49] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 15:28:19,331 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:19] "GET / HTTP/1.1" 200 -
+2026-08-30 15:28:19,354 [INFO] Открыт проект: PlatformIO
+2026-08-30 15:28:19,356 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:19] "POST /api/platformio/open HTTP/1.1" 200 -
+2026-08-30 15:28:19,355 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:19] "GET /api/devices/stream HTTP/1.1" 200 -
+2026-08-30 15:28:19,363 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:19] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 15:28:19,366 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 15:28:19,367 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:19] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 15:28:19,376 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:19] "GET /favicon.png HTTP/1.1" 200 -
+2026-08-30 15:28:19,378 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:19] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 15:28:19,383 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:19] "[36mGET /favicon.png HTTP/1.1[0m" 304 -
+2026-08-30 15:28:19,401 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:19] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 15:28:19,405 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:19] "GET /api/validate/apssid?value=IoTmanager&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 15:28:19,406 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:19] "GET /api/validate/name?value=IoTmanagerVer4&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 15:28:19,407 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:19] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 15:28:19,443 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:19] "[36mGET /favicon.png HTTP/1.1[0m" 304 -
+2026-08-30 15:28:21,263 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:21] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 15:28:21,264 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:21] "GET /api/device/192.168.0.7/tree/fs HTTP/1.1" 200 -
+2026-08-30 15:28:22,727 [INFO] Открыт проект: 1.База/WiFi Лебедя
+2026-08-30 15:28:22,728 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:22] "POST /api/projects/1.База/WiFi%20Лебедя/open HTTP/1.1" 200 -
+2026-08-30 15:28:22,733 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 15:28:22,733 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:22] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 15:28:22,738 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:22] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 15:28:22,748 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:22] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 15:28:22,749 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:22] "GET /api/validate/name?value=IoTmanagerVer4&project=1.База/WiFi%20Лебедя HTTP/1.1" 200 -
+2026-08-30 15:28:22,750 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:22] "GET /api/validate/apssid?value=IoTmanager&project=1.База/WiFi%20Лебедя HTTP/1.1" 200 -
+2026-08-30 15:28:22,754 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:22] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 15:28:24,880 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:24] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 15:28:24,882 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:24] "GET /api/device/192.168.0.7/tree/fs HTTP/1.1" 200 -
+2026-08-30 15:28:26,580 [INFO] Открыт проект: 1.База/WiFi Лебедя
+2026-08-30 15:28:26,581 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:26] "POST /api/projects/1.База/WiFi%20Лебедя/open HTTP/1.1" 200 -
+2026-08-30 15:28:26,585 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 15:28:26,586 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:26] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 15:28:26,592 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:26] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 15:28:26,601 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:26] "GET /api/validate/name?value=IoTmanagerVer4&project=1.База/WiFi%20Лебедя HTTP/1.1" 200 -
+2026-08-30 15:28:26,603 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:26] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 15:28:26,604 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:26] "GET /api/validate/apssid?value=IoTmanager&project=1.База/WiFi%20Лебедя HTTP/1.1" 200 -
+2026-08-30 15:28:26,607 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:26] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 15:28:38,983 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:38] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 15:28:38,984 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:38] "GET /api/device/192.168.0.7/tree/fs HTTP/1.1" 200 -
+2026-08-30 15:28:41,047 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:41] "GET /api/device/192.168.0.7/file/ram?path=settings.json HTTP/1.1" 200 -
+2026-08-30 15:28:42,343 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:42] "GET /api/device/192.168.0.7/file/ram?path=scenario.txt HTTP/1.1" 200 -
+2026-08-30 15:28:58,390 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:58] "POST /api/device/192.168.0.7/fetch/ram HTTP/1.1" 200 -
+2026-08-30 15:28:58,395 [INFO] 127.0.0.1 - - [30/Aug/2026 15:28:58] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 15:37:19,871 [INFO] 127.0.0.1 - - [30/Aug/2026 15:37:19] "GET / HTTP/1.1" 200 -
+2026-08-30 15:37:19,897 [INFO] Открыт проект: PlatformIO
+2026-08-30 15:37:19,898 [INFO] 127.0.0.1 - - [30/Aug/2026 15:37:19] "POST /api/platformio/open HTTP/1.1" 200 -
+2026-08-30 15:37:19,899 [INFO] 127.0.0.1 - - [30/Aug/2026 15:37:19] "GET /api/devices/stream HTTP/1.1" 200 -
+2026-08-30 15:37:19,906 [INFO] 127.0.0.1 - - [30/Aug/2026 15:37:19] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 15:37:19,907 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 15:37:19,908 [INFO] 127.0.0.1 - - [30/Aug/2026 15:37:19] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 15:37:19,913 [INFO] 127.0.0.1 - - [30/Aug/2026 15:37:19] "GET /favicon.png HTTP/1.1" 200 -
+2026-08-30 15:37:19,919 [INFO] 127.0.0.1 - - [30/Aug/2026 15:37:19] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 15:37:19,921 [INFO] 127.0.0.1 - - [30/Aug/2026 15:37:19] "[36mGET /favicon.png HTTP/1.1[0m" 304 -
+2026-08-30 15:37:19,937 [INFO] 127.0.0.1 - - [30/Aug/2026 15:37:19] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 15:37:19,940 [INFO] 127.0.0.1 - - [30/Aug/2026 15:37:19] "GET /api/validate/name?value=IoTmanagerVer4&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 15:37:19,941 [INFO] 127.0.0.1 - - [30/Aug/2026 15:37:19] "GET /api/validate/apssid?value=IoTmanager&project=__virtual__/PlatformIO HTTP/1.1" 200 -
+2026-08-30 15:37:19,944 [INFO] 127.0.0.1 - - [30/Aug/2026 15:37:19] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 15:37:19,958 [INFO] 127.0.0.1 - - [30/Aug/2026 15:37:19] "[36mGET /favicon.png HTTP/1.1[0m" 304 -
+2026-08-30 15:37:22,971 [INFO] 127.0.0.1 - - [30/Aug/2026 15:37:22] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 15:37:22,972 [INFO] 127.0.0.1 - - [30/Aug/2026 15:37:22] "GET /api/device/192.168.0.7/tree/fs HTTP/1.1" 200 -
+2026-08-30 15:37:41,167 [INFO] 127.0.0.1 - - [30/Aug/2026 15:37:41] "GET /api/device/192.168.0.7/tree/fs HTTP/1.1" 200 -
+2026-08-30 15:37:41,168 [INFO] 127.0.0.1 - - [30/Aug/2026 15:37:41] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 15:37:49,916 [INFO] 127.0.0.1 - - [30/Aug/2026 15:37:49] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2026-08-30 15:40:27,825 [INFO] Открыт проект: 1.База/WiFi Тобольск
+2026-08-30 15:40:27,827 [INFO] 127.0.0.1 - - [30/Aug/2026 15:40:27] "POST /api/projects/1.База/WiFi%20Тобольск/open HTTP/1.1" 200 -
+2026-08-30 15:40:27,833 [INFO] platformio.ini: загружено платформ: 19
+2026-08-30 15:40:27,833 [INFO] 127.0.0.1 - - [30/Aug/2026 15:40:27] "GET /api/platforms HTTP/1.1" 200 -
+2026-08-30 15:40:27,840 [INFO] 127.0.0.1 - - [30/Aug/2026 15:40:27] "GET /api/modules/compatibility HTTP/1.1" 200 -
+2026-08-30 15:40:27,853 [INFO] 127.0.0.1 - - [30/Aug/2026 15:40:27] "GET /api/validate/apssid?value=IoTmanager&project=1.База/WiFi%20Тобольск HTTP/1.1" 200 -
+2026-08-30 15:40:27,853 [INFO] 127.0.0.1 - - [30/Aug/2026 15:40:27] "GET /api/size HTTP/1.1" 200 -
+2026-08-30 15:40:27,854 [INFO] 127.0.0.1 - - [30/Aug/2026 15:40:27] "GET /api/validate/name?value=IoTmanagerVer4&project=1.База/WiFi%20Тобольск HTTP/1.1" 200 -
+2026-08-30 15:40:27,858 [INFO] 127.0.0.1 - - [30/Aug/2026 15:40:27] "GET /api/projects HTTP/1.1" 200 -
+2026-08-30 15:40:36,868 [INFO] 127.0.0.1 - - [30/Aug/2026 15:40:36] "GET /api/device/192.168.0.7/tree/ram HTTP/1.1" 200 -
+2026-08-30 15:40:36,870 [INFO] 127.0.0.1 - - [30/Aug/2026 15:40:36] "GET /api/device/192.168.0.7/tree/fs HTTP/1.1" 200 -

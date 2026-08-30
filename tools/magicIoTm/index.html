@@ -188,6 +188,69 @@ textarea{resize:vertical;min-height:60px;font-family:inherit}
 
 /* Responsive */
 @media(max-width:768px){.form-grid{grid-template-columns:1fr}.sidebar{width:220px;min-width:220px}}
+
+/* Device manager */
+.devmgr{display:flex;flex-direction:column;gap:10px;height:100%;min-height:calc(100vh - 150px)}
+.devmgr-top{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:8px 12px}
+.devmgr-title{font-weight:600;font-size:14px}
+.devmgr-status{margin-left:auto;font-size:12px;color:var(--muted)}
+.devmgr-panels{flex:1;display:flex;flex-direction:column;gap:10px;min-height:0}
+.devmgr-panel{flex:1;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--border);border-radius:8px;overflow:hidden;min-height:0}
+.devmgr-panel-head{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--border)}
+.devmgr-panel-title{font-weight:700;font-size:13px;letter-spacing:.4px}
+.devmgr-panel-head button{margin-left:auto}
+.devmgr-panel-head button:disabled,.devmgr-editor button:disabled{opacity:.45;cursor:not-allowed;background:var(--panel);color:var(--muted);border-color:var(--border)}
+.devmgr-panel-body{flex:1;display:flex;min-height:0}
+.devmgr-tree{width:250px;min-width:200px;border-right:1px solid var(--border);overflow-y:auto;padding:6px}
+.devmgr-tree-item{padding:3px 6px;border-radius:4px;font-size:12px;cursor:pointer;font-family:Consolas,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.devmgr-tree-item:hover{background:rgba(74,144,217,0.1)}
+.devmgr-tree-item.active{background:var(--accent);color:#fff}
+.devmgr-editor{flex:1;display:flex;flex-direction:column;min-width:0}
+.devmgr-editor-head{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--border);font-size:12px;color:var(--muted)}
+.devmgr-editor-head .file-title{flex:1;display:flex;align-items:center;gap:6px;min-width:0}
+.devmgr-editor-head .file-name{font-family:Consolas,monospace;color:var(--text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.devmgr-editor-head .file-size{font-family:Consolas,monospace;color:var(--muted);white-space:nowrap}
+.devmgr-textarea{position:absolute;inset:0;width:100%;height:100%;border:none;resize:none;font-family:Consolas,'Courier New',monospace;font-size:12px;line-height:1.45;padding:10px;background:transparent;color:var(--text);min-height:0;white-space:pre;overflow:auto}
+/* Подсветка JSON: textarea поверх <pre> с раскрашенным содержимым */
+.devmgr-code{flex:1;display:flex;min-height:0;overflow:hidden}
+.devmgr-code-editor{flex:1;position:relative;min-width:0;min-height:0}
+.devmgr-hl{position:absolute;inset:0;margin:0;padding:10px;font-family:Consolas,'Courier New',monospace;font-size:12px;line-height:1.45;white-space:pre;overflow:hidden;color:var(--text);pointer-events:none;user-select:none}
+/* Полоса номеров строк сценария (видна при открытой «Проверке») */
+.devmgr-gutter{width:46px;min-width:46px;flex:0 0 auto;display:none;overflow:hidden;background:rgba(74,144,217,0.06);border-right:1px solid var(--border);user-select:none;-ms-user-select:none}
+.devmgr-gutter.active{display:block}
+.devmgr-gutter pre{margin:0;padding:10px 8px 10px 0;font-family:Consolas,'Courier New',monospace;font-size:12px;line-height:1.45;text-align:right;color:var(--muted);will-change:transform}
+/* Панель результата «Проверки» в правой половине редактора */
+.devmgr-check{width:50%;min-width:280px;border-left:1px solid var(--border);display:none;flex-direction:column;min-height:0;background:var(--panel)}
+.devmgr-check.active{display:flex}
+.devmgr-check-head{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--border);font-size:12px;color:var(--muted);flex:0 0 auto}
+.devmgr-check-title{flex:1;font-weight:700}
+.devmgr-check-close{font-size:14px;line-height:1;padding:2px 7px;cursor:pointer;background:var(--panel);border:1px solid var(--border);color:var(--text);border-radius:4px}
+.devmgr-check-close:hover{background:rgba(217,74,74,0.12);border-color:var(--danger);color:var(--danger)}
+.devmgr-check-body{flex:1;overflow-y:auto;padding:10px;font-size:13px;line-height:1.5;min-height:0}
+.devmgr-check-body code{font-family:Consolas,'Courier New',monospace;font-size:12px;background:rgba(74,144,217,0.1);padding:1px 4px;border-radius:3px}
+.devmgr-textarea.transparent{color:transparent;caret-color:var(--text);-webkit-text-fill-color:transparent;background:transparent}
+.tok-str{color:#2e7d32}
+.tok-num{color:#c2185b}
+.tok-lit{color:#b26a00}
+.tok-punct{color:#1565c0}
+body.dark .tok-str{color:#a5d6a7}
+body.dark .tok-num{color:#ff8a80}
+body.dark .tok-lit{color:#fff59d}
+body.dark .tok-punct{color:#90caf9}
+/* Подсветка scenario.txt */
+.tok-kw{color:#6a1b9a;font-weight:bold}
+.tok-fn{color:#00838f}
+.tok-op{color:#00838f}
+.tok-comment{color:#757575;font-style:italic}
+.tok-bracket{background:#ffe066;color:#1a1a1a;border-radius:2px}
+body.dark .tok-kw{color:#ce93d8}
+body.dark .tok-fn{color:#80deea}
+body.dark .tok-op{color:#80deea}
+body.dark .tok-comment{color:#90a4ae}
+body.dark .tok-bracket{background:#f9a825;color:#1a1a1a}
+.device-item{cursor:pointer}
+.device-item.active{background:rgba(74,144,217,0.15);outline:1px solid var(--accent)}
+@media(max-width:900px){.devmgr-tree{width:170px;min-width:150px}}
 </style>
 </head>
 <body>
@@ -331,13 +394,21 @@ function renderDevices(devices){
       (d.wg ? ` · группа: ${d.wg}` : '') +
       (d.fv !== '' && d.fv !== undefined ? ` · fw: ${d.fv}` : '') +
       (d.id ? ` · id: ${d.id}` : '');
-    html += `<div class="device-item" title="${esc(tip)}">
+    const active = activeDevice && activeDevice.ip === d.ip ? ' active' : '';
+    html += `<div class="device-item${active}" data-ip="${esc(d.ip)}" data-name="${esc(d.name)}" data-online="${d.online?1:0}" title="${esc(tip)}">
       <span class="device-status ${cls}" title="${d.online ? 'Online' : 'Offline'}"></span>
       <span class="device-name">${esc(label)}</span>
     </div>`;
   }
   el.innerHTML = html;
 }
+
+// Клик по устройству в списке (делегирование — список перерисовывается по SSE)
+document.getElementById('deviceTree').addEventListener('click', (e) => {
+  const item = e.target.closest('.device-item');
+  if(!item) return;
+  selectDevice(item.dataset.ip, item.dataset.name, item.dataset.online === '1');
+});
 
 function connectDevicesStream(){
   if(deviceStream) deviceStream.close();
@@ -352,6 +423,759 @@ function connectDevicesStream(){
     if(deviceStream){ deviceStream.close(); deviceStream = null; }
     setTimeout(connectDevicesStream, 3000);
   };
+}
+
+// ==================== Device manager ====================
+let activeDevice = null;            // {ip, name, online}
+let deviceEditors = {
+  ram: {path:null, original:''},
+  fs:  {path:null, original:''},
+};
+
+function selectDevice(ip, name, online){
+  activeDevice = {ip, name, online};
+  deviceEditors = {ram:{path:null,original:''}, fs:{path:null,original:''}};
+  // Скрываем верхний тулбар, выбор платформы и датчики, пока открыт менеджер устройства
+  const tb = document.querySelector('.topbar');
+  if(tb) tb.style.display = 'none';
+  document.getElementById('topProjectName').textContent = `💡 ${name}`;
+  document.getElementById('platformSelectWrap').style.display = 'none';
+  document.getElementById('gaugeBar').style.display = 'none';
+  document.getElementById('gaugeBarRam').style.display = 'none';
+  document.getElementById('gaugeBarFs').style.display = 'none';
+  renderDeviceManager();
+  loadTree('ram');
+  loadTree('fs');
+}
+
+function exitDevice(){
+  activeDevice = null;
+  document.getElementById('topProjectName').textContent = 'Проект не выбран';
+  document.getElementById('platformSelectWrap').style.display = 'none';
+  document.getElementById('gaugeBar').style.display = 'none';
+  document.getElementById('gaugeBarRam').style.display = 'none';
+  document.getElementById('gaugeBarFs').style.display = 'none';
+  if(currentProject){
+    // переоткрываем проект — восстановит тулбар, платформы, датчики и контент
+    openProject(currentProject.category, currentProject.name);
+  } else {
+    const tb = document.querySelector('.topbar');
+    if(tb) tb.style.display = '';
+    document.getElementById('content').innerHTML =
+      '<div class="empty-state"><h2>Добро пожаловать в MagicIoTm</h2><p>Создайте или выберите проект для начала работы</p></div>';
+  }
+}
+
+function renderDeviceManager(){
+  const el = document.getElementById('content');
+  if(!el) return;
+  el.innerHTML = `
+  <div class="devmgr">
+    <div class="devmgr-top">
+      <button onclick="exitDevice()">← Назад</button>
+      <span class="devmgr-title">💡 ${esc(activeDevice.name)}</span>
+      <span class="devmgr-status">${esc(activeDevice.ip)}${activeDevice.online ? '' : ' · offline'}</span>
+      <button class="btn-sm" onclick="reloadDeviceTrees()" title="Обновить деревья">🔄</button>
+    </div>
+    <div class="devmgr-panels">
+      <div class="devmgr-panel">
+        <div class="devmgr-panel-head">
+          <span class="devmgr-panel-title">Файлы из RAM по WebSockets</span>
+          <button class="btn-sm btn-primary" onclick="fetchRam()" title="Скачать файлы с устройства (/config, /profile)">📤 Получить файлы</button>
+        </div>
+        <div class="devmgr-panel-body">
+          <div class="devmgr-tree" id="ramTree" onclick="onTreeClick(event)"><div class="empty-state" style="padding:12px">Файлы не загружены</div></div>
+          <div class="devmgr-editor">
+            <div class="devmgr-editor-head">
+              <div class="file-title">
+                <span class="file-name" id="ramFileName">— не выбран файл —</span>
+                <span class="file-size" id="ramFileSize"></span>
+              </div>
+              <button class="btn-sm" id="ramCheckBtn" style="display:none" onclick="checkScenarioLoops('ram')" title="Проверить сценарий на циклические зависимости (event-driven)">🔍 Проверка</button>
+              <button class="btn-sm" id="ramSaveBtn" onclick="saveFile('ram')" disabled>💾 Локально</button>
+              <button class="btn-sm btn-primary" id="ramPushBtn" onclick="pushFile('ram')" disabled title="">📡 На устройство</button>
+            </div>
+            <div class="devmgr-code">
+              <div class="devmgr-gutter" id="ramGutter"><pre></pre></div>
+              <div class="devmgr-code-editor">
+                <pre class="devmgr-hl" id="ramHl"></pre>
+                <textarea id="ramEditor" class="devmgr-textarea" spellcheck="false" wrap="off" oninput="onEditorInput('ram')" onscroll="onEditorScroll('ram')" onclick="onEditorCaret('ram')" onkeyup="onEditorCaret('ram')" onselect="onEditorCaret('ram')" placeholder="Выберите файл слева"></textarea>
+              </div>
+              <div class="devmgr-check" id="ramCheck">
+                <div class="devmgr-check-head">
+                  <span class="devmgr-check-title">🔍 Проверка</span>
+                  <button class="devmgr-check-close" title="Закрыть" onclick="closeCheck('ram')">✕</button>
+                </div>
+                <div class="devmgr-check-body" id="ramCheckBody"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="devmgr-panel">
+        <div class="devmgr-panel-head">
+          <span class="devmgr-panel-title">Файлы из файловой системы</span>
+          <button class="btn-sm" onclick="toast('Скачивание FS ещё не реализовано','warning')" title="Получить файлы">📤 Получить файлы</button>
+        </div>
+        <div class="devmgr-panel-body">
+          <div class="devmgr-tree" id="fsTree" onclick="onTreeClick(event)"><div class="empty-state" style="padding:12px">Раздел FS пуст</div></div>
+          <div class="devmgr-editor">
+            <div class="devmgr-editor-head">
+              <div class="file-title">
+                <span class="file-name" id="fsFileName">— не выбран файл —</span>
+                <span class="file-size" id="fsFileSize"></span>
+              </div>
+              <button class="btn-sm" id="fsCheckBtn" style="display:none" onclick="checkScenarioLoops('fs')" title="Проверить сценарий на циклические зависимости (event-driven)">🔍 Проверка</button>
+              <button class="btn-sm" id="fsSaveBtn" onclick="saveFile('fs')" disabled>💾 Локально</button>
+            </div>
+            <div class="devmgr-code">
+              <div class="devmgr-gutter" id="fsGutter"><pre></pre></div>
+              <div class="devmgr-code-editor">
+                <pre class="devmgr-hl" id="fsHl"></pre>
+                <textarea id="fsEditor" class="devmgr-textarea" spellcheck="false" wrap="off" oninput="onEditorInput('fs')" onscroll="onEditorScroll('fs')" onclick="onEditorCaret('fs')" onkeyup="onEditorCaret('fs')" onselect="onEditorCaret('fs')" placeholder="Выберите файл слева"></textarea>
+              </div>
+              <div class="devmgr-check" id="fsCheck">
+                <div class="devmgr-check-head">
+                  <span class="devmgr-check-title">🔍 Проверка</span>
+                  <button class="devmgr-check-close" title="Закрыть" onclick="closeCheck('fs')">✕</button>
+                </div>
+                <div class="devmgr-check-body" id="fsCheckBody"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function loadTree(section){
+  if(!activeDevice) return;
+  const el = document.getElementById(section + 'Tree');
+  if(!el) return;
+  try{
+    const r = await fetch(`/api/device/${encodeURIComponent(activeDevice.ip)}/tree/${section}`);
+    const d = await r.json();
+    if(!d.success){
+      el.innerHTML = `<div class="empty-state" style="padding:12px">${esc(d.error || 'Ошибка')}</div>`;
+      return;
+    }
+    if(!d.files.length){
+      el.innerHTML = `<div class="empty-state" style="padding:12px">${section === 'ram' ? 'Файлы не загружены' : 'Раздел FS пуст'}</div>`;
+      return;
+    }
+    el.innerHTML = d.files.map(f =>
+      `<div class="devmgr-tree-item" data-section="${section}" data-path="${esc(f)}">${esc(f)}</div>`
+    ).join('');
+  }catch(e){
+    el.innerHTML = '<div class="empty-state" style="padding:12px">Ошибка загрузки</div>';
+  }
+}
+
+function onTreeClick(ev){
+  const item = ev.target.closest('.devmgr-tree-item');
+  if(!item) return;
+  selectFile(item.dataset.section, item.dataset.path);
+}
+
+async function selectFile(section, path){
+  if(!activeDevice) return;
+  const treeEl = document.getElementById(section + 'Tree');
+  if(treeEl) treeEl.querySelectorAll('.devmgr-tree-item').forEach(i => i.classList.remove('active'));
+  if(treeEl){
+    const item = Array.from(treeEl.querySelectorAll('.devmgr-tree-item')).find(i => i.dataset.path === path);
+    if(item) item.classList.add('active');
+  }
+  try{
+    const r = await fetch(`/api/device/${encodeURIComponent(activeDevice.ip)}/file/${section}?path=${encodeURIComponent(path)}`);
+    const d = await r.json();
+    if(!d.success){ toast(d.error || 'Ошибка', 'error'); return; }
+    // settings.json — форматируем JSON с переносами строк, даже если файл однострочный
+    if(/settings\.json$/i.test(path)){
+      try{ d.content = JSON.stringify(JSON.parse(d.content), null, 2); }catch(_e){}
+    }
+    deviceEditors[section] = {path, original: d.content};
+    const checkPanel = document.getElementById(section + 'Check');
+    if(checkPanel) checkPanel.classList.remove('active');
+    hideLineNumbers(section);
+    document.getElementById(section + 'FileName').textContent = path;
+    const sizeEl = document.getElementById(section + 'FileSize');
+    if(sizeEl) sizeEl.textContent = (typeof d.size === 'number') ? d.size + ' байт' : '';
+    document.getElementById(section + 'Editor').value = d.content;
+    document.getElementById(section + 'SaveBtn').disabled = false;
+    const isScenario = /scenario\.txt$/i.test(path);
+    const checkBtn = document.getElementById(section + 'CheckBtn');
+    if(checkBtn) checkBtn.style.display = isScenario ? '' : 'none';
+    const pushBtn = document.getElementById(section + 'PushBtn');
+    if(pushBtn){
+      const support = ['config.json','scenario.txt','settings.json'].includes(path);
+      pushBtn.disabled = !support;
+      pushBtn.title = support ? 'Записать файл обратно на устройство' : 'Файл не поддерживается прошивкой для записи на устройство';
+    }
+    updateHighlight(section);
+  }catch(e){
+    toast('Ошибка чтения файла', 'error');
+  }
+}
+
+// ==================== Подсветка JSON в редакторе ====================
+function highlightJson(text){
+  let out = '';
+  let i = 0;
+  const n = text.length;
+  const esc = c => String(c).replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>');
+  while(i < n){
+    const ch = text[i];
+    if(ch === '"'){
+      let j = i + 1;
+      let s = '"';
+      while(j < n){
+        s += text[j];
+        if(text[j] === '\\' && j + 1 < n){ s += text[j + 1]; j += 2; continue; }
+        if(text[j] === '"'){ j++; break; }
+        j++;
+      }
+      out += '<span class="tok-str">' + esc(s) + '</span>';
+      i = j;
+    } else if(/^[-0-9]/.test(ch)){
+      const m = text.slice(i).match(/^-?\d+(\.\d+)?([eE][+-]?\d+)?/);
+      if(m){ out += '<span class="tok-num">' + esc(m[0]) + '</span>'; i += m[0].length; }
+      else { out += esc(ch); i++; }
+    } else {
+      const m = text.slice(i).match(/^(true|false|null)/);
+      if(m){ out += '<span class="tok-lit">' + esc(m[0]) + '</span>'; i += m[0].length; }
+      else if(ch === '{' || ch === '}' || ch === '[' || ch === ']'){
+        out += '<span class="tok-punct">' + esc(ch) + '</span>'; i++;
+      } else {
+        out += esc(ch); i++;
+      }
+    }
+  }
+  return out;
+}
+
+function updateHighlight(section){
+  const ta = document.getElementById(section + 'Editor');
+  const hl = document.getElementById(section + 'Hl');
+  if(!ta || !hl) return;
+  const ed = deviceEditors[section];
+  const path = (ed && ed.path) || '';
+  const isJson = /\.json$/i.test(path);
+  const isScen = /scenario\.txt$/i.test(path);
+  if(isJson){
+    hl.innerHTML = highlightJson(ta.value) + '\n';
+    applyHl(ta, hl);
+  } else if(isScen){
+    const text = ta.value;
+    const mask = buildCodeMask(text);
+    const pair = findBracketPairAtCursor(ta, text, mask);
+    hl.innerHTML = highlightScenario(text, pair, mask) + '\n';
+    applyHl(ta, hl);
+  } else {
+    hl.innerHTML = '';
+    hl.style.display = 'none';
+    ta.classList.remove('transparent');
+  }
+}
+
+function applyHl(ta, hl){
+  hl.style.display = 'block';
+  hl.scrollTop = ta.scrollTop;
+  hl.scrollLeft = ta.scrollLeft;
+  ta.classList.add('transparent');
+}
+
+function onEditorInput(section){
+  updateHighlight(section);
+  const gutter = document.getElementById(section + 'Gutter');
+  if(gutter && gutter.classList.contains('active')) renderLineNumbers(section);
+}
+
+function onEditorCaret(section){
+  updateHighlight(section);
+}
+
+// ==================== Подсветка scenario.txt ====================
+const SCEN_KW = new Set(['if','then','else','end','while','for','do','break','stop','return','and','or','not']);
+const SCEN_OP = /^(===|!==|==|!=|<=|>=|:=|\|\||&&|[|&+\-*/%=<>!])/;
+const OPEN_BR = '([{';
+const CLOSE_BR = ')]}';
+
+// Маска: 1 — код, 0 — строка/комментарий (в них скобки не считаем)
+function buildCodeMask(text){
+  const mask = new Uint8Array(text.length);
+  let inStr = false, inComment = false;
+  for(let i = 0; i < text.length; i++){
+    const c = text[i];
+    if(inComment){
+      if(c === '\n'){ inComment = false; mask[i] = 1; }
+      else mask[i] = 0;
+      continue;
+    }
+    if(inStr){
+      mask[i] = 0;
+      if(c === '\\'){ if(i + 1 < text.length){ mask[i + 1] = 0; i++; } continue; }
+      if(c === '"') inStr = false;
+      continue;
+    }
+    if(c === '#'){ inComment = true; mask[i] = 0; continue; }
+    if(c === '"'){ inStr = true; mask[i] = 0; continue; }
+    mask[i] = 1;
+  }
+  return mask;
+}
+
+function matchBracket(text, p, mask){
+  const ch = text[p];
+  if(mask && mask[p] === 0) return null;
+  const oi = OPEN_BR.indexOf(ch);
+  if(oi >= 0){
+    const close = CLOSE_BR[oi];
+    let depth = 0;
+    for(let i = p + 1; i < text.length; i++){
+      if(mask && mask[i] === 0) continue;
+      const t = text[i];
+      if(t === ch) depth++;
+      else if(t === close){ if(depth === 0) return [p, i]; depth--; }
+    }
+    return null;
+  }
+  const ci = CLOSE_BR.indexOf(ch);
+  if(ci >= 0){
+    const open = OPEN_BR[ci];
+    let depth = 0;
+    for(let i = p - 1; i >= 0; i--){
+      if(mask && mask[i] === 0) continue;
+      const t = text[i];
+      if(t === ch) depth++;
+      else if(t === open){ if(depth === 0) return [i, p]; depth--; }
+    }
+    return null;
+  }
+  return null;
+}
+
+function findBracketPairAtCursor(ta, text, mask){
+  const pos = (ta.selectionStart != null) ? ta.selectionStart : 0;
+  const candidates = [];
+  if(pos < text.length) candidates.push(pos);
+  if(pos > 0) candidates.push(pos - 1);
+  for(const p of candidates){
+    if(OPEN_BR.indexOf(text[p]) < 0 && CLOSE_BR.indexOf(text[p]) < 0) continue;
+    const pair = matchBracket(text, p, mask);
+    if(pair) return pair;
+  }
+  return null;
+}
+
+function highlightScenario(text, pair, mask){
+  const esc = c => String(c).replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>');
+  let out = '';
+  let i = 0;
+  const n = text.length;
+  while(i < n){
+    const ch = text[i];
+    if(ch === '#'){
+      let j = i;
+      while(j < n && text[j] !== '\n') j++;
+      out += '<span class="tok-comment">' + esc(text.slice(i, j)) + '</span>';
+      i = j;
+      continue;
+    }
+    if(ch === '"'){
+      let j = i + 1;
+      let s = '"';
+      while(j < n){
+        s += text[j];
+        if(text[j] === '\\' && j + 1 < n){ s += text[j + 1]; j += 2; continue; }
+        if(text[j] === '"'){ j++; break; }
+        j++;
+      }
+      out += '<span class="tok-str">' + esc(s) + '</span>';
+      i = j;
+      continue;
+    }
+    if(/[0-9]/.test(ch) || (ch === '-' && /[0-9]/.test(text[i + 1]))){
+      const m = text.slice(i).match(/^-?\d+(\.\d+)?([eE][+-]?\d+)?/);
+      if(m){ out += '<span class="tok-num">' + esc(m[0]) + '</span>'; i += m[0].length; continue; }
+    }
+    if(/[A-Za-z_]/.test(ch)){
+      const m = text.slice(i).match(/^[A-Za-z_]\w*/);
+      const word = m[0];
+      let j = i + word.length;
+      let k = j;
+      while(k < n && /\s/.test(text[k])) k++;
+      const isFn = text[k] === '(';
+      const cls = SCEN_KW.has(word) ? 'tok-kw' : (isFn ? 'tok-fn' : '');
+      out += cls ? ('<span class="' + cls + '">' + esc(word) + '</span>') : esc(word);
+      i = j;
+      continue;
+    }
+    const om = text.slice(i).match(SCEN_OP);
+    if(om){
+      out += '<span class="tok-op">' + esc(om[0]) + '</span>';
+      i += om[0].length;
+      continue;
+    }
+    if(OPEN_BR.indexOf(ch) >= 0 || CLOSE_BR.indexOf(ch) >= 0){
+      if(pair && (i === pair[0] || i === pair[1])) out += '<span class="tok-bracket">' + esc(ch) + '</span>';
+      else out += '<span class="tok-punct">' + esc(ch) + '</span>';
+      i++;
+      continue;
+    }
+    if(';,.'.indexOf(ch) >= 0){
+      out += '<span class="tok-punct">' + esc(ch) + '</span>';
+      i++;
+      continue;
+    }
+    out += esc(ch);
+    i++;
+  }
+  return out;
+}
+
+// ==================== Анализ scenario.txt на зацикливание ====================
+const SCEN_KW_COND = new Set(['if','then','else','true','false','null','and','or','not','end']);
+
+function tokenizeScenario(text){
+  const toks = [];
+  let i = 0, n = text.length, line = 1;
+  while(i < n){
+    const c = text[i];
+    if(c === '\n'){ line++; i++; continue; }
+    if(c === ' ' || c === '\t' || c === '\r'){ i++; continue; }
+    if(c === '#'){ while(i < n && text[i] !== '\n') i++; continue; }
+    if(c === '"'){
+      let j = i + 1, s = '"';
+      while(j < n){
+        s += text[j];
+        if(text[j] === '\\' && j + 1 < n){ s += text[j + 1]; j += 2; continue; }
+        if(text[j] === '"'){ j++; break; }
+        j++;
+      }
+      toks.push({type:'str', value:s, line}); i = j; continue;
+    }
+    if(/[0-9]/.test(c)){
+      const m = text.slice(i).match(/^\d+(\.\d+)?([eE][+-]?\d+)?/);
+      toks.push({type:'num', value:m[0], line}); i += m[0].length; continue;
+    }
+    if(/[A-Za-z_]/.test(c)){
+      const m = text.slice(i).match(/^[A-Za-z_]\w*/);
+      toks.push({type:'word', value:m[0], line}); i += m[0].length; continue;
+    }
+    const two = text.substr(i, 2);
+    if(two === '==' || two === '!=' || two === '<=' || two === '>=' || two === ':=' || two === '&&' || two === '||'){
+      toks.push({type:'sym', value:two, line}); i += 2; continue;
+    }
+    toks.push({type:'sym', value:c, line}); i++;
+  }
+  return toks;
+}
+
+function parseScenarioRules(text){
+  const toks = tokenizeScenario(text);
+  const rules = [];
+  let idx = 0, n = toks.length;
+
+  function peek(k){ return toks[idx + (k || 0)]; }
+
+  function skipToStatementEnd(){
+    if(idx >= n) return;
+    const startLine = peek().line;
+    while(idx < n){
+      const t = peek();
+      if(!t) return;
+      if(t.value === ';'){ idx++; return; }
+      if(t.value === '}') return;
+      if(t.type === 'word' && (t.value === 'else' || t.value === 'then')) return;
+      if(t.line !== startLine) return;
+      idx++;
+    }
+  }
+
+  function parseBody(rule){
+    const t = peek();
+    if(!t) return;
+    if(t.type === 'sym' && t.value === '{'){ idx++; parseRuleList(rule, true); return; }
+    if(t.type === 'word' && t.value === 'if'){ parseIf(rule); return; }
+    if(t.type === 'word'){
+      const nx = peek(1);
+      if(nx && nx.type === 'sym' && (nx.value === '=' || nx.value === ':=')){
+        // ':=' не вызывает событие (перепроверку условий) — в зацикливание не входит
+        if(nx.value === '=') rule.writes.push(t.value);
+        idx += 2; skipToStatementEnd(); return;
+      }
+    }
+    skipToStatementEnd();
+  }
+
+  function parseIf(parentRule){
+    const ifTok = peek();
+    idx++;
+    const rule = {line: ifTok.line, cond:[], writes:[]};
+    const condSet = new Set();
+    while(idx < n){
+      const t = peek();
+      if(!t) break;
+      if(t.type === 'word' && t.value === 'then'){ idx++; break; }
+      if(t.type === 'word' && t.value === 'else') break;
+      if(t.type === 'word' && !SCEN_KW_COND.has(t.value)) condSet.add(t.value);
+      idx++;
+    }
+    rule.cond = Array.from(condSet);
+    parseBody(rule);
+    if(idx < n && peek().type === 'word' && peek().value === 'else'){
+      idx++;
+      parseBody(rule);
+    }
+    if(parentRule){ for(const w of rule.writes) parentRule.writes.push(w); }
+    rules.push(rule);
+  }
+
+  function parseRuleList(targetRule, stopOnClose){
+    while(idx < n){
+      const t = peek();
+      if(!t) break;
+      if(t.type === 'sym'){
+        if(t.value === '}'){ if(stopOnClose) idx++; return; }
+        if(t.value === '{'){ idx++; parseRuleList(targetRule, true); continue; }
+        if(t.value === ';'){ idx++; continue; }
+      }
+      if(t.type === 'word'){
+        if(t.value === 'if'){ parseIf(targetRule); continue; }
+        if(t.value === 'else'){ idx++; continue; }
+        const nx = peek(1);
+        if(nx && nx.type === 'sym' && (nx.value === '=' || nx.value === ':=')){
+          // ':=' не вызывает событие (перепроверку условий) — в зацикливание не входит
+          if(nx.value === '=' && targetRule) targetRule.writes.push(t.value);
+          idx += 2; skipToStatementEnd(); continue;
+        }
+        skipToStatementEnd(); continue;
+      }
+      skipToStatementEnd();
+    }
+  }
+
+  parseRuleList(null, false);
+  return rules;
+}
+
+function findVarCycles(edges){
+  const adj = {};
+  for(let i = 0; i < edges.length; i++){
+    const e = edges[i];
+    (adj[e.from] = adj[e.from] || []).push({to: e.to, ei: i});
+  }
+  const cycles = [], visited = {}, inStack = {}, pathVars = [], pathEdges = [];
+  function dfs(u){
+    visited[u] = true; inStack[u] = true; pathVars.push(u);
+    const outs = adj[u] || [];
+    for(const o of outs){
+      if(inStack[o.to]){
+        const si = pathVars.indexOf(o.to);
+        if(si >= 0) cycles.push({vars: pathVars.slice(si).concat(o.to), edges: pathEdges.slice(si).concat(o.ei)});
+      } else if(!visited[o.to]){
+        pathEdges.push(o.ei); dfs(o.to); pathEdges.pop();
+      }
+    }
+    pathVars.pop(); inStack[u] = false;
+  }
+  for(const s of Object.keys(adj)){ if(!visited[s]) dfs(s); }
+  return cycles;
+}
+
+function dedupeCycles(cycles){
+  const seen = new Set(), out = [];
+  for(const c of cycles){
+    const vs = c.vars.slice(0, -1);
+    const len = vs.length;
+    if(len === 0) continue;
+    let best = null;
+    for(let r = 0; r < len; r++){
+      const key = Array.from({length: len}, (_, i) => vs[(r + i) % len]).join('>');
+      if(best === null || key < best) best = key;
+    }
+    if(!seen.has(best)){ seen.add(best); out.push(c); }
+  }
+  return out;
+}
+
+function cycleHtml(c, edges, srcOf, label){
+  let h = '<div style="border:1px solid var(--border,#555);border-radius:6px;padding:8px 10px;margin:8px 0">';
+  h += `<b>Цикл ${label}:</b><br>`;
+  const steps = [];
+  for(let k = 0; k < c.edges.length; k++){
+    const e = edges[c.edges[k]];
+    const from = c.vars[k], to = c.vars[k + 1];
+    const src = srcOf(e.lines);
+    steps.push(`<code>${esc(from)}</code> → [стр. ${esc(e.lines.join(', '))}] → <code>${esc(to)}</code>` +
+      (src ? `<div style="margin-left:14px;color:var(--muted);font-size:12px">└ ${esc(src)}</div>` : ''));
+  }
+  h += steps.join('<br>');
+  h += '</div>';
+  return h;
+}
+
+function checkScenarioLoops(section){
+  const ed = deviceEditors[section];
+  const path = (ed && ed.path) || '';
+  if(!/scenario\.txt$/i.test(path)){ toast('Откройте файл scenario.txt для проверки', 'info'); return; }
+  const ta = document.getElementById(section + 'Editor');
+  const text = ta ? ta.value : '';
+
+  const rules = parseScenarioRules(text);
+  const edgeMap = {};
+  for(const r of rules){
+    for(const trig of r.cond){
+      for(const w of r.writes){
+        const k = trig + '|' + w;
+        if(!edgeMap[k]) edgeMap[k] = {from: trig, to: w, lines: []};
+        edgeMap[k].lines.push(r.line);
+      }
+    }
+  }
+  const edges = Object.keys(edgeMap).map(k => {
+    const e = edgeMap[k];
+    return {from: e.from, to: e.to, line: Math.min.apply(null, e.lines), lines: e.lines};
+  });
+
+  const rawCycles = dedupeCycles(findVarCycles(edges));
+  const srcLines = text.split('\n');
+  const srcOf = ls => ls.map(L => (srcLines[L - 1] || '').trim()).filter(Boolean).join('  ‖  ');
+  const selfCycles = rawCycles.filter(c => c.vars[0] === c.vars[1]);
+  const multiCycles = rawCycles.filter(c => c.vars[0] !== c.vars[1]);
+
+  let html = '<p><b>🔁 Проверка сценария на зацикливание</b></p>';
+  html += `<p style="color:var(--muted);margin:0 0 8px">Файл: <code>${esc(path)}</code></p>`;
+  html += `<p style="color:var(--muted);margin:0 0 8px">Найдено условий: <b>${rules.length}</b> · зависимостей: <b>${edges.length}</b></p>`;
+
+  if(rawCycles.length === 0){
+    html += '<p style="color:#2e7d32">✓ Зацикливаний (циклических зависимостей) не обнаружено.</p>';
+  } else {
+    html += `<p style="color:#c62828">⚠ Возможное зацикливание программы: найдено циклов — <b>${rawCycles.length}</b> (многошаговых: <b>${multiCycles.length}</b>, самозамыканий: <b>${selfCycles.length}</b>).</p>`;
+    html += '<p style="color:var(--muted);font-size:12px">В сценарии изменение любой переменной оператором <code>=</code> перепроверяет все условия, где она используется. Если цепочка «условие → изменение → условие» замыкается, программа может срабатывать бесконечно. Присваивание через <code>:=</code> события (перепроверки) не вызывает и в циклах не учитывается.</p>';
+
+    if(multiCycles.length){
+      html += '<div style="margin-top:6px"><b style="color:#c62828">Высокий риск — многошаговые циклы (переменные «пингуют» друг друга):</b></div>';
+      multiCycles.slice(0, 25).forEach((c, ci) => { html += cycleHtml(c, edges, srcOf, ci + 1); });
+    }
+    if(selfCycles.length){
+      html += '<div style="margin-top:10px"><b style="color:#b26a00">Обратите внимание — правило читает и записывает одну переменную:</b> обычно это корректная защита (например <code>if page<1 then page=1</code>), но если значение не сходится к стабильному — произойдёт зацикливание.</div>';
+      selfCycles.slice(0, 25).forEach((c, ci) => { html += cycleHtml(c, edges, srcOf, 'С' + (ci + 1)); });
+    }
+    if(rawCycles.length > 50) html += `<p style="color:var(--muted)">…и ещё ${rawCycles.length - 50} циклов.</p>`;
+    html += '<div style="margin-top:10px;padding:8px;background:rgba(178,106,0,.14);border-radius:6px">Рекомендация: добавьте флаг-защиту от повторного входа (например <code>if guard==0 then { guard=1; …действия…; guard=0 }</code>) либо явный счётчик итераций, чтобы оборвать бесконечное срабатывание.</div>';
+  }
+
+  const panel = document.getElementById(section + 'Check');
+  const body = document.getElementById(section + 'CheckBody');
+  if(panel && body){
+    body.innerHTML = html;
+    panel.classList.add('active');
+    showLineNumbers(section);
+  }
+}
+
+function closeCheck(section){
+  const panel = document.getElementById(section + 'Check');
+  if(panel) panel.classList.remove('active');
+  hideLineNumbers(section);
+}
+
+function onEditorScroll(section){
+  const hl = document.getElementById(section + 'Hl');
+  const ta = document.getElementById(section + 'Editor');
+  if(!hl || !ta) return;
+  hl.scrollTop = ta.scrollTop;
+  hl.scrollLeft = ta.scrollLeft;
+  syncGutterScroll(section);
+}
+
+// ==================== Номера строк сценария (полоса слева) ====================
+function renderLineNumbers(section){
+  const gutter = document.getElementById(section + 'Gutter');
+  const ta = document.getElementById(section + 'Editor');
+  if(!gutter || !ta) return;
+  const count = ta.value.split('\n').length;
+  const nums = [];
+  for(let i = 1; i <= count; i++) nums.push(i);
+  gutter.querySelector('pre').textContent = nums.join('\n');
+  syncGutterScroll(section);
+}
+
+function syncGutterScroll(section){
+  const gutter = document.getElementById(section + 'Gutter');
+  const ta = document.getElementById(section + 'Editor');
+  if(!gutter || !ta) return;
+  const pre = gutter.querySelector('pre');
+  if(pre) pre.style.transform = 'translateY(' + (-(ta.scrollTop || 0)) + 'px)';
+}
+
+function showLineNumbers(section){
+  const gutter = document.getElementById(section + 'Gutter');
+  if(!gutter) return;
+  renderLineNumbers(section);
+  gutter.classList.add('active');
+}
+
+function hideLineNumbers(section){
+  const gutter = document.getElementById(section + 'Gutter');
+  if(gutter) gutter.classList.remove('active');
+}
+
+async function saveFile(section){
+  if(!activeDevice) return;
+  const ed = deviceEditors[section];
+  if(!ed.path) return;
+  const content = document.getElementById(section + 'Editor').value;
+  try{
+    const r = await fetch(`/api/device/${encodeURIComponent(activeDevice.ip)}/file/${section}`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({path: ed.path, content})
+    });
+    const d = await r.json();
+    if(d.success){ ed.original = content; toast(`Сохранено локально: ${ed.path}`, 'success'); }
+    else toast(d.error || 'Ошибка сохранения', 'error');
+  }catch(e){
+    toast('Ошибка сохранения', 'error');
+  }
+}
+
+async function pushFile(section){
+  if(section !== 'ram' || !activeDevice) return;
+  const ed = deviceEditors[section];
+  if(!ed.path) return;
+  const content = document.getElementById(section + 'Editor').value;
+  try{
+    const r = await fetch(`/api/device/${encodeURIComponent(activeDevice.ip)}/write/ram`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({path: ed.path, content})
+    });
+    const d = await r.json();
+    if(d.success){ ed.original = content; toast(`Отправлено на устройство: ${ed.path}`, 'success'); }
+    else toast(d.error || 'Ошибка записи на устройство', 'error');
+  }catch(e){
+    toast('Ошибка записи на устройство', 'error');
+  }
+}
+
+async function fetchRam(){
+  if(!activeDevice) return;
+  toast('Скачивание файлов RAM с устройства...', 'info');
+  try{
+    const r = await fetch(`/api/device/${encodeURIComponent(activeDevice.ip)}/fetch/ram`, {method:'POST'});
+    const d = await r.json();
+    if(!d.success){ toast(d.error || 'Ошибка', 'error'); return; }
+    toast(`Получено файлов: ${(d.files || []).length}`, 'success');
+    loadTree('ram');
+  }catch(e){
+    toast('Ошибка связи с устройством', 'error');
+  }
+}
+
+function reloadDeviceTrees(){
+  loadTree('ram');
+  loadTree('fs');
 }
 
 // ==================== Init ====================
@@ -461,6 +1285,9 @@ async function openProject(cat, name){
   const isPio = (name === 'PlatformIO');
   const displayName = isPio ? 'PlatformIO' : `${cat} / ${name}`;
   document.getElementById('topProjectName').textContent = displayName;
+  // Восстанавливаем верхний тулбар (мог быть скрыт менеджером устройства)
+  const tb = document.querySelector('.topbar');
+  if(tb) tb.style.display = '';
   document.getElementById('platformSelectWrap').style.display = 'flex';
   document.getElementById('gaugeBar').style.display = 'flex';
   document.getElementById('gaugeBarRam').style.display = 'flex';
@@ -578,10 +1405,19 @@ function renderSettings(){
   const container = document.getElementById('settingsContainer');
   if(!container) return;
   const s = configData?.iotmSettings || {};
+  // Ключи, уже покрытые явно заданными группами
+  const coveredKeys = new Set();
+  for(const g of SETTING_GROUPS) for(const [k] of g.fields) coveredKeys.add(k);
+  // Все оставшиеся поля iotmSettings выводим в раздел «Прочее»
+  const remaining = Object.keys(s).filter(k => !coveredKeys.has(k));
   let html = '';
   for(const group of SETTING_GROUPS){
     // Показываем только поля, которые есть в конфиге (name — всегда)
-    const present = group.fields.filter(([key])=> s.hasOwnProperty(key) || key === 'name');
+    let fields = group.fields;
+    if(group.title === 'Прочее' && remaining.length){
+      fields = group.fields.concat(remaining.map(k => [k, k, typeof s[k] === 'number' ? 'number' : 'text']));
+    }
+    const present = fields.filter(([key])=> s.hasOwnProperty(key) || key === 'name');
     if(present.length === 0) continue;
     const keys = present.map(([k])=>k);
     html += `<div class="group-separator">
@@ -622,9 +1458,9 @@ function togglePass(id){
 }
 
 async function saveSetting(key, value){
-  // Преобразуем числа
-  const numFields = ['timezone','mqttPort','log','mqttin','pinSCL','pinSDA','i2cFreq'];
-  if(numFields.includes(key)) value = parseInt(value) || 0;
+  // Преобразуем числа по фактическому типу значения в конфиге
+  const current = configData?.iotmSettings?.[key];
+  if(typeof current === 'number') value = parseInt(value) || 0;
   const settings = {}; settings[key] = value;
   await fetch('/api/config/settings', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(settings)});
   if(configData.iotmSettings) configData.iotmSettings[key] = value; else configData.iotmSettings = {[key]:value};

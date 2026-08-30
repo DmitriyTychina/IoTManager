@@ -1,0 +1,299 @@
+# -*- coding: utf-8 -*-
+"""
+WebSocket-клиент (RFC6455) для IoTManager на ESP8266/ESP32.
+
+Используется бэкендом magicIoTm для взаимодействия с устройством по порту 81:
+
+    standWebSocket = WebSocketsServer(81);   // Global.cpp
+
+Чтение (как в tools/ws_cmds.py):
+    - /config|  -> itemsj (items.json), widget (widgets.json), config (config.json),
+                   scenar (scenario.txt), settin (settings.json)
+    - /profile| -> otaupd (ota.json), prfile (profile.json)
+
+Запись файлов обратно на устройство (обратные команды):
+    payload = '/' + инвертированный заголовок + '|' + содержимое файла
+    прошивка пишет данные после заголовка в файл через writeFileUint8tByFrames().
+"""
+
+import base64
+import os
+import socket
+import struct
+import time
+
+PORT = 81
+DEFAULT_TIMEOUT = 10
+
+# ----------------------------------------------------------------------
+# Заголовки ответных блоков (первая часть сообщения от устройства).
+# key - заголовок из прошивки, value - имя файла для сохранения.
+# ----------------------------------------------------------------------
+FILE_NAMES = {
+    "layout": "layout.json", "itemsj": "items.json", "widget": "widgets.json",
+    "config": "config.json", "scenar": "scenario.txt", "settin": "settings.json",
+    "ssidli": "ssidlist.json", "errors": "errors.json", "devlis": "devlist.json",
+    "otaupd": "ota.json", "prfile": "profile.json", "params": "params.json",
+    "charta": "charts", "status": "status.json",
+}
+
+# Файлы, которые мы реально сохраняем при скачивании раздела RAM
+# (по командам /config| и /profile|).
+RAM_FILES = {
+    "itemsj": "items.json", "widget": "widgets.json", "config": "config.json",
+    "scenar": "scenario.txt", "settin": "settings.json",
+    "otaupd": "ota.json", "prfile": "profile.json",
+}
+
+# Команды чтения RAM: имя команды -> заголовок, отправляемый в WebSocket.
+RAM_READ_COMMANDS = [
+    "/config|",
+    "/profile|",
+]
+
+# Широковещательный шум (приходит периодически всем клиентам, не является ответом
+# на команду). Игнорируется при сохранении в папку устройства.
+BROADCAST = {"status", "errors", "ssidli", "devlis"}
+
+# ----------------------------------------------------------------------
+# Обратные команды записи файлов обратно на устройство.
+# key - имя файла, value - заголовок (инверсия имени команды).
+# Только эти файлы поддерживает прошивка (WsServer.cpp /gifnoc|, /oiranecs|, /sgnittes|).
+# ----------------------------------------------------------------------
+WRITE_HEADERS = {
+    "config.json": "/gifnoc|",
+    "scenario.txt": "/oiranecs|",
+    "settings.json": "/sgnittes|",
+    "layout.json": "/tuoyal|",
+    "devlist.json": "/tsil|",
+}
+
+
+# ======================================================================
+# Низкоуровневый протокол WebSocket
+# ======================================================================
+
+def build_text_frame(message):
+    """Собирает замаскированный текстовый фрейм (опкод 0x1)."""
+    payload = message.encode("utf-8")
+    mask = os.urandom(4)
+    masked = bytes(b ^ mask[i % 4] for i, b in enumerate(payload))
+    length = len(payload)
+    header = b"\x81"
+    if length < 126:
+        header += bytes([0x80 | length])
+    elif length < 65536:
+        header += bytes([0x80 | 126]) + struct.pack(">H", length)
+    else:
+        header += bytes([0x80 | 127]) + struct.pack(">Q", length)
+    return header + mask + masked
+
+
+def parse_frame(buf):
+    """Извлекает один полный фрейм из буфера.
+    Возвращает (fin, opcode, payload, rest) либо (None,None,None,buf)."""
+    if len(buf) < 2:
+        return None, None, None, buf
+    b1, b2 = buf[0], buf[1]
+    fin = bool(b1 & 0x80)
+    opcode = b1 & 0x0F
+    masked = bool(b2 & 0x80)
+    length = b2 & 0x7F
+    idx = 2
+    if length == 126:
+        if len(buf) < idx + 2:
+            return None, None, None, buf
+        length = struct.unpack(">H", buf[idx:idx + 2])[0]
+        idx += 2
+    elif length == 127:
+        if len(buf) < idx + 8:
+            return None, None, None, buf
+        length = struct.unpack(">Q", buf[idx:idx + 8])[0]
+        idx += 8
+    mask = None
+    if masked:
+        if len(buf) < idx + 4:
+            return None, None, None, buf
+        mask = buf[idx:idx + 4]
+        idx += 4
+    if len(buf) < idx + length:
+        return None, None, None, buf
+    payload = bytearray(buf[idx:idx + length])
+    if mask:
+        for i in range(length):
+            payload[i] ^= mask[i % 4]
+    return fin, opcode, bytes(payload), buf[idx + length:]
+
+
+def _handshake(sock, host, port):
+    """HTTP-апгрейд до WebSocket. Возвращает байты после блока заголовков."""
+    key = base64.b64encode(os.urandom(16)).decode()
+    request = (
+        f"GET / HTTP/1.1\r\n"
+        f"Host: {host}:{port}\r\n"
+        f"Upgrade: websocket\r\n"
+        f"Connection: Upgrade\r\n"
+        f"Sec-WebSocket-Key: {key}\r\n"
+        f"Sec-WebSocket-Version: 13\r\n"
+        f"Origin: http://{host}\r\n"
+        f"\r\n"
+    )
+    sock.sendall(request.encode())
+    resp = b""
+    while b"\r\n\r\n" not in resp:
+        resp += sock.recv(4096)
+    head, _, _rest = resp.partition(b"\r\n\r\n")
+    if b"101" not in head.split(b"\r\n", 1)[0]:
+        raise ConnectionError(
+            f"Не удалось установить WebSocket-соединение:\n{head.decode(errors='replace')}"
+        )
+    return _rest
+
+
+def _split_header(payload):
+    """Делит полезную нагрузку сообщения на (тип, размер, данные)."""
+    part1, _, tail = payload.partition(b"|")
+    size, _, data = tail.partition(b"|")
+    return part1.decode(errors="replace"), size.decode(errors="replace"), data
+
+
+# ======================================================================
+# Чтение
+# ======================================================================
+
+def fetch_ram(host, out_dir, port=PORT, timeout=DEFAULT_TIMEOUT, keep_only_ram=True):
+    """Скачивает файлы раздела RAM по командам /config| и /profile|.
+
+    Все команды отправляются по одному WebSocket-соединению (так же, как это
+    делает веб-интерфейс устройства). Ответные файлы сохраняются в out_dir
+    (с перезаписью). Широковещательный шум и посторонние файлы игнорируются.
+
+    Возвращает список имён сохранённых файлов.
+    """
+    os.makedirs(out_dir, exist_ok=True)
+    sock = socket.create_connection((host, port), timeout=timeout)
+    sock.settimeout(timeout)
+    saved = []
+    try:
+        buf = _handshake(sock, host, port)
+        # отправляем все команды чтения подряд (прошивка обрабатывает их по очереди)
+        for message in RAM_READ_COMMANDS:
+            sock.sendall(build_text_frame(message))
+
+        current_type, current_data = None, b""
+        start = time.time()
+        last_response_time = start
+        QUIET = 1.5
+        done = False
+
+        while not done and time.time() - start < timeout:
+            while True:
+                fin, opcode, pl, rest = parse_frame(buf)
+                if pl is not None:
+                    break
+                try:
+                    chunk = sock.recv(4096)
+                except socket.timeout:
+                    done = True
+                    break
+                if not chunk:
+                    done = True
+                    break
+                buf = buf + chunk
+            if done:
+                break
+            buf = rest
+
+            if opcode == 0x8:   # Close
+                break
+            if opcode in (0x9, 0xA):   # Ping/Pong
+                continue
+
+            if opcode == 0x0:   # continuation
+                current_data += pl
+            elif opcode in (0x1, 0x2):  # новое текстовое/бинарное сообщение
+                current_type, _size_str, current_data = _split_header(pl)
+
+            if not (fin and current_type):
+                continue
+
+            hdr, data = current_type, current_data
+            current_type, current_data = None, b""
+
+            if hdr.startswith("/"):
+                # служебный текстовый ответ (/po|, /tstr|)
+                last_response_time = time.time()
+                continue
+
+            is_broadcast = hdr in BROADCAST
+            if keep_only_ram and (is_broadcast or hdr not in RAM_FILES):
+                # не сохраняем шум и посторонние файлы
+                continue
+
+            fname = RAM_FILES.get(hdr) if keep_only_ram else FILE_NAMES.get(hdr, hdr + ".bin")
+            if not fname:
+                continue
+            path = os.path.join(out_dir, fname)
+            with open(path, "wb") as f:
+                f.write(data)
+            if fname not in saved:
+                saved.append(fname)
+            last_response_time = time.time()
+
+            if time.time() - last_response_time > QUIET:
+                break
+
+        return saved
+    finally:
+        try:
+            sock.sendall(bytes([0x88, 0x00]))
+        except Exception:
+            pass
+        sock.close()
+
+
+# ======================================================================
+# Запись
+# ======================================================================
+
+def write_file(host, filename, content, port=PORT, timeout=DEFAULT_TIMEOUT):
+    """Отправляет содержимое файла обратно на устройство.
+
+    Используется обратная WS-команда (например /gifnoc| для config.json).
+    Содержимое отправляется одним текстовым фреймом: '/<заголовок>|<данные>'.
+
+    Возвращает True при успешной отправке. Бросает RuntimeError, если файл
+    не поддерживается прошивкой для записи.
+    """
+    header = WRITE_HEADERS.get(filename)
+    if not header:
+        raise RuntimeError(
+            f"Файл '{filename}' не поддерживается прошивкой для записи обратно "
+            f"на устройство. Доступны: {', '.join(sorted(WRITE_HEADERS))}."
+        )
+
+    if isinstance(content, str):
+        content = content.encode("utf-8")
+
+    # большие файлы могут не поместиться в один WS-фрейм на устройстве
+    if len(content) > 50000:
+        raise RuntimeError(
+            f"Файл '{filename}' слишком большой ({len(content)} Б) для записи "
+            f"одним WebSocket-фреймом на ESP. Уменьшите размер файла."
+        )
+
+    sock = socket.create_connection((host, port), timeout=timeout)
+    sock.settimeout(timeout)
+    try:
+        buf = _handshake(sock, host, port)
+        payload = header.encode("utf-8") + content
+        sock.sendall(build_text_frame(payload.decode("utf-8", errors="replace")))
+        # небольшая пауза, чтобы прошивка успела обработать запись
+        time.sleep(0.5)
+        return True
+    finally:
+        try:
+            sock.sendall(bytes([0x88, 0x00]))
+        except Exception:
+            pass
+        sock.close()

@@ -10,6 +10,7 @@ import re
 import shutil
 import socket
 import struct
+import subprocess
 import time
 import logging
 import threading
@@ -17,7 +18,7 @@ from datetime import datetime
 from flask import Flask, request, jsonify, send_from_directory, Response
 from flask_cors import CORS
 
-from utils import projects, build, measure_run
+from utils import projects, build, measure_run, ws_client
 
 # ==================== Логирование ====================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -127,6 +128,8 @@ def _ingest_payload(src_ip, text):
                 "fv": it.get("fv", ""),
                 "last_seen": now,
             }
+            # создаём папку устройства <SSID>_<ip>_<name> с подпапками RAM и FS
+            ensure_device_folder(src_ip, str(it.get("name", "")))
 
 
 def _build_devices_payload():
@@ -160,6 +163,112 @@ def start_device_listener():
     _device_thread = threading.Thread(target=_device_listener, daemon=True,
                                       name="multicast-device-listener")
     _device_thread.start()
+
+# ==================== Папки устройств на диске ====================
+DEVICE_DIR_ROOT = os.path.join(BASE_DIR, 'devices')   # magicIoTm/devices
+
+_ssid_cache = {"value": None, "ts": 0.0}
+_SSID_TTL = 300              # кэш SSID на 5 минут
+
+# карта ip -> {"folder": ..., "ram_dir": ..., "fs_dir": ..., "name": ...}
+_device_folders = {}
+_device_folders_lock = threading.Lock()
+
+
+def _sanitize_name(name):
+    """Санитизирует имя для использования в имени папки (без служебных символов)."""
+    if not name:
+        return "unnamed"
+    s = re.sub(r'[\\/:*?"<>|]+', '_', str(name))
+    s = re.sub(r'\s+', '_', s).strip('._ ')
+    return s or "unnamed"
+
+
+def _get_wifi_ssid():
+    """Определяет SSID WiFi-сети ноутбука (netsh), с кэшем. Fallback: 'NET'."""
+    now = time.time()
+    if _ssid_cache["value"] and (now - _ssid_cache["ts"]) < _SSID_TTL:
+        return _ssid_cache["value"]
+    ssid = "NET"
+    try:
+        out = subprocess.run(
+            ["netsh", "wlan", "show", "interfaces"],
+            capture_output=True, text=True, timeout=5,
+        ).stdout
+        for line in out.splitlines():
+            if "SSID" in line and "BSSID" not in line:
+                val = line.split(":", 1)[-1].strip()
+                if val:
+                    ssid = val
+                    break
+    except Exception as e:
+        logger.warning(f"Не удалось определить SSID ноутбука: {e}")
+    _ssid_cache["value"] = ssid
+    _ssid_cache["ts"] = now
+    return ssid
+
+
+def ensure_device_folder(ip, name):
+    """Создаёт папку устройства <SSID>_<ip>_<name> с подпапками RAM и FS.
+
+    Идемпотентна: если для ip папка уже создана, возвращает существующую запись.
+    """
+    with _device_folders_lock:
+        if ip in _device_folders:
+            return _device_folders[ip]
+        ssid = _sanitize_name(_get_wifi_ssid())
+        dname = _sanitize_name(name)
+        folder = os.path.join(DEVICE_DIR_ROOT, f"{ssid}_{ip}_{dname}")
+        ram_dir = os.path.join(folder, "RAM")
+        fs_dir = os.path.join(folder, "FS")
+        try:
+            os.makedirs(ram_dir, exist_ok=True)
+            os.makedirs(fs_dir, exist_ok=True)
+        except Exception as e:
+            logger.error(f"Не удалось создать папку устройства {folder}: {e}")
+        entry = {"folder": folder, "ram_dir": ram_dir, "fs_dir": fs_dir, "name": dname}
+        _device_folders[ip] = entry
+        logger.info(f"Папка устройства: {folder}")
+        return entry
+
+
+def get_device_folder(ip):
+    """Возвращает запись папки устройства или None."""
+    with _device_folders_lock:
+        return _device_folders.get(ip)
+
+
+def _walk_tree(root):
+    """Возвращает (dirs, files) — относительные пути каталогов и файлов в root."""
+    dirs, files = [], []
+    if not os.path.isdir(root):
+        return dirs, files
+    for base, subdirs, filenames in os.walk(root):
+        for d in subdirs:
+            dirs.append(os.path.relpath(os.path.join(base, d), root))
+        for fn in filenames:
+            files.append(os.path.relpath(os.path.join(base, fn), root))
+    dirs.sort()
+    files.sort()
+    return dirs, files
+
+
+def _safe_path(root, rel):
+    """Безопасно резолвит относительный путь внутри root (защита от traversal).
+
+    Возвращает абсолютный путь или None, если путь вне root.
+    """
+    if not rel:
+        return None
+    norm = os.path.normpath(rel)
+    if norm.startswith("..") or os.path.isabs(norm):
+        return None
+    root_real = os.path.realpath(root)
+    candidate = os.path.realpath(os.path.join(root_real, norm))
+    if candidate != root_real and not candidate.startswith(root_real + os.sep):
+        return None
+    return candidate
+
 
 # ==================== modinfo кэш ====================
 
@@ -1072,6 +1181,124 @@ def api_copy_modules():
         current_config["modules"] = src_config.get("modules", {})
         projects.save_project_config(current_project["category"], current_project["name"], current_config)
     return jsonify({"success": True, "modules": current_config["modules"]})
+
+
+# ==================== Устройства: API ====================
+
+@app.route('/api/device/<ip>/info', methods=['GET'])
+def api_device_info(ip):
+    """Информация об устройстве и путь к его папке на диске."""
+    entry = get_device_folder(ip)
+    if not entry:
+        return jsonify({"success": False, "error": "Папка устройства ещё не создана"}), 404
+    return jsonify({"success": True, **entry})
+
+
+@app.route('/api/device/<ip>/fetch/ram', methods=['POST'])
+def api_device_fetch_ram(ip):
+    """Скачивает файлы раздела RAM с устройства (команды /config| и /profile|)."""
+    entry = get_device_folder(ip)
+    if not entry:
+        return jsonify({"success": False, "error": "Папка устройства ещё не создана"}), 404
+    try:
+        saved = ws_client.fetch_ram(ip, entry["ram_dir"])
+        return jsonify({"success": True, "files": saved})
+    except Exception as e:
+        logger.error(f"fetch RAM {ip}: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/device/<ip>/tree/<section>', methods=['GET'])
+def api_device_tree(ip, section):
+    """Дерево файлов раздела RAM или FS (локальная папка устройства)."""
+    entry = get_device_folder(ip)
+    if not entry:
+        return jsonify({"success": False, "error": "Папка устройства ещё не создана"}), 404
+    key = section.lower()
+    if key not in ("ram", "fs"):
+        return jsonify({"success": False, "error": "Неизвестный раздел"}), 400
+    root = entry[f"{key}_dir"]
+    dirs, files = _walk_tree(root)
+    return jsonify({"success": True, "root": root, "dirs": dirs, "files": files})
+
+
+@app.route('/api/device/<ip>/file/<section>', methods=['GET'])
+def api_device_read_file(ip, section):
+    """Содержимое файла в разделе RAM или FS."""
+    entry = get_device_folder(ip)
+    if not entry:
+        return jsonify({"success": False, "error": "Папка устройства ещё не создана"}), 404
+    key = section.lower()
+    if key not in ("ram", "fs"):
+        return jsonify({"success": False, "error": "Неизвестный раздел"}), 400
+    root = entry[f"{key}_dir"]
+    rel = request.args.get('path', '')
+    abs_path = _safe_path(root, rel)
+    if not abs_path or not os.path.isfile(abs_path):
+        return jsonify({"success": False, "error": "Файл не найден"}), 404
+    try:
+        with open(abs_path, 'r', encoding='utf-8', errors='replace') as f:
+            content = f.read()
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+    return jsonify({
+        "success": True,
+        "path": rel,
+        "name": os.path.basename(rel),
+        "size": os.path.getsize(abs_path),
+        "content": content,
+    })
+
+
+@app.route('/api/device/<ip>/file/<section>', methods=['POST'])
+def api_device_save_file(ip, section):
+    """Сохраняет изменённый файл локально в папку устройства."""
+    entry = get_device_folder(ip)
+    if not entry:
+        return jsonify({"success": False, "error": "Папка устройства ещё не создана"}), 404
+    key = section.lower()
+    if key not in ("ram", "fs"):
+        return jsonify({"success": False, "error": "Неизвестный раздел"}), 400
+    root = entry[f"{key}_dir"]
+    data = request.json or {}
+    rel = data.get('path', '')
+    content = data.get('content', '')
+    abs_path = _safe_path(root, rel)
+    if not abs_path:
+        return jsonify({"success": False, "error": "Недопустимый путь"}), 400
+    try:
+        os.makedirs(os.path.dirname(abs_path), exist_ok=True)
+        with open(abs_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+    return jsonify({"success": True, "path": rel})
+
+
+@app.route('/api/device/<ip>/write/ram', methods=['POST'])
+def api_device_write_ram(ip):
+    """Записывает изменённый файл RAM обратно на устройство (обратная WS-команда).
+
+    Локальная копия в папке устройства также обновляется.
+    """
+    entry = get_device_folder(ip)
+    if not entry:
+        return jsonify({"success": False, "error": "Папка устройства ещё не создана"}), 404
+    data = request.json or {}
+    rel = data.get('path', '')
+    content = data.get('content', '')
+    abs_path = _safe_path(entry["ram_dir"], rel)
+    if not abs_path or not os.path.isfile(abs_path):
+        return jsonify({"success": False, "error": "Файл не найден локально"}), 404
+    fname = os.path.basename(rel)
+    try:
+        ws_client.write_file(ip, fname, content)
+        with open(abs_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        return jsonify({"success": True, "path": rel})
+    except Exception as e:
+        logger.error(f"write RAM {ip} {rel}: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 # ==================== Инициализация ====================
