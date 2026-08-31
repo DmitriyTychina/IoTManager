@@ -194,6 +194,10 @@ def fetch_ram(host, out_dir, port=PORT, timeout=DEFAULT_TIMEOUT, keep_only_ram=T
         done = False
 
         while not done and time.time() - start < timeout:
+            # защита от зависшего (но не закрытого) соединения:
+            # если долго нет реальных данных — завершаемся
+            if time.time() - last_response_time > QUIET:
+                break
             while True:
                 fin, opcode, pl, rest = parse_frame(buf)
                 if pl is not None:
@@ -213,7 +217,8 @@ def fetch_ram(host, out_dir, port=PORT, timeout=DEFAULT_TIMEOUT, keep_only_ram=T
 
             if opcode == 0x8:   # Close
                 break
-            if opcode in (0x9, 0xA):   # Ping/Pong
+            if opcode in (0x9, 0xA):   # Ping/Pong — признак активности соединения
+                last_response_time = time.time()
                 continue
 
             if opcode == 0x0:   # continuation
@@ -248,9 +253,6 @@ def fetch_ram(host, out_dir, port=PORT, timeout=DEFAULT_TIMEOUT, keep_only_ram=T
                 if progress:
                     progress(fname, len(saved), len(RAM_FILES))
             last_response_time = time.time()
-
-            if time.time() - last_response_time > QUIET:
-                break
 
         return saved
     finally:

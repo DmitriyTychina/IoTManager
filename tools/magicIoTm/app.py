@@ -164,9 +164,8 @@ def _build_devices_payload():
             with _devices_lock:
                 live = _devices.get(ip)
         if live:
-            lname = live["name"]
-            if lname and lname.lower() != ip.lower():
-                dev["name"] = lname
+            # Имя устройства = базовое имя его папки (e["name"]), как в devices/.
+            # Живое multicast-имя используется только для доп. атрибутов и статуса.
             dev["wg"] = live["wg"]
             dev["id"] = live["id"]
             dev["status"] = bool(live["status"])
@@ -273,6 +272,39 @@ def _folder_base_name(name, dev_id, ip):
     return f"{base}_{ip}"
 
 
+def _device_meta_path(folder):
+    """Путь к метафайлу устройства внутри его папки."""
+    return os.path.join(folder, ".device.json")
+
+
+def _load_folder_meta(folder):
+    """Читает метафайл .device.json из папки устройства (ip/name/id)."""
+    try:
+        with open(_device_meta_path(folder), "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+def _save_folder_meta(entry):
+    """Сохраняет связку IP/имя/id устройства в метафайл его папки.
+
+    Папка идентифицируется по имени+id (без IP в имени), поэтому IP нужно
+    хранить персистентно, чтобы восстановить его после перезапуска сервера.
+    """
+    try:
+        with open(_device_meta_path(entry["folder"]), "w", encoding="utf-8") as f:
+            json.dump({
+                "key": entry["key"],
+                "ip": entry.get("ip"),
+                "name": entry.get("name"),
+                "id": entry.get("id", ""),
+                "wg": entry.get("wg", ""),
+            }, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.warning(f"Не удалось сохранить метафайл устройства {entry['folder']}: {e}")
+
+
 def _register_folder_entry(key, ip=None, name=None, create=True):
     """Регистрирует запись папки устройства в _device_folders.
 
@@ -297,6 +329,7 @@ def _register_folder_entry(key, ip=None, name=None, create=True):
     }
     with _device_folders_lock:
         _device_folders[key] = entry
+    _save_folder_meta(entry)
     logger.info(f"Папка устройства: {folder}")
     return entry
 
@@ -306,12 +339,20 @@ def ensure_device_folder(ip, name, dev_id=""):
 
     Идентичность устройства — имя+id (ключ = базовое имя папки, уникально на диске).
     Идемпотентна: если папка с таким именем уже есть в памяти или на диске,
-    повторно не создаётся.
+    повторно не создаётся. При повторном обнаружении по broadcast ОБНОВЛЯЕТ
+    актуальный IP записи (иначе устройство навсегда останется offline).
     """
     base = _folder_base_name(name, dev_id, ip)
     with _device_folders_lock:
         if base in _device_folders:
-            return _device_folders[base]
+            entry = _device_folders[base]
+            # освежаем IP: устройство могло сменить адрес или запись была
+            # восстановлена из диска без IP (после рестарта сервера)
+            if entry.get("ip") != ip:
+                entry["ip"] = ip
+                logger.info(f"Обновлён IP устройства '{base}': {ip}")
+                _save_folder_meta(entry)
+            return entry
     return _register_folder_entry(base, ip=ip, name=base)
 
 
@@ -345,9 +386,23 @@ def _scan_device_folders():
         folder = os.path.join(DEVICE_DIR_ROOT, folder_name)
         if not os.path.isdir(folder):
             continue
-        m = re.search(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', folder_name)
-        ip = m.group(0) if m else None
-        _register_folder_entry(folder_name, ip=ip, name=folder_name)
+        # восстанавливаем IP/имя из метафайла (папки именуются <имя>_<id>, IP в
+        # имени отсутствует); иначе — fallback по IP в старом имени папки
+        meta = _load_folder_meta(folder)
+        if meta:
+            ip = meta.get("ip") or None
+            name = meta.get("name") or folder_name
+            dev_id = meta.get("id", "")
+        else:
+            m = re.search(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', folder_name)
+            ip = m.group(0) if m else None
+            name = folder_name
+            dev_id = ""
+        _register_folder_entry(folder_name, ip=ip, name=name)
+        if dev_id and meta is None:
+            # старые папки без метафайла — добавим id в запись для полноты
+            with _device_folders_lock:
+                _device_folders[folder_name]["id"] = dev_id
 
 
 # ==================== Сканирование сети / добавление устройства по IP ====================
@@ -677,13 +732,29 @@ def scan_modinfo():
 
 
 def is_compatible(platform, used_libs):
-    if not used_libs or not isinstance(used_libs, dict):
+    if not used_libs:
         return True
+    # список платформ — неперечисленные считаем совместимыми
+    if isinstance(used_libs, list):
+        return True
+    if not isinstance(used_libs, dict):
+        return True
+    # структура вида {"exclude": [...], "platforms": [...]} и т.п.
+    if "exclude" in used_libs or "platforms" in used_libs:
+        excluded = set(used_libs.get("exclude") or [])
+        included = set(used_libs.get("platforms") or [])
+        if platform in excluded:
+            return False
+        if included and platform not in included:
+            return False
+        return True
+    # обычный словарь: платформа → список библиотек (["exclude"] = запрет)
     if platform in used_libs:
         return used_libs[platform] != ["exclude"]
     for pattern, libs in used_libs.items():
         if pattern.endswith("*") and platform.startswith(pattern[:-1]):
             return libs != ["exclude"]
+    # платформа не упомянута явно — считается НЕСОВМЕСТИМОЙ
     return False
 
 
@@ -1703,7 +1774,7 @@ def api_device_write_ram(device_key):
             f.write(content)
         return jsonify({"success": True, "path": rel})
     except Exception as e:
-        logger.error(f"write RAM {ip} {rel}: {e}")
+        logger.error(f"write RAM {dev_ip} {rel}: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 
