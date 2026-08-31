@@ -15,6 +15,9 @@ import time
 import logging
 import threading
 from datetime import datetime
+import ipaddress
+import urllib.request
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Flask, request, jsonify, send_from_directory, Response
 from flask_cors import CORS
 
@@ -129,43 +132,64 @@ def _ingest_payload(src_ip, text):
                 "last_seen": now,
             }
             # создаём папку устройства <SSID>_<ip>_<name> с подпапками RAM и FS
-            ensure_device_folder(src_ip, str(it.get("name", "")))
+            ensure_device_folder(src_ip, str(it.get("name", "")), str(it.get("id", "")))
 
 
 def _build_devices_payload():
     """Текущий список устройств с признаком online/offline, отсортированный.
 
-    Включает как обнаруженные по сети устройства, так и устройства из папок
-    DEVICE_DIR_ROOT (даже если сейчас офлайн). Отображаемое имя берётся из имени
-    папки (имя папки целиком), подчёркивания убираются на фронте.
+    Источник — папки устройств: ключ = базовое имя папки (уникально на диске),
+    поэтому КАЖДАЯ папка отображается как отдельное устройство (в т.ч. легаси-
+    папки без IP в имени и дубликаты IP из разных сетей). Сетевая активность/имя
+    подтягиваются из multicast по IP, если IP у записи указан.
     """
     now = time.time()
     with _device_folders_lock:
-        folder_names = {ip: e["name"] for ip, e in _device_folders.items()}
-    seen = set()
+        folder_entries = list(_device_folders.values())
     devices = []
+    for e in folder_entries:
+        ip = e.get("ip")
+        dev = {
+            "key": e["key"],
+            "ip": ip or "",
+            "name": e["name"],
+            "wg": "",
+            "id": "",
+            "status": False,
+            "fv": "",
+            "online": False,
+        }
+        live = None
+        if ip:
+            with _devices_lock:
+                live = _devices.get(ip)
+        if live:
+            lname = live["name"]
+            if lname and lname.lower() != ip.lower():
+                dev["name"] = lname
+            dev["wg"] = live["wg"]
+            dev["id"] = live["id"]
+            dev["status"] = bool(live["status"])
+            dev["fv"] = live["fv"]
+            dev["online"] = (now - live["last_seen"]) <= DEVICES_TIMEOUT
+        devices.append(dev)
+    # Живые устройства, у которых не оказалось папки (например, не удалось создать)
     with _devices_lock:
-        for d in _devices.values():
-            dev = dict(d)
-            dev["name"] = folder_names.get(d["ip"], d["name"])
-            dev["online"] = (now - d["last_seen"]) <= DEVICES_TIMEOUT
-            devices.append(dev)
-            seen.add(d["ip"])
-    # Устройства, у которых есть папка на диске, но которые не обнаружены сейчас
-    with _device_folders_lock:
-        for ip, e in _device_folders.items():
-            if ip in seen:
+        known_ips = {d["ip"] for d in devices}
+        for src_ip, d in _devices.items():
+            if src_ip in known_ips:
                 continue
             devices.append({
-                "ip": ip,
-                "name": e["name"],
-                "wg": "",
-                "id": "",
-                "status": False,
-                "fv": "",
-                "online": False,
+                "key": src_ip,
+                "ip": src_ip,
+                "name": d["name"],
+                "wg": d["wg"],
+                "id": d["id"],
+                "status": bool(d["status"]),
+                "fv": d["fv"],
+                "online": (now - d["last_seen"]) <= DEVICES_TIMEOUT,
             })
-    devices.sort(key=lambda x: (not x["online"], x["ip"]))
+    devices.sort(key=lambda x: (not x["online"], x["ip"], x["key"]))
     return {"success": True, "devices": devices}
 
 
@@ -211,6 +235,8 @@ def _sanitize_name(name):
     return s or "unnamed"
 
 
+# [DEPRECATED] SSID больше не участвует в имени папки устройства (он был причиной
+# папок-дубликатов при смене сети). Функция сохранена для обратной совместимости.
 def _get_wifi_ssid():
     """Определяет SSID WiFi-сети ноутбука (netsh), с кэшем. Fallback: 'NET'."""
     now = time.time()
@@ -220,8 +246,9 @@ def _get_wifi_ssid():
     try:
         out = subprocess.run(
             ["netsh", "wlan", "show", "interfaces"],
-            capture_output=True, text=True, timeout=5,
-        ).stdout
+            capture_output=True, text=True,
+            encoding='cp1251', errors='replace', timeout=5,
+        ).stdout or ""
         for line in out.splitlines():
             if "SSID" in line and "BSSID" not in line:
                 val = line.split(":", 1)[-1].strip()
@@ -235,68 +262,266 @@ def _get_wifi_ssid():
     return ssid
 
 
-def ensure_device_folder(ip, name):
-    """Создаёт папку устройства <SSID>_<ip>_<name> с подпапками RAM и FS.
+def _folder_base_name(name, dev_id, ip):
+    """Базовое имя папки устройства: <имя>_<id>, либо <имя>_<ip> если id пуст.
 
-    Идемпотентна: если для ip папка уже создана, возвращает существующую запись.
+    Стабильное имя без изменчивого SSID — исключает дубликаты папок при смене сети.
     """
-    with _device_folders_lock:
-        if ip in _device_folders:
-            return _device_folders[ip]
-        ssid = _sanitize_name(_get_wifi_ssid())
-        dname = _sanitize_name(name)
-        folder = os.path.join(DEVICE_DIR_ROOT, f"{ssid}_{ip}_{dname}")
-        ram_dir = os.path.join(folder, "RAM")
-        fs_dir = os.path.join(folder, "FS")
+    base = _sanitize_name(name)
+    if dev_id:
+        return f"{base}_{dev_id}"
+    return f"{base}_{ip}"
+
+
+def _register_folder_entry(key, ip=None, name=None, create=True):
+    """Регистрирует запись папки устройства в _device_folders.
+
+    Ключ = базовое имя папки (уникально на диске). IP — лишь атрибут записи.
+    """
+    folder = os.path.join(DEVICE_DIR_ROOT, key)
+    ram_dir = os.path.join(folder, "RAM")
+    fs_dir = os.path.join(folder, "FS")
+    if create:
         try:
             os.makedirs(ram_dir, exist_ok=True)
             os.makedirs(fs_dir, exist_ok=True)
         except Exception as e:
-            logger.error(f"Не удалось создать папку устройства {folder}: {e}")
-        entry = {"folder": folder, "ram_dir": ram_dir, "fs_dir": fs_dir, "name": dname}
-        _device_folders[ip] = entry
-        logger.info(f"Папка устройства: {folder}")
-        return entry
-
-
-def get_device_folder(ip):
-    """Возвращает запись папки устройства или None."""
+            logger.error(f"Не удалось подготовить папку устройства {folder}: {e}")
+    entry = {
+        "key": key,
+        "folder": folder,
+        "ram_dir": ram_dir,
+        "fs_dir": fs_dir,
+        "name": name if name is not None else key,
+        "ip": ip,
+    }
     with _device_folders_lock:
-        return _device_folders.get(ip)
+        _device_folders[key] = entry
+    logger.info(f"Папка устройства: {folder}")
+    return entry
+
+
+def ensure_device_folder(ip, name, dev_id=""):
+    """Создаёт/возвращает папку устройства с ключом <имя>_<id>.
+
+    Идентичность устройства — имя+id (ключ = базовое имя папки, уникально на диске).
+    Идемпотентна: если папка с таким именем уже есть в памяти или на диске,
+    повторно не создаётся.
+    """
+    base = _folder_base_name(name, dev_id, ip)
+    with _device_folders_lock:
+        if base in _device_folders:
+            return _device_folders[base]
+    return _register_folder_entry(base, ip=ip, name=base)
+
+
+def get_device_folder(key):
+    """Возвращает запись папки устройства по ключу (базовому имени) или None."""
+    with _device_folders_lock:
+        e = _device_folders.get(key)
+        if e:
+            return e
+        # fallback: поиск по IP (для совместимости со старыми вызовами)
+        for e in _device_folders.values():
+            if e.get("ip") == key:
+                return e
+    return None
 
 
 def _scan_device_folders():
-    """Регистрирует в _device_folders записи для всех папок из DEVICE_DIR_ROOT.
+    """Регистрирует записи для ВСЕХ папок из DEVICE_DIR_ROOT.
 
-    Папка устройства имеет вид <SSID>_<ip>_<имя>. IP извлекается регуляркой,
-    имя папки (целиком) сохраняется как отображаемое имя устройства.
+    Ключ = базовое имя папки, поэтому каждая папка становится отдельным
+    устройством (в т.ч. папки без IP в имени и дубликаты IP из разных сетей).
     Позволяет показывать в дереве устройства даже если они сейчас офлайн.
     """
     if not os.path.isdir(DEVICE_DIR_ROOT):
         return
     with _device_folders_lock:
-        for folder_name in sorted(os.listdir(DEVICE_DIR_ROOT)):
-            folder = os.path.join(DEVICE_DIR_ROOT, folder_name)
-            if not os.path.isdir(folder):
-                continue
-            m = re.search(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', folder_name)
-            ip = m.group(0) if m else None
-            if not ip or ip in _device_folders:
-                continue
-            ram_dir = os.path.join(folder, "RAM")
-            fs_dir = os.path.join(folder, "FS")
-            try:
-                os.makedirs(ram_dir, exist_ok=True)
-                os.makedirs(fs_dir, exist_ok=True)
-            except Exception as e:
-                logger.error(f"Не удалось подготовить папку устройства {folder}: {e}")
-            _device_folders[ip] = {
-                "folder": folder,
-                "ram_dir": ram_dir,
-                "fs_dir": fs_dir,
-                "name": folder_name,
+        known = set(_device_folders.keys())
+    for folder_name in sorted(os.listdir(DEVICE_DIR_ROOT)):
+        if folder_name in known:
+            continue
+        folder = os.path.join(DEVICE_DIR_ROOT, folder_name)
+        if not os.path.isdir(folder):
+            continue
+        m = re.search(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', folder_name)
+        ip = m.group(0) if m else None
+        _register_folder_entry(folder_name, ip=ip, name=folder_name)
+
+
+# ==================== Сканирование сети / добавление устройства по IP ====================
+HTTP_TIMEOUT = 2.0          # таймаут HTTP-проверок идентификации, сек
+PING_TIMEOUT_MS = 700       # таймаут ping, мс
+PING_CONCURRENCY = 64       # параллельных ping-задач
+
+
+def _get_local_ip():
+    """Локальный IPv4 ноутбука."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("8.8.8.8", 80))
+        return s.getsockname()[0]
+    except Exception:
+        return "127.0.0.1"
+    finally:
+        s.close()
+
+
+def _get_local_subnet():
+    """Диапазон адресов локальной подсети /24 (список строк)."""
+    ip = _get_local_ip()
+    if ip.startswith("127."):
+        return []
+    try:
+        net = ipaddress.ip_network(f"{ip}/24", strict=False)
+        return [str(h) for h in net.hosts()]
+    except ValueError:
+        return []
+
+
+def _host_pingable(ip):
+    """Проверка живости хоста системным ping (Windows/Unix)."""
+    if os.name == "nt":
+        args = ["ping", "-n", "1", "-w", str(PING_TIMEOUT_MS), ip]
+    else:
+        args = ["ping", "-c", "1", "-W", str(max(1, PING_TIMEOUT_MS // 1000)), ip]
+    try:
+        r = subprocess.run(
+            args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            timeout=(PING_TIMEOUT_MS / 1000) + 1,
+        )
+        return r.returncode == 0
+    except Exception:
+        return False
+
+
+def _http_get(ip, path, timeout=HTTP_TIMEOUT):
+    """Простой GET к устройству; возвращает (status, text) или (None, '')."""
+    try:
+        with urllib.request.urlopen(f"http://{ip}{path}", timeout=timeout) as resp:
+            return resp.status, resp.read().decode("utf-8", errors="replace")
+    except Exception:
+        return None, ""
+
+
+def _parse_devlist(text):
+    """Извлечение инфо из devlist.json (JSON-массив объектов IoTManager)."""
+    try:
+        data = json.loads(text)
+    except (json.JSONDecodeError, ValueError):
+        return None
+    items = data if isinstance(data, list) else [data]
+    for it in items:
+        if isinstance(it, dict) and ("name" in it or "wg" in it):
+            return {
+                "name": str(it.get("name", "")),
+                "wg": str(it.get("wg", "")),
+                "id": str(it.get("id", "")),
+                "fv": it.get("fv", ""),
             }
-            logger.info(f"Папка устройства (сканирование): {folder}")
+    return None
+
+
+def identify_device(ip):
+    """Точная идентификация IoTManager-устройства по IP.
+
+    Основной признак — ответ /devlist.json корректным JSON-массивом.
+    Резервный — стандартный ESP FS-редактор (GET /status с isOk и type).
+    Возвращает dict {kind, name, wg, id, fv} либо None.
+    """
+    status, text = _http_get(ip, "/devlist.json")
+    if status == 200:
+        info = _parse_devlist(text)
+        if info:
+            return {"kind": "iotmanager", **info}
+    # fallback: ESP-прошивка со стандартным FS-редактором
+    status, text = _http_get(ip, "/status")
+    if status == 200 and '"isOk"' in text and '"type"' in text:
+        return {"kind": "esp", "name": "", "wg": "", "id": "", "fv": ""}
+    return None
+
+
+def add_device_by_ip(ip):
+    """Добавление устройства по IP. Возвращает dict-результат."""
+    ip = (ip or "").strip()
+    try:
+        ipaddress.ip_address(ip)
+    except ValueError:
+        return {"success": False, "error": "Некорректный IP-адрес"}
+    ident = identify_device(ip)
+    if not ident:
+        return {"success": False,
+                "error": "По этому IP не удалось распознать IoTManager-устройство"}
+    name = ident.get("name") or ip
+    entry = ensure_device_folder(ip, name, ident.get("id", ""))
+    return {"success": True, "device": {
+        "key": entry["key"],
+        "ip": ip,
+        "name": name,
+        "wg": ident.get("wg", ""),
+        "id": ident.get("id", ""),
+        "fv": ident.get("fv", ""),
+        "kind": ident["kind"],
+        "folder": entry["folder"],
+    }}
+
+
+# Состояние фонового сканирования сети (для SSE-потока прогресса)
+_scan_lock = threading.Lock()
+_scan_state = {
+    "running": False, "total": 0, "done": 0, "subnet": "",
+    "alive": [], "found": [], "failed": [], "error": None,
+}
+
+
+def _scan_snapshot():
+    """Снимок состояния сканирования."""
+    with _scan_lock:
+        return dict(_scan_state)
+
+
+def scan_network_worker():
+    """Фоновое сканирование подсети: ping -> идентификация -> добавление."""
+    hosts = _get_local_subnet()
+    local_ip = _get_local_ip()
+    with _scan_lock:
+        _scan_state.update({
+            "total": len(hosts),
+            "done": 0,
+            "subnet": f"{local_ip}/24" if hosts else "",
+            "alive": [],
+            "found": [],
+            "failed": [],
+            "error": None if hosts else "Не удалось определить локальную подсеть",
+        })
+    if not hosts:
+        with _scan_lock:
+            _scan_state["running"] = False
+        return
+
+    with ThreadPoolExecutor(max_workers=PING_CONCURRENCY) as ex:
+        futures = {ex.submit(_host_pingable, ip): ip for ip in hosts}
+        for fut in as_completed(futures):
+            ip = futures[fut]
+            try:
+                ok = bool(fut.result())
+            except Exception:
+                ok = False
+            with _scan_lock:
+                _scan_state["done"] += 1
+                if ok:
+                    _scan_state["alive"].append(ip)
+            if ok:
+                res = add_device_by_ip(ip)
+                with _scan_lock:
+                    if res["success"]:
+                        _scan_state["found"].append(res["device"])
+                    else:
+                        _scan_state["failed"].append({"ip": ip, "error": res["error"]})
+
+    with _scan_lock:
+        _scan_state["running"] = False
 
 
 def _walk_tree(root):
@@ -1277,32 +1502,73 @@ def api_copy_modules():
 
 # ==================== Устройства: API ====================
 
-@app.route('/api/device/<ip>/info', methods=['GET'])
-def api_device_info(ip):
+@app.route('/api/device/<device_key>/info', methods=['GET'])
+def api_device_info(device_key):
     """Информация об устройстве и путь к его папке на диске."""
-    entry = get_device_folder(ip)
+    entry = get_device_folder(device_key)
     if not entry:
         return jsonify({"success": False, "error": "Папка устройства ещё не создана"}), 404
     return jsonify({"success": True, **entry})
 
 
-# Статус фонового скачивания разделов устройства (по ip:section)
+@app.route('/api/devices/scan', methods=['POST'])
+def api_devices_scan():
+    """Запуск фонового сканирования сети."""
+    with _scan_lock:
+        if _scan_state["running"]:
+            return jsonify({"success": True, "already": True})
+        _scan_state["running"] = True
+    threading.Thread(target=scan_network_worker, daemon=True,
+                     name="scan-network").start()
+    return jsonify({"success": True})
+
+
+@app.route('/api/devices/scan/stream')
+def api_devices_scan_stream():
+    """SSE-поток прогресса сканирования сети."""
+    def gen():
+        try:
+            while True:
+                st = _scan_snapshot()
+                yield f"data: {json.dumps(st, ensure_ascii=False)}\n\n"
+                if not st["running"]:
+                    break
+                time.sleep(0.15)
+        except GeneratorExit:
+            pass
+    return Response(gen(), mimetype='text/event-stream', headers={
+        'Cache-Control': 'no-cache',
+        'X-Accel-Buffering': 'no',
+    })
+
+
+@app.route('/api/devices/add', methods=['POST'])
+def api_devices_add():
+    """Добавление устройства по IP."""
+    data = request.json or {}
+    return jsonify(add_device_by_ip(str(data.get("ip", ""))))
+
+
+# Статус фонового скачивания разделов устройства (по device_key:section)
 _fetch_progress = {}
 
 
-@app.route('/api/device/<ip>/fetch/<section>', methods=['POST'])
-def api_device_fetch(ip, section):
+@app.route('/api/device/<device_key>/fetch/<section>', methods=['POST'])
+def api_device_fetch(device_key, section):
     """Запускает фоновое скачивание раздела RAM или FS с устройства."""
-    key = section.lower()
-    if key not in ("ram", "fs"):
+    sec = section.lower()
+    if sec not in ("ram", "fs"):
         return jsonify({"success": False, "error": "Неизвестный раздел"}), 400
-    entry = get_device_folder(ip)
+    entry = get_device_folder(device_key)
     if not entry:
         return jsonify({"success": False, "error": "Папка устройства ещё не создана"}), 404
+    dev_ip = entry.get("ip")
+    if not dev_ip:
+        return jsonify({"success": False, "error": "У устройства не указан IP"}), 400
 
     state = {"stage": "running", "done": 0, "total": 0,
              "name": "Подключение к устройству...", "files": [], "error": None}
-    _fetch_progress[(ip, key)] = state
+    _fetch_progress[(device_key, sec)] = state
 
     def progress(fname, done, total):
         state["done"] = done
@@ -1311,14 +1577,14 @@ def api_device_fetch(ip, section):
 
     def worker():
         try:
-            if key == "ram":
-                saved = ws_client.fetch_ram(ip, entry["ram_dir"], progress=progress)
+            if sec == "ram":
+                saved = ws_client.fetch_ram(dev_ip, entry["ram_dir"], progress=progress)
             else:
-                saved = ws_client.fetch_fs(ip, entry["fs_dir"], progress=progress)
+                saved = ws_client.fetch_fs(dev_ip, entry["fs_dir"], progress=progress)
             state["files"] = saved
             state["stage"] = "done"
         except Exception as e:
-            logger.error(f"fetch {key} {ip}: {e}")
+            logger.error(f"fetch {sec} {dev_ip}: {e}")
             state["stage"] = "error"
             state["error"] = str(e)
 
@@ -1326,11 +1592,11 @@ def api_device_fetch(ip, section):
     return jsonify({"success": True})
 
 
-@app.route('/api/device/<ip>/fetch/<section>/status', methods=['GET'])
-def api_device_fetch_status(ip, section):
+@app.route('/api/device/<device_key>/fetch/<section>/status', methods=['GET'])
+def api_device_fetch_status(device_key, section):
     """Возвращает текущий прогресс фонового скачивания раздела."""
     key = section.lower()
-    state = _fetch_progress.get((ip, key))
+    state = _fetch_progress.get((device_key, key))
     if not state:
         return jsonify({"success": False, "error": "Скачивание не запущено"}), 404
     if state["stage"] == "error":
@@ -1345,10 +1611,10 @@ def api_device_fetch_status(ip, section):
     })
 
 
-@app.route('/api/device/<ip>/tree/<section>', methods=['GET'])
-def api_device_tree(ip, section):
+@app.route('/api/device/<device_key>/tree/<section>', methods=['GET'])
+def api_device_tree(device_key, section):
     """Дерево файлов раздела RAM или FS (локальная папка устройства)."""
-    entry = get_device_folder(ip)
+    entry = get_device_folder(device_key)
     if not entry:
         return jsonify({"success": False, "error": "Папка устройства ещё не создана"}), 404
     key = section.lower()
@@ -1359,10 +1625,10 @@ def api_device_tree(ip, section):
     return jsonify({"success": True, "root": root, "dirs": dirs, "files": files})
 
 
-@app.route('/api/device/<ip>/file/<section>', methods=['GET'])
-def api_device_read_file(ip, section):
+@app.route('/api/device/<device_key>/file/<section>', methods=['GET'])
+def api_device_read_file(device_key, section):
     """Содержимое файла в разделе RAM или FS."""
-    entry = get_device_folder(ip)
+    entry = get_device_folder(device_key)
     if not entry:
         return jsonify({"success": False, "error": "Папка устройства ещё не создана"}), 404
     key = section.lower()
@@ -1387,10 +1653,10 @@ def api_device_read_file(ip, section):
     })
 
 
-@app.route('/api/device/<ip>/file/<section>', methods=['POST'])
-def api_device_save_file(ip, section):
+@app.route('/api/device/<device_key>/file/<section>', methods=['POST'])
+def api_device_save_file(device_key, section):
     """Сохраняет изменённый файл локально в папку устройства."""
-    entry = get_device_folder(ip)
+    entry = get_device_folder(device_key)
     if not entry:
         return jsonify({"success": False, "error": "Папка устройства ещё не создана"}), 404
     key = section.lower()
@@ -1412,15 +1678,18 @@ def api_device_save_file(ip, section):
     return jsonify({"success": True, "path": rel})
 
 
-@app.route('/api/device/<ip>/write/ram', methods=['POST'])
-def api_device_write_ram(ip):
+@app.route('/api/device/<device_key>/write/ram', methods=['POST'])
+def api_device_write_ram(device_key):
     """Записывает изменённый файл RAM обратно на устройство (обратная WS-команда).
 
     Локальная копия в папке устройства также обновляется.
     """
-    entry = get_device_folder(ip)
+    entry = get_device_folder(device_key)
     if not entry:
         return jsonify({"success": False, "error": "Папка устройства ещё не создана"}), 404
+    dev_ip = entry.get("ip")
+    if not dev_ip:
+        return jsonify({"success": False, "error": "У устройства не указан IP"}), 400
     data = request.json or {}
     rel = data.get('path', '')
     content = data.get('content', '')
@@ -1429,7 +1698,7 @@ def api_device_write_ram(ip):
         return jsonify({"success": False, "error": "Файл не найден локально"}), 404
     fname = os.path.basename(rel)
     try:
-        ws_client.write_file(ip, fname, content)
+        ws_client.write_file(dev_ip, fname, content)
         with open(abs_path, 'w', encoding='utf-8') as f:
             f.write(content)
         return jsonify({"success": True, "path": rel})

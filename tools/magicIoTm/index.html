@@ -40,8 +40,16 @@ body.dark{background:var(--bg);color:var(--text)}
 /* Секции сайдбара: «Проекты» и «Устройства» */
 .tree-section-title{text-align:center;padding:6px 8px 2px;font-size:12px;font-weight:600;letter-spacing:.4px;color:var(--muted);user-select:none}
 .tree-section-title + .project-tree{margin-top:0}
-.tree-devices-title{border-top:1px solid var(--border);margin-top:4px;padding-top:8px}
+.tree-devices-title-row{position:relative;display:flex;align-items:center;gap:4px;padding:4px 8px 2px;border-top:1px solid var(--border);margin-top:4px}
+.tree-devices-title-row .tree-section-title{position:absolute;left:50%;transform:translateX(-50%);border:0;margin:0;padding:0;text-align:center;pointer-events:none}
+.tree-devices-title-row .btn-sm{padding:2px 6px;font-size:12px;line-height:1.2;white-space:nowrap}
+.tree-devices-title-row .btn-sm:last-child{margin-left:auto}
+.tree-devices-title-row .btn-sm[disabled]{opacity:.5;cursor:wait}
 .tree-devices{padding:0 8px 8px}
+/* Список найденных хостов в модалке сканирования */
+.scan-host-list{margin-top:10px;max-height:220px;overflow-y:auto;font-size:12px;border:1px solid var(--border);border-radius:6px;padding:6px}
+.scan-host-list .scan-empty{color:var(--muted)}
+.scan-host-list div{padding:2px 4px;border-radius:4px}
 .device-item{display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:4px;font-size:13px;cursor:default}
 .device-item:hover{background:rgba(74,144,217,0.1)}
 .device-status{width:8px;height:8px;border-radius:50%;flex:0 0 auto;background:var(--muted)}
@@ -233,11 +241,11 @@ textarea{resize:vertical;min-height:60px;font-family:inherit}
 .devmgr-editor-head .file-title{flex:1;display:flex;align-items:center;gap:6px;min-width:0}
 .devmgr-editor-head .file-name{font-family:Consolas,monospace;color:var(--text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .devmgr-editor-head .file-size{font-family:Consolas,monospace;color:var(--muted);white-space:nowrap}
-.devmgr-textarea{position:absolute;inset:0;width:100%;height:100%;border:none;resize:none;font-family:Consolas,'Courier New',monospace;font-size:12px;line-height:1.45;padding:10px;background:transparent;color:var(--text);min-height:0;white-space:pre;overflow:auto}
+.devmgr-textarea{position:absolute;inset:0;width:100%;height:100%;box-sizing:border-box;border:none;resize:none;font-family:Consolas,'Courier New',monospace;font-size:12px;line-height:1.45;padding:10px;background:transparent;color:var(--text);min-height:0;white-space:pre;overflow:auto}
 /* Подсветка JSON: textarea поверх <pre> с раскрашенным содержимым */
 .devmgr-code{flex:1;display:flex;position:relative;min-height:0;overflow:hidden}
 .devmgr-code-editor{flex:1;position:relative;min-width:0;min-height:0}
-.devmgr-hl{position:absolute;inset:0;margin:0;padding:10px;font-family:Consolas,'Courier New',monospace;font-size:12px;line-height:1.45;white-space:pre;overflow:hidden;color:var(--text);pointer-events:none;user-select:none}
+.devmgr-hl{position:absolute;inset:0;margin:0;box-sizing:border-box;padding:10px;font-family:Consolas,'Courier New',monospace;font-size:12px;line-height:1.45;white-space:pre;overflow:hidden;color:var(--text);pointer-events:none;user-select:none}
 /* Полоса номеров строк сценария (видна при открытой «Проверке») */
 .devmgr-gutter{width:46px;min-width:46px;flex:0 0 auto;display:none;overflow:hidden;background:rgba(74,144,217,0.06);border-right:1px solid var(--border);user-select:none;-ms-user-select:none}
 .devmgr-gutter.active{display:block}
@@ -302,7 +310,11 @@ body.dark .tok-bracket{background:#f9a825;color:#1a1a1a}
     <div class="project-tree" id="projectTree">
       <div class="empty-state" style="padding:20px"><p>Нет проектов</p></div>
     </div>
-    <div class="tree-section-title tree-devices-title">💡 Устройства</div>
+    <div class="tree-devices-title-row">
+      <div class="tree-section-title">💡 Устройства</div>
+      <button class="btn-sm" id="scanNetBtn" onclick="scanNetwork(this)" title="Сканировать сеть (поиск ESP-устройств пингованием)">🔍</button>
+      <button class="btn-sm" onclick="showAddDeviceModal()" title="Добавить устройство по IP">➕</button>
+    </div>
     <div class="tree-devices" id="deviceTree">
       <div class="empty-state" style="padding:16px"><p>Устройства не найдены</p></div>
     </div>
@@ -418,15 +430,15 @@ function renderDevices(devices){
       (d.wg ? ` · группа: ${d.wg}` : '') +
       (d.fv !== '' && d.fv !== undefined ? ` · fw: ${d.fv}` : '') +
       (d.id ? ` · id: ${d.id}` : '');
-    const active = activeDevice && activeDevice.ip === d.ip ? ' active' : '';
-    html += `<div class="device-item${active}" data-ip="${esc(d.ip)}" data-name="${esc(d.name)}" data-online="${d.online?1:0}" title="${esc(tip)}">
+    const active = activeDevice && (activeDevice.key === d.key || (!d.key && activeDevice.ip === d.ip)) ? ' active' : '';
+    html += `<div class="device-item${active}" data-key="${esc(d.key || '')}" data-ip="${esc(d.ip)}" data-name="${esc(d.name)}" data-online="${d.online?1:0}" title="${esc(tip)}">
       <span class="device-status ${cls}" title="${d.online ? 'Online' : 'Offline'}"></span>
       <span class="device-name">${esc(label)}</span>
     </div>`;
   }
   el.innerHTML = html;
   // Синхронизируем статус активного устройства (для индикатора в devmgr)
-  const act = devices.find(x => activeDevice && x.ip === activeDevice.ip);
+  const act = devices.find(x => activeDevice && (x.key === activeDevice.key || (!x.key && x.ip === activeDevice.ip)));
   if(act && activeDevice.online !== act.online){
     activeDevice.online = act.online;
   }
@@ -436,7 +448,7 @@ function renderDevices(devices){
 document.getElementById('deviceTree').addEventListener('click', (e) => {
   const item = e.target.closest('.device-item');
   if(!item) return;
-  selectDevice(item.dataset.ip, item.dataset.name, item.dataset.online === '1');
+  selectDevice(item.dataset.key, item.dataset.ip, item.dataset.name, item.dataset.online === '1');
 });
 
 function connectDevicesStream(){
@@ -454,6 +466,139 @@ function connectDevicesStream(){
   };
 }
 
+// ==================== Сканирование сети / добавление по IP ====================
+let scanStreamSource = null;
+
+function scanNetwork(btn){
+  if(btn && btn.disabled) return;
+  const original = btn ? btn.textContent : '';
+  if(btn) btn.disabled = true;
+  showScanProgressModal();
+  fetch('/api/devices/scan', {method:'POST'})
+    .then(r=>r.json())
+    .then(d=>{
+      if(!d || !d.success){
+        toast((d && d.error) || 'Не удалось запустить сканирование', 'error');
+        finishScanProgress();
+        if(btn){ btn.disabled = false; btn.textContent = original; }
+        return;
+      }
+      openScanStream();
+    })
+    .catch(()=>{
+      toast('Ошибка сканирования сети', 'error');
+      finishScanProgress();
+      if(btn){ btn.disabled = false; btn.textContent = original; }
+    });
+}
+
+function showScanProgressModal(){
+  showModal(`<h3>🔍 Сканирование сети</h3>
+    <div class="progress-wrap">
+      <div class="progress-track"><div class="progress-fill" id="scanProgressFill"></div></div>
+      <div class="progress-label" id="scanProgressLabel">Определение подсети...</div>
+    </div>
+    <div class="scan-host-list" id="scanHosts"><div class="scan-empty">Ожидание данных...</div></div>
+    <div class="modal-actions"><button id="scanCloseBtn" disabled title="Дождитесь завершения сканирования" onclick="closeModal()">Закрыть</button></div>`);
+}
+
+function openScanStream(){
+  if(scanStreamSource) scanStreamSource.close();
+  const es = new EventSource('/api/devices/scan/stream');
+  scanStreamSource = es;
+  es.onmessage = (e)=>{
+    let st; try{ st = JSON.parse(e.data); }catch(_){ return; }
+    updateScanProgress(st);
+    if(!st.running){
+      es.close();
+      if(scanStreamSource === es) scanStreamSource = null;
+      finishScanProgress(st);
+    }
+  };
+  es.onerror = ()=>{
+    es.close();
+    if(scanStreamSource === es) scanStreamSource = null;
+    finishScanProgress();
+  };
+}
+
+function renderScanHosts(devices, emptyMsg){
+  const hosts = document.getElementById('scanHosts');
+  if(!hosts) return;
+  const list = (devices || []);
+  hosts.innerHTML = list.length
+    ? list.map(x=>`<div>🟢 ${esc(dispName(x.name))} (${x.ip})</div>`).join('')
+    : `<div class="scan-empty">${emptyMsg}</div>`;
+}
+
+function updateScanProgress(st){
+  const fill = document.getElementById('scanProgressFill');
+  if(fill && st.total){
+    const pct = Math.min(100, Math.round((st.done / st.total) * 100));
+    fill.style.width = pct + '%';
+  }
+  const label = document.getElementById('scanProgressLabel');
+  if(label){
+    label.textContent = `Проверено ${st.done || 0} из ${st.total || 0} адресов. Найдено устройств: ${(st.found||[]).length}`;
+  }
+  if(st.found && st.found.length) renderScanHosts(st.found, '');
+}
+
+function finishScanProgress(st){
+  st = st || {};
+  const btn = document.getElementById('scanNetBtn');
+  if(btn) btn.disabled = false;
+  const closeBtn = document.getElementById('scanCloseBtn');
+  if(closeBtn) closeBtn.disabled = false;
+  const fill = document.getElementById('scanProgressFill');
+  if(fill) fill.style.width = '100%';
+  const label = document.getElementById('scanProgressLabel');
+  if(label){
+    if(st.error) label.textContent = 'Ошибка: ' + st.error;
+    else label.textContent = `Готово. Проверено ${st.done || 0} адресов. Найдено и добавлено устройств: ${(st.found||[]).length}`;
+  }
+  renderScanHosts(st.found, 'IoTManager-устройства не найдены');
+  const found = st.found || [];
+  if(st.error) toast(st.error, 'error');
+  else if(found.length) toast(`Найдено устройств: ${found.length} — ${found.map(x=>dispName(x.name)).join(', ')}`, 'success');
+  else toast('Сканирование завершено. Устройств не найдено.', 'info');
+}
+
+function showAddDeviceModal(){
+  showModal(`
+    <h3>➕ Добавить устройство по IP</h3>
+    <div class="form-row"><label>IP-адрес:</label><input type="text" id="addDevIp" placeholder="192.168.1.100" autocomplete="off"></div>
+    <p style="font-size:12px;color:var(--muted);margin:4px 0">Устройство будет проверено по /devlist.json (IoTmanager). Настоящее имя подхватится автоматически.</p>
+    <div class="modal-actions"><button title="Закрыть" onclick="closeModal()">Отмена</button><button class="btn-primary" title="Добавить устройство" onclick="addDeviceByIp()">Добавить</button></div>`);
+  setTimeout(()=>document.getElementById('addDevIp')?.focus(), 50);
+  document.getElementById('addDevIp').addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter') addDeviceByIp();
+  });
+}
+
+function addDeviceByIp(){
+  const ip = (document.getElementById('addDevIp') || {}).value || '';
+  if(!ip.trim()){
+    toast('Введите IP-адрес', 'error');
+    return;
+  }
+  fetch('/api/devices/add', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({ip: ip.trim()}),
+  })
+    .then(r=>r.json())
+    .then(d=>{
+      if(d && d.success){
+        closeModal();
+        toast(`Устройство добавлено: ${dispName(d.device.name)} (${d.device.ip})`, 'success');
+      }else{
+        toast((d && d.error) || 'Не удалось добавить устройство', 'error');
+      }
+    })
+    .catch(()=>toast('Ошибка при добавлении устройства', 'error'));
+}
+
 // ==================== Device manager ====================
 let activeDevice = null;            // {ip, name, online}
 let deviceEditors = {
@@ -461,8 +606,8 @@ let deviceEditors = {
   fs:  {path:null, original:''},
 };
 
-function selectDevice(ip, name, online){
-  activeDevice = {ip, name, online};
+function selectDevice(key, ip, name, online){
+  activeDevice = {key, ip, name, online};
   deviceEditors = {ram:{path:null,original:''}, fs:{path:null,original:''}};
   // Скрываем верхний тулбар, выбор платформы и датчики, пока открыт менеджер устройства
   const tb = document.querySelector('.topbar');
@@ -582,7 +727,7 @@ async function loadTree(section){
   const el = document.getElementById(section + 'Tree');
   if(!el) return;
   try{
-    const r = await fetch(`/api/device/${encodeURIComponent(activeDevice.ip)}/tree/${section}`);
+    const r = await fetch(`/api/device/${encodeURIComponent(activeDevice.key || activeDevice.ip)}/tree/${section}`);
     const d = await r.json();
     if(!d.success){
       el.innerHTML = `<div class="empty-state" style="padding:12px">${esc(d.error || 'Ошибка')}</div>`;
@@ -617,11 +762,11 @@ async function selectFile(section, path){
     if(item) item.classList.add('active');
   }
   try{
-    const r = await fetch(`/api/device/${encodeURIComponent(activeDevice.ip)}/file/${section}?path=${encodeURIComponent(path)}`);
+    const r = await fetch(`/api/device/${encodeURIComponent(activeDevice.key || activeDevice.ip)}/file/${section}?path=${encodeURIComponent(path)}`);
     const d = await r.json();
     if(!d.success){ toast(d.error || 'Ошибка', 'error'); return; }
-    // settings.json — форматируем JSON с переносами строк, даже если файл однострочный
-    if(/settings\.json$/i.test(path)){
+    // Любой .json — форматируем с переносами строк, даже если файл однострочный
+    if(/\.json$/i.test(path)){
       try{ d.content = JSON.stringify(JSON.parse(d.content), null, 2); }catch(_e){}
     }
     deviceEditors[section] = {path, original: d.content};
@@ -1165,7 +1310,7 @@ async function saveFile(section){
   if(!ed.path) return;
   const content = document.getElementById(section + 'Editor').value;
   try{
-    const r = await fetch(`/api/device/${encodeURIComponent(activeDevice.ip)}/file/${section}`, {
+    const r = await fetch(`/api/device/${encodeURIComponent(activeDevice.key || activeDevice.ip)}/file/${section}`, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({path: ed.path, content})
     });
@@ -1183,7 +1328,7 @@ async function pushFile(section){
   if(!ed.path) return;
   const content = document.getElementById(section + 'Editor').value;
   try{
-    const r = await fetch(`/api/device/${encodeURIComponent(activeDevice.ip)}/write/ram`, {
+    const r = await fetch(`/api/device/${encodeURIComponent(activeDevice.key || activeDevice.ip)}/write/ram`, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({path: ed.path, content})
     });
@@ -1199,7 +1344,7 @@ async function fetchRam(){
   if(!activeDevice) return;
   showFetchProgress('ram');
   try{
-    const r = await fetch(`/api/device/${encodeURIComponent(activeDevice.ip)}/fetch/ram`, {method:'POST'});
+    const r = await fetch(`/api/device/${encodeURIComponent(activeDevice.key || activeDevice.ip)}/fetch/ram`, {method:'POST'});
     const d = await r.json();
     if(!d.success){ updateFetchProgress(d.error || 'Ошибка запуска', 0); toast(d.error || 'Ошибка', 'error'); return; }
     const result = await waitFetchDone('ram');
@@ -1215,7 +1360,7 @@ async function fetchFs(){
   if(!activeDevice) return;
   showFetchProgress('fs');
   try{
-    const r = await fetch(`/api/device/${encodeURIComponent(activeDevice.ip)}/fetch/fs`, {method:'POST'});
+    const r = await fetch(`/api/device/${encodeURIComponent(activeDevice.key || activeDevice.ip)}/fetch/fs`, {method:'POST'});
     const d = await r.json();
     if(!d.success){ updateFetchProgress(d.error || 'Ошибка запуска', 0); toast(d.error || 'Ошибка', 'error'); return; }
     const result = await waitFetchDone('fs');
@@ -1252,7 +1397,7 @@ function waitFetchDone(section){
   return new Promise(resolve => {
     const poll = async () => {
       try{
-        const r = await fetch(`/api/device/${encodeURIComponent(activeDevice.ip)}/fetch/${section}/status`);
+        const r = await fetch(`/api/device/${encodeURIComponent(activeDevice.key || activeDevice.ip)}/fetch/${section}/status`);
         const d = await r.json();
         if(!d.success){ resolve(d); return; }
         if(d.stage === 'running'){
