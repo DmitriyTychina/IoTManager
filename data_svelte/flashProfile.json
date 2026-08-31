@@ -11,7 +11,7 @@
                 "path": "src/modules/exec/AnalogBtn"
             },
             {
-                "active": true,
+                "active": false,
                 "path": "src/modules/exec/BrokerMQTT"
             },
             {
@@ -23,7 +23,7 @@
                 "path": "src/modules/exec/ButtonOut"
             },
             {
-                "active": true,
+                "active": false,
                 "path": "src/modules/exec/Buzzer"
             },
             {
@@ -39,11 +39,11 @@
                 "path": "src/modules/exec/EspCam"
             },
             {
-                "active": true,
+                "active": false,
                 "path": "src/modules/exec/Ftp"
             },
             {
-                "active": true,
+                "active": false,
                 "path": "src/modules/exec/HttpGet"
             },
             {
@@ -51,7 +51,7 @@
                 "path": "src/modules/exec/IoTServo"
             },
             {
-                "active": true,
+                "active": false,
                 "path": "src/modules/exec/IRremote"
             },
             {
@@ -115,7 +115,7 @@
                 "path": "src/modules/exec/TelegramLT"
             },
             {
-                "active": true,
+                "active": false,
                 "path": "src/modules/exec/Telegram_v2"
             },
             {
@@ -129,7 +129,7 @@
         ],
         "screens": [
             {
-                "active": true,
+                "active": false,
                 "path": "src/modules/display/DwinI"
             },
             {
@@ -137,7 +137,7 @@
                 "path": "src/modules/display/GyverLAMP"
             },
             {
-                "active": true,
+                "active": false,
                 "path": "src/modules/display/Lcd2004"
             },
             {
@@ -157,15 +157,15 @@
                 "path": "src/modules/display/Oled64"
             },
             {
-                "active": true,
+                "active": false,
                 "path": "src/modules/display/Smi2_m"
             },
             {
-                "active": true,
+                "active": false,
                 "path": "src/modules/display/TM16XX"
             },
             {
-                "active": true,
+                "active": false,
                 "path": "src/modules/display/Ws2812b"
             }
         ],

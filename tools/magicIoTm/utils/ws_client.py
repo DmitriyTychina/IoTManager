@@ -17,13 +17,17 @@ WebSocket-клиент (RFC6455) для IoTManager на ESP8266/ESP32.
 """
 
 import base64
+import json
 import os
 import socket
 import struct
 import time
+import urllib.parse
+import urllib.request
 
 PORT = 81
 DEFAULT_TIMEOUT = 10
+HTTP_PORT = 80
 
 # ----------------------------------------------------------------------
 # Заголовки ответных блоков (первая часть сообщения от устройства).
@@ -161,12 +165,15 @@ def _split_header(payload):
 # Чтение
 # ======================================================================
 
-def fetch_ram(host, out_dir, port=PORT, timeout=DEFAULT_TIMEOUT, keep_only_ram=True):
+def fetch_ram(host, out_dir, port=PORT, timeout=DEFAULT_TIMEOUT, keep_only_ram=True, progress=None):
     """Скачивает файлы раздела RAM по командам /config| и /profile|.
 
     Все команды отправляются по одному WebSocket-соединению (так же, как это
     делает веб-интерфейс устройства). Ответные файлы сохраняются в out_dir
     (с перезаписью). Широковещательный шум и посторонние файлы игнорируются.
+
+    progress: опциональный callback progress(fname, done, total), вызывается
+    после сохранения каждого файла.
 
     Возвращает список имён сохранённых файлов.
     """
@@ -238,6 +245,8 @@ def fetch_ram(host, out_dir, port=PORT, timeout=DEFAULT_TIMEOUT, keep_only_ram=T
                 f.write(data)
             if fname not in saved:
                 saved.append(fname)
+                if progress:
+                    progress(fname, len(saved), len(RAM_FILES))
             last_response_time = time.time()
 
             if time.time() - last_response_time > QUIET:
@@ -250,6 +259,63 @@ def fetch_ram(host, out_dir, port=PORT, timeout=DEFAULT_TIMEOUT, keep_only_ram=T
         except Exception:
             pass
         sock.close()
+
+
+# ----------------------------------------------------------------------
+# Файловая система (HTTP, порт 80)
+# ----------------------------------------------------------------------
+
+def _http_get(host, path):
+    """GET по HTTP (порт 80); возвращает тело ответа байтами."""
+    url = "http://{}:{}{}".format(host, HTTP_PORT, path)
+    with urllib.request.urlopen(url, timeout=DEFAULT_TIMEOUT) as resp:
+        return resp.read()
+
+
+def fetch_fs(host, out_dir, progress=None):
+    """Скачивает файлы раздела FS по HTTP (порт 80).
+
+    Рекурсивно перечисляет каталоги через /list?dir=<path> (эндпоинт прошивки)
+    и скачивает каждый файл через /<path>?download=1, сохраняя в out_dir.
+
+    progress: опциональный callback progress(fname, done, total).
+
+    Возвращает список относительных имён сохранённых файлов.
+    """
+    os.makedirs(out_dir, exist_ok=True)
+
+    files = []  # (url_path, rel_path)
+
+    def walk(path):
+        raw = _http_get(host, "/list?dir=" + urllib.parse.quote(path))
+        try:
+            items = json.loads(raw.decode("utf-8"))
+        except Exception:
+            items = []
+        for it in items:
+            name = (it.get("name") or "").strip()
+            if not name:
+                continue
+            joined = path.rstrip("/") + "/" + name
+            if it.get("type") == "dir":
+                walk(joined)
+            else:
+                files.append((joined, joined.lstrip("/")))
+
+    walk("/")
+
+    total = len(files)
+    saved = []
+    for i, (url_path, rel) in enumerate(files, 1):
+        data = _http_get(host, url_path + "?download=1")
+        abs_path = os.path.join(out_dir, rel)
+        os.makedirs(os.path.dirname(abs_path), exist_ok=True)
+        with open(abs_path, "wb") as f:
+            f.write(data)
+        saved.append(rel)
+        if progress:
+            progress(rel, i, total)
+    return saved
 
 
 # ======================================================================

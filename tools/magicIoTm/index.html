@@ -141,6 +141,20 @@ button.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent
 .modal .form-row{margin-bottom:10px}
 .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
 
+/* Сравнение файлов (устройство ⇄ проект) встроено в редактор */
+.devmgr-compare{position:absolute;inset:0;display:flex;min-height:0}
+.devmgr-compare-pane{flex:1;display:flex;flex-direction:column;min-width:0;border-right:1px solid var(--border)}
+.devmgr-compare-pane:last-child{border-right:none}
+.devmgr-compare-title{padding:6px 10px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.devmgr-compare-code{flex:1;overflow:auto;font-family:Consolas,'Courier New',monospace;font-size:12px;line-height:1.45;min-height:0}
+.devmgr-cmp-sync-off{opacity:.5}
+.cmp-lines{margin:0;padding:8px 0;min-width:100%;font:inherit;line-height:inherit}
+.cmp-row{display:flex;white-space:pre}
+.cmp-num{display:inline-block;min-width:44px;text-align:right;color:var(--muted);opacity:.6;padding-right:10px;user-select:none;border-right:1px solid var(--border);margin-right:10px}
+.cmp-text{flex:1;white-space:pre;padding-right:10px}
+.cmp-row.cmp-del .cmp-text{background:rgba(255,70,70,0.28)}
+.cmp-row.cmp-add .cmp-text{background:rgba(80,190,80,0.28)}
+
 /* Build modal */
 .build-modal{min-width:640px;max-width:860px;width:90%}
 .build-modal h3{margin:0 0 8px}
@@ -194,8 +208,12 @@ textarea{resize:vertical;min-height:60px;font-family:inherit}
 .devmgr-top{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:8px 12px}
 .devmgr-title{font-weight:600;font-size:14px}
 .devmgr-title .device-status{display:inline-block;margin-right:6px}
-.devmgr-project{font-size:14px;color:var(--accent)}
 .devmgr-top-actions{margin-left:auto;display:flex;gap:6px}
+/* Прогресс загрузки файлов с устройства */
+.progress-wrap{margin:14px 0 4px}
+.progress-track{height:10px;background:var(--border);border-radius:5px;overflow:hidden}
+.progress-fill{height:100%;width:0;background:var(--accent);transition:width .25s ease}
+.progress-label{margin-top:8px;font-size:12px;color:var(--muted);word-break:break-all}
 .devmgr-panels{flex:1;display:flex;flex-direction:column;gap:10px;min-height:0}
 .devmgr-panel{flex:1;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--border);border-radius:8px;overflow:hidden;min-height:0}
 .devmgr-panel-head{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--border)}
@@ -217,7 +235,7 @@ textarea{resize:vertical;min-height:60px;font-family:inherit}
 .devmgr-editor-head .file-size{font-family:Consolas,monospace;color:var(--muted);white-space:nowrap}
 .devmgr-textarea{position:absolute;inset:0;width:100%;height:100%;border:none;resize:none;font-family:Consolas,'Courier New',monospace;font-size:12px;line-height:1.45;padding:10px;background:transparent;color:var(--text);min-height:0;white-space:pre;overflow:auto}
 /* Подсветка JSON: textarea поверх <pre> с раскрашенным содержимым */
-.devmgr-code{flex:1;display:flex;min-height:0;overflow:hidden}
+.devmgr-code{flex:1;display:flex;position:relative;min-height:0;overflow:hidden}
 .devmgr-code-editor{flex:1;position:relative;min-width:0;min-height:0}
 .devmgr-hl{position:absolute;inset:0;margin:0;padding:10px;font-family:Consolas,'Courier New',monospace;font-size:12px;line-height:1.45;white-space:pre;overflow:hidden;color:var(--text);pointer-events:none;user-select:none}
 /* Полоса номеров строк сценария (видна при открытой «Проверке») */
@@ -411,7 +429,6 @@ function renderDevices(devices){
   const act = devices.find(x => activeDevice && x.ip === activeDevice.ip);
   if(act && activeDevice.online !== act.online){
     activeDevice.online = act.online;
-    if(document.querySelector('.devmgr')) renderDevmgrTop();
   }
 }
 
@@ -439,7 +456,6 @@ function connectDevicesStream(){
 
 // ==================== Device manager ====================
 let activeDevice = null;            // {ip, name, online}
-let firmwareLink = null;            // {category, name} — привязанная прошивка (data_svelte)
 let deviceEditors = {
   ram: {path:null, original:''},
   fs:  {path:null, original:''},
@@ -486,9 +502,7 @@ function renderDeviceManager(){
   <div class="devmgr">
     <div class="devmgr-top">
       <span class="devmgr-title"><span class="device-status ${activeDevice.online?'online':'offline'}" title="${activeDevice.online?'Online':'Offline'}"></span>${esc(dispName(activeDevice.name))}</span>
-      ${firmwareLink ? `<span class="devmgr-title">⬅➡</span><span class="devmgr-project">${esc(firmwareLink.category + '/' + firmwareLink.name)}</span>` : ''}
       <div class="devmgr-top-actions">
-        <button class="btn-sm" onclick="showFirmwarePicker()" title="Привязать проект для манипулирования файлами">🔗</button>
         <button class="btn-sm" onclick="reloadDeviceTrees()" title="Обновить деревья">🔄</button>
       </div>
     </div>
@@ -507,12 +521,11 @@ function renderDeviceManager(){
                 <span class="file-size" id="ramFileSize"></span>
               </div>
               <button class="btn-sm" id="ramCheckBtn" style="display:none" onclick="checkScenarioLoops('ram')" title="Проверить сценарий на циклические зависимости (event-driven)">🔍 Проверка</button>
-              <button class="btn-sm" id="ramSaveBtn" onclick="saveFile('ram')" disabled>💾 Локально</button>
-              <button class="btn-sm btn-primary" id="ramPushBtn" onclick="pushFile('ram')" disabled title="">💾 На устройство</button>
+              <button class="btn-sm btn-primary" id="ramPushBtn" onclick="pushFile('ram')" disabled title="">💾 Сохранить</button>
             </div>
             <div class="devmgr-code">
               <div class="devmgr-gutter" id="ramGutter"><pre></pre></div>
-              <div class="devmgr-code-editor">
+              <div class="devmgr-code-editor" id="ramCodeEditor">
                 <pre class="devmgr-hl" id="ramHl"></pre>
                 <textarea id="ramEditor" class="devmgr-textarea" spellcheck="false" wrap="off" oninput="onEditorInput('ram')" onscroll="onEditorScroll('ram')" onclick="onEditorCaret('ram')" onkeyup="onEditorCaret('ram')" onselect="onEditorCaret('ram')" placeholder="Выберите файл"></textarea>
               </div>
@@ -530,7 +543,7 @@ function renderDeviceManager(){
       <div class="devmgr-panel">
         <div class="devmgr-panel-head">
           <span class="devmgr-panel-title">Файлы из файловой системы</span>
-          <button class="btn-sm" onclick="toast('Скачивание FS ещё не реализовано','warning')" title="Получить файлы">⤵ Получить файлы</button>
+          <button class="btn-sm btn-primary" onclick="fetchFs()" title="Получить файлы из FS устройства">⤵ Получить файлы</button>
         </div>
         <div class="devmgr-panel-body">
           <div class="devmgr-tree" id="fsTree" onclick="onTreeClick(event)"><div class="empty-state" style="padding:12px">Раздел FS пуст</div></div>
@@ -541,11 +554,11 @@ function renderDeviceManager(){
                 <span class="file-size" id="fsFileSize"></span>
               </div>
               <button class="btn-sm" id="fsCheckBtn" style="display:none" onclick="checkScenarioLoops('fs')" title="Проверить сценарий на циклические зависимости (event-driven)">🔍 Проверка</button>
-              <button class="btn-sm" id="fsSaveBtn" onclick="saveFile('fs')" disabled>💾 Локально</button>
+              <button class="btn-sm btn-primary" id="fsSaveBtn" onclick="saveFile('fs')" disabled title="Сохранить файл локально">💾 Сохранить</button>
             </div>
             <div class="devmgr-code">
               <div class="devmgr-gutter" id="fsGutter"><pre></pre></div>
-              <div class="devmgr-code-editor">
+              <div class="devmgr-code-editor" id="fsCodeEditor">
                 <pre class="devmgr-hl" id="fsHl"></pre>
                 <textarea id="fsEditor" class="devmgr-textarea" spellcheck="false" wrap="off" oninput="onEditorInput('fs')" onscroll="onEditorScroll('fs')" onclick="onEditorCaret('fs')" onkeyup="onEditorCaret('fs')" onselect="onEditorCaret('fs')" placeholder="Выберите файл"></textarea>
               </div>
@@ -579,11 +592,9 @@ async function loadTree(section){
       el.innerHTML = `<div class="empty-state" style="padding:12px">${section === 'ram' ? 'Файлы не загружены' : 'Раздел FS пуст'}</div>`;
       return;
     }
-    const linked = firmwareLink ? true : false;
     el.innerHTML = d.files.map(f =>
       `<div class="devmgr-tree-item" data-section="${section}" data-path="${esc(f)}">
          <span class="devmgr-tree-name">${esc(f)}</span>
-         ${linked ? `<button class="devmgr-copy" title="Скопировать из проекта в устройство" onclick="event.stopPropagation();copyFromFirmware('${section}','${esc(f)}')">⬅</button>` : ''}
        </div>`
     ).join('');
   }catch(e){
@@ -621,15 +632,21 @@ async function selectFile(section, path){
     const sizeEl = document.getElementById(section + 'FileSize');
     if(sizeEl) sizeEl.textContent = (typeof d.size === 'number') ? d.size + ' байт' : '';
     document.getElementById(section + 'Editor').value = d.content;
-    document.getElementById(section + 'SaveBtn').disabled = false;
     const isScenario = /scenario\.txt$/i.test(path);
     const checkBtn = document.getElementById(section + 'CheckBtn');
     if(checkBtn) checkBtn.style.display = isScenario ? '' : 'none';
-    const pushBtn = document.getElementById(section + 'PushBtn');
-    if(pushBtn){
-      const support = ['config.json','scenario.txt','settings.json'].includes(path);
-      pushBtn.disabled = !support;
-      pushBtn.title = support ? 'Записать файл обратно на устройство' : 'Файл не поддерживается прошивкой для записи на устройство';
+    if(section === 'ram'){
+      // RAM: «Сохранить» пишет на устройство и обновляет локальную копию
+      const pushBtn = document.getElementById(section + 'PushBtn');
+      if(pushBtn){
+        const support = ['config.json','scenario.txt','settings.json'].includes(path);
+        pushBtn.disabled = !support;
+        pushBtn.title = support ? 'Записать файл обратно на устройство' : 'Файл не поддерживается прошивкой для записи на устройство';
+      }
+    } else {
+      // FS: «Сохранить» сохраняет локально в папку устройства
+      const saveBtn = document.getElementById(section + 'SaveBtn');
+      if(saveBtn) saveBtn.disabled = false;
     }
     updateHighlight(section);
   }catch(e){
@@ -1180,89 +1197,87 @@ async function pushFile(section){
 
 async function fetchRam(){
   if(!activeDevice) return;
-  toast('Скачивание файлов RAM с устройства...', 'info');
+  showFetchProgress('ram');
   try{
     const r = await fetch(`/api/device/${encodeURIComponent(activeDevice.ip)}/fetch/ram`, {method:'POST'});
     const d = await r.json();
-    if(!d.success){ toast(d.error || 'Ошибка', 'error'); return; }
-    toast(`Получено файлов: ${(d.files || []).length}`, 'success');
-    loadTree('ram');
+    if(!d.success){ updateFetchProgress(d.error || 'Ошибка запуска', 0); toast(d.error || 'Ошибка', 'error'); return; }
+    const result = await waitFetchDone('ram');
+    if(result && result.success){ loadTree('ram'); toast(`Получено файлов RAM: ${(result.files || []).length}`, 'success'); }
+    else toast((result && result.error) || 'Ошибка получения файлов', 'error');
   }catch(e){
-    toast('Ошибка связи с устройством', 'error');
+    updateFetchProgress('Ошибка связи с сервером', 0);
+    toast('Ошибка связи с сервером', 'error');
   }
+}
+
+async function fetchFs(){
+  if(!activeDevice) return;
+  showFetchProgress('fs');
+  try{
+    const r = await fetch(`/api/device/${encodeURIComponent(activeDevice.ip)}/fetch/fs`, {method:'POST'});
+    const d = await r.json();
+    if(!d.success){ updateFetchProgress(d.error || 'Ошибка запуска', 0); toast(d.error || 'Ошибка', 'error'); return; }
+    const result = await waitFetchDone('fs');
+    if(result && result.success){ loadTree('fs'); toast(`Получено файлов FS: ${(result.files || []).length}`, 'success'); }
+    else toast((result && result.error) || 'Ошибка получения файлов', 'error');
+  }catch(e){
+    updateFetchProgress('Ошибка связи с сервером', 0);
+    toast('Ошибка связи с сервером', 'error');
+  }
+}
+
+let fetchPollTimer = null;
+
+function showFetchProgress(section){
+  const title = section === 'ram' ? 'Получение файлов RAM' : 'Получение файлов FS';
+  showModal(`<h3>⤵ ${title}</h3>
+    <div class="progress-wrap">
+      <div class="progress-track"><div class="progress-fill" id="fetchProgressFill"></div></div>
+      <div class="progress-label" id="fetchProgressLabel">Подключение к устройству...</div>
+    </div>
+    <div class="modal-actions"><button title="Закрыть" onclick="closeModal()">Закрыть</button></div>`);
+  const fill = document.getElementById('fetchProgressFill');
+  if(fill) fill.style.width = '2%';
+}
+
+function updateFetchProgress(label, pct){
+  const fill = document.getElementById('fetchProgressFill');
+  const lb = document.getElementById('fetchProgressLabel');
+  if(fill) fill.style.width = Math.max(0, Math.min(100, Math.round(pct))) + '%';
+  if(lb) lb.textContent = label;
+}
+
+function waitFetchDone(section){
+  return new Promise(resolve => {
+    const poll = async () => {
+      try{
+        const r = await fetch(`/api/device/${encodeURIComponent(activeDevice.ip)}/fetch/${section}/status`);
+        const d = await r.json();
+        if(!d.success){ resolve(d); return; }
+        if(d.stage === 'running'){
+          if(d.total > 0){
+            updateFetchProgress(`Скачивание: ${d.name || ''} (${d.done}/${d.total})`, (d.done / d.total) * 100);
+          } else {
+            updateFetchProgress(d.name || 'Перечисление файлов...', 4);
+          }
+          fetchPollTimer = setTimeout(poll, 300);
+        } else {
+          updateFetchProgress(`Готово: получено файлов ${(d.files || []).length}`, 100);
+          resolve(d);
+        }
+      }catch(e){
+        updateFetchProgress('Ошибка связи с сервером', 0);
+        resolve({success:false, error:'Ошибка связи с сервером'});
+      }
+    };
+    fetchPollTimer = setTimeout(poll, 200);
+  });
 }
 
 function reloadDeviceTrees(){
   loadTree('ram');
   loadTree('fs');
-}
-
-async function showFirmwarePicker(){
-  showModal(`<h3>🔗 Привязка прошивки</h3>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Выберите проект для привязки. После этого можно будет манипулировать файлами между устройством и проектом.</div>
-    <div id="fwList" style="max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:2px">Загрузка...</div>
-    <div class="modal-actions"><button title="Закрыть" onclick="closeModal()">Отмена</button><button class="btn-sm" title="Убрать привязку прошивки" onclick="clearFirmwareLink()">Снять привязку</button></div>`);
-  try{
-    const r = await fetch('/api/projects/data-svelte');
-    const d = await r.json();
-    const list = document.getElementById('fwList');
-    if(!d.success || !d.projects || !d.projects.length){
-      list.innerHTML = '<div class="empty-state"><p>Нет проектов с папкой data_svelte</p></div>';
-      return;
-    }
-    list.innerHTML = d.projects.map(p =>
-      `<div class="tree-project ${firmwareLink && firmwareLink.name === p.name && firmwareLink.category === p.category ? 'active' : ''}"
-           onclick="pickFirmware('${esc(p.category)}','${esc(p.name)}')" style="cursor:pointer">
-         🛠️ ${esc(p.category)}/${esc(p.name)}
-       </div>`).join('');
-  }catch(e){
-    const list = document.getElementById('fwList');
-    if(list) list.innerHTML = '<div class="empty-state"><p>Ошибка загрузки</p></div>';
-  }
-}
-
-function renderDevmgrTop(){
-  const top = document.querySelector('.devmgr-top');
-  if(!top) return;
-  top.innerHTML = `
-    <span class="devmgr-title"><span class="device-status ${activeDevice.online?'online':'offline'}" title="${activeDevice.online?'Online':'Offline'}"></span>${esc(dispName(activeDevice.name))}</span>
-    ${firmwareLink ? `<span class="devmgr-title">⬅➡</span><span class="devmgr-project">${esc(firmwareLink.category + '/' + firmwareLink.name)}</span>` : ''}
-    <div class="devmgr-top-actions">
-      <button class="btn-sm" onclick="showFirmwarePicker()" title="Привязать проект для манипулирования файлами">🔗</button>
-      <button class="btn-sm" onclick="reloadDeviceTrees()" title="Обновить деревья">🔄</button>
-    </div>`;
-}
-
-function pickFirmware(cat, name){
-  firmwareLink = {category: cat, name};
-  closeModal();
-  toast('Прошивка привязана: ' + name, 'success');
-  renderDevmgrTop();
-  reloadDeviceTrees();
-}
-
-function clearFirmwareLink(){
-  firmwareLink = null;
-  closeModal();
-  renderDevmgrTop();
-  reloadDeviceTrees();
-}
-
-async function copyFromFirmware(section, path){
-  if(!activeDevice || !firmwareLink) return;
-  try{
-    const r = await fetch(`/api/device/${encodeURIComponent(activeDevice.ip)}/copy-from-project`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({section, path, category: firmwareLink.category, project: firmwareLink.name})
-    });
-    const d = await r.json();
-    if(!d.success){ toast(d.error || 'Ошибка', 'error'); return; }
-    toast('Скопировано из прошивки', 'success');
-    loadTree(section);
-    selectFile(section, path);
-  }catch(e){
-    toast('Ошибка связи с сервером', 'error');
-  }
 }
 
 // ==================== Init ====================
@@ -2307,7 +2322,10 @@ function dispName(s){ return String(s == null ? '' : s).replace(/_/g, ' '); }
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
 
 document.addEventListener('keydown', e => {
-  if(e.key === 'Escape'){ closeModal(); return; }
+  if(e.key === 'Escape'){
+    closeModal();
+    return;
+  }
   // Enter в модалке = клик по главной кнопке (Создать/Копировать/Переименовать)
   if(e.key === 'Enter'){
     const overlay = document.getElementById('modalOverlay');

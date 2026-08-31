@@ -1286,18 +1286,63 @@ def api_device_info(ip):
     return jsonify({"success": True, **entry})
 
 
-@app.route('/api/device/<ip>/fetch/ram', methods=['POST'])
-def api_device_fetch_ram(ip):
-    """Скачивает файлы раздела RAM с устройства (команды /config| и /profile|)."""
+# Статус фонового скачивания разделов устройства (по ip:section)
+_fetch_progress = {}
+
+
+@app.route('/api/device/<ip>/fetch/<section>', methods=['POST'])
+def api_device_fetch(ip, section):
+    """Запускает фоновое скачивание раздела RAM или FS с устройства."""
+    key = section.lower()
+    if key not in ("ram", "fs"):
+        return jsonify({"success": False, "error": "Неизвестный раздел"}), 400
     entry = get_device_folder(ip)
     if not entry:
         return jsonify({"success": False, "error": "Папка устройства ещё не создана"}), 404
-    try:
-        saved = ws_client.fetch_ram(ip, entry["ram_dir"])
-        return jsonify({"success": True, "files": saved})
-    except Exception as e:
-        logger.error(f"fetch RAM {ip}: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+
+    state = {"stage": "running", "done": 0, "total": 0,
+             "name": "Подключение к устройству...", "files": [], "error": None}
+    _fetch_progress[(ip, key)] = state
+
+    def progress(fname, done, total):
+        state["done"] = done
+        state["total"] = total
+        state["name"] = fname
+
+    def worker():
+        try:
+            if key == "ram":
+                saved = ws_client.fetch_ram(ip, entry["ram_dir"], progress=progress)
+            else:
+                saved = ws_client.fetch_fs(ip, entry["fs_dir"], progress=progress)
+            state["files"] = saved
+            state["stage"] = "done"
+        except Exception as e:
+            logger.error(f"fetch {key} {ip}: {e}")
+            state["stage"] = "error"
+            state["error"] = str(e)
+
+    threading.Thread(target=worker, daemon=True).start()
+    return jsonify({"success": True})
+
+
+@app.route('/api/device/<ip>/fetch/<section>/status', methods=['GET'])
+def api_device_fetch_status(ip, section):
+    """Возвращает текущий прогресс фонового скачивания раздела."""
+    key = section.lower()
+    state = _fetch_progress.get((ip, key))
+    if not state:
+        return jsonify({"success": False, "error": "Скачивание не запущено"}), 404
+    if state["stage"] == "error":
+        return jsonify({"success": False, "error": state.get("error") or "Ошибка скачивания"})
+    return jsonify({
+        "success": True,
+        "stage": state["stage"],
+        "done": state.get("done", 0),
+        "total": state.get("total", 0),
+        "name": state.get("name", ""),
+        "files": state.get("files", []),
+    })
 
 
 @app.route('/api/device/<ip>/tree/<section>', methods=['GET'])
@@ -1391,46 +1436,6 @@ def api_device_write_ram(ip):
     except Exception as e:
         logger.error(f"write RAM {ip} {rel}: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
-
-
-@app.route('/api/device/<ip>/copy-from-project', methods=['POST'])
-def api_device_copy_from_project(ip):
-    """Копирует файл из data_svelte привязанной прошивки в локальную папку устройства.
-
-    Тело запроса: {section, path, category, project}.
-    """
-    entry = get_device_folder(ip)
-    if not entry:
-        return jsonify({"success": False, "error": "Папка устройства ещё не создана"}), 404
-    data = request.json or {}
-    key = data.get('section', '').lower()
-    if key not in ("ram", "fs"):
-        return jsonify({"success": False, "error": "Неизвестный раздел"}), 400
-    rel = data.get('path', '')
-    cat = data.get('category', '')
-    name = data.get('project', '')
-    if projects.is_platformio(name):
-        return jsonify({"success": False, "error": "PlatformIO нельзя привязать"}), 400
-    proj_dir = os.path.join(projects.PROJECTS_DIR, cat, name)
-    dsv = _find_data_svelte(proj_dir)
-    if not dsv:
-        return jsonify({"success": False, "error": "У проекта нет папки data_svelte"}), 404
-    src = _safe_path(dsv, rel)
-    if not src or not os.path.isfile(src):
-        return jsonify({"success": False, "error": f"Файл «{rel}» не найден в прошивке"}), 404
-    dst = _safe_path(entry[f"{key}_dir"], rel)
-    if not dst:
-        return jsonify({"success": False, "error": "Недопустимый путь"}), 400
-    try:
-        with open(src, 'r', encoding='utf-8', errors='replace') as f:
-            content = f.read()
-        os.makedirs(os.path.dirname(dst), exist_ok=True)
-        with open(dst, 'w', encoding='utf-8') as f:
-            f.write(content)
-    except Exception as e:
-        logger.error(f"copy-from-project {ip} {rel}: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
-    return jsonify({"success": True, "path": rel, "content": content})
 
 
 # ==================== Инициализация ====================
