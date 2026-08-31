@@ -3,5 +3,6 @@
 tools/magicIoTm/projects/
 tools/magicIoTm/magicIoTm.log
 tools/magicIoTm/devices/
-E:\GitHub\IoTManager\tools\measure_size\logs
-E:\GitHub\IoTManager\tools\measure_size\venv
+/tools/measure_size/logs
+/tools/measure_size/venv
+tools/magicIoTm/__pycache__
