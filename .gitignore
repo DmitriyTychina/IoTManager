@@ -1,8 +1,9 @@
-.pio
-.vscode
-tools/magicIoTm/projects/
+.pio/*
+.vscode/*
+tools/magicIoTm/projects/*
 tools/magicIoTm/magicIoTm.log
-tools/magicIoTm/devices/
-/tools/measure_size/logs
-/tools/measure_size/venv
-tools/magicIoTm/__pycache__
+tools/magicIoTm/devices/*
+/tools/measure_size/logs/*
+/tools/measure_size/venv/*
+tools/magicIoTm/__pycache__/*
+tools/magicIoTm/utils/__pycache__/*
