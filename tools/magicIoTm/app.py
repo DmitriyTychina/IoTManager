@@ -793,6 +793,43 @@ def _get_local_ip():
         s.close()
 
 
+def _local_ips():
+    """Список полезных локальных IPv4 интерфейсов (для OTA-сервера)."""
+    ips = []
+    try:
+        import psutil
+        for _iface, addr_list in psutil.net_if_addrs().items():
+            for a in addr_list:
+                if a.family == socket.AF_INET and _is_useful_interface(a.address):
+                    ips.append(a.address)
+    except Exception:
+        pass
+    if not ips:
+        ip = _get_local_ip()
+        if ip and not ip.startswith("127."):
+            ips.append(ip)
+    return ips
+
+
+def _local_ip_for_device(dev_ip):
+    """IP компьютера, достижимый устройством (для локального OTA-сервера).
+
+    Приоритет — интерфейс в той же подсети /24, что и устройство; иначе —
+    основной локальный IP.
+    """
+    try:
+        net = ipaddress.ip_network(f"{dev_ip}/24", strict=False)
+    except Exception:
+        return _get_local_ip()
+    for cand in _local_ips():
+        try:
+            if ipaddress.ip_address(cand) in net:
+                return cand
+        except Exception:
+            continue
+    return _get_local_ip()
+
+
 def _get_local_subnet():
     """Диапазон адресов локальной подсети /24 (список строк)."""
     ip = _get_local_ip()
@@ -2252,13 +2289,15 @@ def _resolve_upload_config():
 
 
 def _has_built_firmware(cfg):
-    """Есть ли собранная прошивка для env проекта (firmware.bin)."""
+    """Есть ли собранная прошивка для env проекта (firmware.bin).
+
+    Приоритет — стабильная папка iotm/<env>/400/ проекта; корневой .pio/build —
+    запасной вариант (после сборки build.py переносит бинарники в папку iotm).
+    """
     env = cfg.get("env", "")
-    candidates = [
-        os.path.join(cfg.get("cwd", ""), ".pio", "build", env, "firmware.bin"),
-        os.path.join(os.path.dirname(cfg.get("profile", "")), "iotm", env, "400", "firmware.bin"),
-    ]
-    return any(os.path.isfile(c) for c in candidates)
+    dist = os.path.join(os.path.dirname(cfg.get("profile", "")), "iotm", env, "400", "firmware.bin")
+    build = os.path.join(cfg.get("cwd", ""), ".pio", "build", env, "firmware.bin")
+    return any(os.path.isfile(c) for c in (dist, build))
 
 
 # ==================== OTA (прошивка по воздуху) ====================
@@ -2266,7 +2305,8 @@ def _has_built_firmware(cfg):
 def _resolve_ota_files(cfg):
     """Пути собранных .bin для OTA: firmware.bin и littlefs.bin (что есть).
 
-    Имя файла в dict соответствует имени multipart-поля на /update прошивки.
+    Приоритет — папка iotm/<env>/400/ конкретного проекта (файлы там стабильны
+    после сборки); корневой .pio/build/<env> — запасной вариант.
     """
     env = cfg.get("env", "")
     cwd = cfg.get("cwd", "")
@@ -2274,16 +2314,19 @@ def _resolve_ota_files(cfg):
     dist_dir = os.path.join(os.path.dirname(cfg.get("profile", "")), "iotm", env, "400")
 
     files = {}
-    for c in [os.path.join(build_dir, "firmware.bin"),
-              os.path.join(dist_dir, "firmware.bin")]:
-        if os.path.isfile(c):
-            files["firmware.bin"] = c
-            break
-    for c in [os.path.join(build_dir, "littlefs.bin"),
-              os.path.join(build_dir, "spiffs.bin")]:
-        if os.path.isfile(c):
-            files["littlefs.bin"] = c
-            break
+    for name in ("firmware.bin", "littlefs.bin"):
+        for c in (os.path.join(dist_dir, name), os.path.join(build_dir, name)):
+            if os.path.isfile(c):
+                files[name] = c
+                break
+        else:
+            # альтернатива — spiffs (если littlefs нет)
+            if name == "littlefs.bin":
+                for s in (os.path.join(dist_dir, "spiffs.bin"),
+                          os.path.join(build_dir, "spiffs.bin")):
+                    if os.path.isfile(s):
+                        files[name] = s
+                        break
     return files
 
 
@@ -2515,8 +2558,12 @@ def api_ota_start():
 
     # Проверяем наличие необходимых файлов по шагам выбранного режима
     steps = ota.build_steps(mode, fs_method)
-    missing = [st["file"] for st in steps
-               if st["kind"] == "ota" and st["file"] not in files]
+    missing = []
+    for st in steps:
+        if st["kind"] == "pull":
+            for f in st["files"]:
+                if f not in files:
+                    missing.append(f)
     if missing:
         return jsonify({"success": False,
                         "error": "Не собраны файлы для выбранного режима: " + ", ".join(missing) +
@@ -2542,6 +2589,7 @@ def api_ota_start():
         "project_label": cfg.get("project_label", ""),
         "files": files,
         "data_dir": cfg.get("data_dir", ""),
+        "pc_ip": _local_ip_for_device(ip),
         "timeout": 180,
     }
     ota.start(ota_cfg)

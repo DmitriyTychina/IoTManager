@@ -239,7 +239,12 @@ void handleCors() {
   }
 void handleLocalOTA_Handler() {
     String serverValue = HTTP.arg("server");
-    upgrade_firmware(3,serverValue);
+    // тип обновления: 1=только прошивка, 2=только ФС, иначе (по умолчанию) полная
+    int type = HTTP.arg("type").toInt();
+    if (type != 1 && type != 2) {
+        type = 3;
+    }
+    upgrade_firmware(type, serverValue);
 }
 
 #ifdef ESP32

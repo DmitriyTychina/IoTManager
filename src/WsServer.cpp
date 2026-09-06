@@ -322,11 +322,25 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length)
                 cleanLogs();
             }
 
-            // команда обновления прошивки esp
+            // команда обновления прошивки esp (полная: ФС + прошивка)
             if (headerStr == "/update|") {
                 String path;
                 writeUint8tToString(payload, length, headerLenth, path);
                 upgrade_firmware(3, path);
+            }
+
+            // команда обновления только прошивки (без ФС)
+            if (headerStr == "/update1|") {
+                String path;
+                writeUint8tToString(payload, length, headerLenth, path);
+                upgrade_firmware(1, path);
+            }
+
+            // команда обновления только файловой системы
+            if (headerStr == "/update2|") {
+                String path;
+                writeUint8tToString(payload, length, headerLenth, path);
+                upgrade_firmware(2, path);
             }
 
             // Прием команд control c dashboard

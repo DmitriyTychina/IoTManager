@@ -2472,10 +2472,12 @@ let otaDone = false;
 let otaDeviceKey = null;
 
 function otaStepsFor(mode, fsMethod){
-  const steps = [];
-  if(mode === 'fs' || mode === 'full') steps.push(fsMethod === 'copy' ? 'Копирование файлов FS' : 'Загрузка файловой системы FS');
-  if(mode === 'firmware' || mode === 'full') steps.push('Загрузка прошивки');
-  return steps;
+  if(mode === 'firmware') return ['Загрузка прошивки'];
+  if(mode === 'fs') return [fsMethod === 'copy' ? 'Копирование файлов FS' : 'Загрузка файловой системы FS'];
+  // full
+  return fsMethod === 'copy'
+    ? ['Копирование файлов FS', 'Загрузка прошивки']
+    : ['Полная прошивка (FS + прошивка)'];
 }
 
 function initOtaSteps(mode, fsMethod){
@@ -2514,13 +2516,21 @@ function closeOtaModal(){
 
 async function rebootDevice(deviceKey){
   if(!deviceKey){ toast('Устройство не выбрано','error'); return; }
-  if(!confirm('Перезагрузить устройство?')) return;
-  try{
-    const r = await fetch(`/api/device/${encodeURIComponent(deviceKey)}/reboot`, {method:'POST'});
-    const d = await r.json();
-    if(d.success) toast('Команда перезагрузки отправлена','info');
-    else toast(d.error || 'Ошибка отправки перезагрузки','error');
-  }catch(e){ toast('Ошибка отправки перезагрузки','error'); }
+  showModal(`<h3>🔁 Перезагрузка устройства</h3>
+    <p style="font-size:13px;color:var(--text);margin:8px 0 16px">Перезагрузить выбранное устройство?</p>
+    <div class="modal-actions">
+      <button onclick="closeModal()">Отмена</button>
+      <button id="rebootConfirmBtn" title="Перезагрузить устройство">Перезагрузить</button>
+    </div>`);
+  document.getElementById('rebootConfirmBtn').addEventListener('click', async ()=>{
+    closeModal();
+    try{
+      const r = await fetch(`/api/device/${encodeURIComponent(deviceKey)}/reboot`, {method:'POST'});
+      const d = await r.json();
+      if(d.success) toast('Команда перезагрузки отправлена','info');
+      else toast(d.error || 'Ошибка отправки перезагрузки','error');
+    }catch(e){ toast('Ошибка отправки перезагрузки','error'); }
+  });
 }
 
 async function rebootActiveDevice(){
@@ -2565,7 +2575,7 @@ function startOtaStream(){
   otaStream.addEventListener('done', () => {
     const msg = document.getElementById('otaSuccessMsg');
     msg.style.display = 'block';
-    msg.innerHTML = '✅ OTA успешно завершена.<br><button class="btn-sm" style="margin-top:8px" onclick="rebootDevice(otaDeviceKey)" title="Перезагрузить устройство">🔁 Перезагрузить устройство</button>';
+    msg.textContent = '✅ OTA успешно завершена.';
     otaFinish();
   });
   otaStream.addEventListener('error', e => {

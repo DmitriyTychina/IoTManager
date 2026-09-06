@@ -340,6 +340,32 @@ def fetch_profile(host, port=PORT, timeout=DEFAULT_TIMEOUT):
         sock.close()
 
 
+def send_command(host, command, payload="", port=PORT, timeout=DEFAULT_TIMEOUT):
+    """Отправляет устройству произвольную WS-команду (command с завершающим '|').
+
+    Фрейм: command + payload, например:
+        send_command(ip, '/update1|', base_url) -> '/update1|<url>'
+    Возвращает True, если фрейм отправлен успешно.
+    """
+    try:
+        sock = socket.create_connection((host, port), timeout=timeout)
+        sock.settimeout(timeout)
+    except OSError:
+        return False
+    try:
+        _handshake(sock, host, port)
+        sock.sendall(build_text_frame(command + payload))
+        return True
+    except Exception:  # noqa: BLE001
+        return False
+    finally:
+        try:
+            sock.sendall(bytes([0x88, 0x00]))
+        except Exception:  # noqa: BLE001
+            pass
+        sock.close()
+
+
 def reboot(host, port=PORT, timeout=DEFAULT_TIMEOUT):
     """Отправляет устройству команду перезагрузки по WebSocket (/reboot|).
 

@@ -2,31 +2,29 @@
 """
 ota — прошивка выбранного проекта на IoTManager-устройство по воздуху (Wi-Fi).
 
-Отличие от flash.py: файлы отправляются НЕ по USB (через pio upload), а
-непосредственно по сети на HTTP-эндпоинты прошивки устройства.
-
-Два механизма записи (fs_method):
-  * 'flash' — запись целого образа через POST /update:
-        firmware.bin -> U_FLASH, littlefs.bin -> U_FS   (handleUpdateOTA)
-  * 'copy'  — пофайловая загрузка из data_svelte проекта через POST /edit
-        (handleFileUpload); при необходимости каталоги создаются через
-        PUT /edit?path=/dir/  (handleFileCreate).
+Два механизма (fs_method):
+  * 'flash' — запись целого образа через НАТИВНЫЙ pull-механизм прошивки:
+      инструмент поднимает локальный HTTP-сервер .bin, а устройство САМО
+      скачивает файлы по команде GET /localota_handler?server=<url>,
+      где <url> = http://<ip_пк>:<port>. В UpgradeFirm.cpp:
+          type=1 -> только firmware.bin
+          type=2 -> только littlefs.bin
+          type=3 -> littlefs.bin, затем firmware.bin
+      Это надёжнее, чем ручной multipart-POST на /update (ESP8266WebServer
+      часто рвёт передачу на ESP8266 -> «[OTA] Ошибка записи данных»).
+  * 'copy'  — пофайловая загрузка из data_svelte через POST /edit
+      (handleFileUpload); каталоги создаются через PUT /edit?path=/dir/.
 
 Режимы (mode), выбираемые в модалке, с учётом fs_method:
-    'firmware'             — только прошивка               (firmware.bin)
-    'fs'   + flash         — только ФС, записать образ     (littlefs.bin)
+    'firmware'             — только прошивка               (pull, type=1)
+    'fs'   + flash         — только ФС, записать образ     (pull, type=2)
     'fs'   + copy          — только ФС, скопировать файлы  (data_svelte -> /edit)
-    'full' + flash         — ФС(образ) затем прошивка
-    'full' + copy          — ФС(копия) затем прошивка
-
-Порядок 'full' важен: после записи прошивки устройство перезагружается
-(Update.end(true) -> ESP.restart()), поэтому ФС пишем первой.
+    'full' + flash         — ФС(образ)+прошивка            (pull, type=3)
+    'full' + copy          — ФС(копия) затем прошивка      (/edit, затем pull type=1)
 
 Во время OTA следует отключать фоновый пинг устройства (одинаковые IP могут
 быть у разных устройств) — для этого есть busy_ip().
 
-Модуль самодостаточен: пути .bin, data_dir и IP передаются в start(cfg)
-из app.py (аналогично flash.py/build.py), циклических импортов нет.
 Прогресс отдаётся по SSE через event_stream() (паттерн как в flash.py).
 """
 
@@ -37,15 +35,20 @@ import threading
 import uuid
 
 import http.client
-import urllib.parse
+import http.server
+import urllib.request
 
 
 HTTP_PORT = 80
-UPLOAD_UPDATE_PATH = "/update"   # POST multipart: firmware.bin / littlefs.bin
 UPLOAD_EDIT_PATH = "/edit"       # POST multipart: произвольный файл FS
-FIELD_NAME = "firmware"          # имя поля multipart (прошивка его игнорирует)
+FIELD_NAME = "data"
 _CHUNK_SIZE = 32 * 1024
-_BETWEEN_STEPS_DELAY = 1.5       # пауза между шагами, чтобы прошивка завершила запись
+_BETWEEN_STEPS_DELAY = 1.5       # пауза между шагами
+# Отдача .bin мелким чанком с паузой: ESP8266 (маленький TCP/read-буфер, запись
+# во flash) не поспевает за быстрым потоком и рвёт соединение на середине.
+_PULL_SERVE_CHUNK = 4096
+_PULL_SERVE_DELAY = 0.006        # секунд между чанками
+_UPDATE_TYPES = {"firmware": 1, "fs": 2, "full": 3}   # типы UpgradeFirm
 
 
 class OtaError(Exception):
@@ -55,22 +58,31 @@ class OtaError(Exception):
 # ==================== Шаги ====================
 
 def build_steps(mode, fs_method):
-    """Список шагов для (mode, fs_method). Каждый шаг: {kind, label[, file]}.
+    """Список шагов для (mode, fs_method).
 
     kind:
-      'ota'  — POST /update с бинарником (file: 'firmware.bin' | 'littlefs.bin')
+      'pull' — устройство само скачивает .bin с локального сервера
+               (fields: type, files[label], label)
       'copy' — пофайловая загрузка data_svelte через POST /edit
     """
-    steps = []
-    if mode in ("fs", "full"):
+    if mode == "firmware":
+        return [{"kind": "pull", "type": 1, "files": ["firmware.bin"],
+                 "label": "Загрузка прошивки"}]
+    if mode == "fs":
         if fs_method == "copy":
-            steps.append({"kind": "copy", "label": "Копирование файлов FS на устройство"})
-        else:
-            steps.append({"kind": "ota", "file": "littlefs.bin",
-                          "label": "Загрузка файловой системы FS"})
-    if mode in ("firmware", "full"):
-        steps.append({"kind": "ota", "file": "firmware.bin", "label": "Загрузка прошивки"})
-    return steps
+            return [{"kind": "copy", "label": "Копирование файлов FS на устройство"}]
+        return [{"kind": "pull", "type": 2, "files": ["littlefs.bin"],
+                 "label": "Загрузка файловой системы FS"}]
+    # mode == full
+    if fs_method == "copy":
+        return [
+            {"kind": "copy", "label": "Копирование файлов FS на устройство"},
+            {"kind": "pull", "type": 1, "files": ["firmware.bin"],
+             "label": "Загрузка прошивки"},
+        ]
+    return [{"kind": "pull", "type": 3,
+             "files": ["littlefs.bin", "firmware.bin"],
+             "label": "Полная прошивка (FS + прошивка)"}]
 
 
 # ==================== Состояние ====================
@@ -92,11 +104,6 @@ _state = {
 }
 
 _lock = threading.Lock()
-
-
-def _notify():
-    with _state["cond"]:
-        _state["cond"].notify_all()
 
 
 def _append_line(text):
@@ -163,7 +170,6 @@ def busy_ip():
 
 
 def get_status():
-    """Снимок состояния OTA для UI."""
     with _state["cond"]:
         return {
             "running": _state["running"],
@@ -180,13 +186,8 @@ def get_status():
 
 
 def start(cfg):
-    """Запуск OTA в фоне. cfg — dict с параметрами (см. app.py).
-
-    Ключи cfg: mode, fs_method, ip, files, data_dir, project_label, timeout.
-
-    Returns:
-        bool: True если запущено, False если уже выполняется.
-    """
+    """Запуск OTA в фоне. cfg — dict (см. app.py): mode, fs_method, ip, files,
+    data_dir, pc_ip, project_label, timeout."""
     with _lock:
         if _state["running"]:
             return False
@@ -246,9 +247,7 @@ def _worker(cfg):
         mode = cfg.get("mode", "firmware")
         fs_method = cfg.get("fs_method", "flash")
         ip = cfg.get("ip", "")
-        files = cfg.get("files", {})
-        data_dir = cfg.get("data_dir", "")
-        timeout = int(cfg.get("timeout", 180))
+        timeout = int(cfg.get("timeout", 240))
         steps = build_steps(mode, fs_method)
 
         _append_line(f"OTA прошивка проекта: {cfg.get('project_label', '')}")
@@ -257,33 +256,21 @@ def _worker(cfg):
 
         for idx, st in enumerate(steps, start=1):
             step_id = idx
-            label = st["label"]
-            _set_current_step(step_id, label)
+            _set_current_step(step_id, st["label"])
             _set_step_running(step_id)
             _append_line("")
-            _append_line(f"=== Шаг {step_id}. {label} ===")
-
-            if st["kind"] == "ota":
-                fname = st["file"]
-                path = files.get(fname)
-                if not path or not os.path.isfile(path):
-                    _set_step_error(step_id)
-                    _fail(step_id, f"Не найден файл для отправки: {fname} ({path})")
-                    return
-                size = os.path.getsize(path)
-                _append_line(f"> POST http://{ip}{UPLOAD_UPDATE_PATH}  ({fname}, {size} байт)")
-                _post_file(ip, path, fname, size, timeout)
-                _append_line(f"OK: {fname} записан на устройство")
+            _append_line(f"=== Шаг {step_id}. {st['label']} ===")
+            if st["kind"] == "pull":
+                _run_pull(ip, cfg, st, timeout)
             elif st["kind"] == "copy":
-                _copy_fs(ip, data_dir, timeout)
-                _append_line("OK: файлы FS скопированы")
-
+                _copy_fs(ip, cfg.get("data_dir", ""), timeout)
             _set_step_done(step_id)
             if idx < len(steps):
                 time.sleep(_BETWEEN_STEPS_DELAY)
 
         _append_line("")
         _append_line("=== Успех! OTA завершена ===")
+        _append_line("=== Перезагрузка устройства произойдет автоматически ===")
         _finish_success()
     except OtaError as e:
         _set_current_error_step()
@@ -341,67 +328,137 @@ def _set_progress(file, done, total):
         _state["cond"].notify_all()
 
 
-# ==================== Загрузка бинарника (POST /update) ====================
+# ==================== Pull-прошивка (native OTA) ====================
 
-def _post_file(ip, path, filename, total, timeout):
-    """Отправляет один .bin файл на /update устройства (multipart).
+def _run_pull(device_ip, cfg, step, timeout):
+    """Запускает локальный HTTP-сервер .bin и велит устройству скачать файлы.
 
-    Стримит тело файла чанками, публикуя прогресс. Content-Length задаётся
-    заранее (размер известен). При HTTP-ошибке (например 500 — недостаточно
-    памяти) бросает OtaError.
+    Устройство само выполняет HTTPUpdate (надёжно), инструмент лишь мониторит
+    объём выданных байт через SSE-прогресс.
     """
-    boundary = "----MagicIoTmOta" + uuid.uuid4().hex
-    part_head = (
-        "--" + boundary + "\r\n"
-        'Content-Disposition: form-data; name="' + FIELD_NAME +
-        '"; filename="' + filename + '"\r\n'
-        "Content-Type: application/octet-stream\r\n\r\n"
-    ).encode("utf-8")
-    closing = ("\r\n--" + boundary + "--\r\n").encode("utf-8")
-    body_len = len(part_head) + total + len(closing)
+    files = cfg.get("files", {})
+    pc_ip = cfg.get("pc_ip", "")
+    if not pc_ip:
+        raise OtaError("Не определён IP компьютера для локального OTA-сервера")
 
-    conn = http.client.HTTPConnection(ip, HTTP_PORT, timeout=timeout)
+    need = {}
+    for fname in step["files"]:
+        path = files.get(fname)
+        if not path or not os.path.isfile(path):
+            raise OtaError(f"Не найден файл для отправки: {fname} ({path})")
+        need[fname] = path
+
+    srv = _start_bin_server(need)
+    port = srv.server_address[1]
+    base = f"http://{pc_ip}:{port}"
+    otype = step.get("type", 3)   # 1=только FW, 2=только FS, 3=полная
+    _append_line(f"Локальный OTA-сервер: {base}")
     try:
-        conn.putrequest("POST", UPLOAD_UPDATE_PATH)
-        conn.putheader("Content-Type", "multipart/form-data; boundary=" + boundary)
-        conn.putheader("Content-Length", str(body_len))
-        conn.endheaders()
+        # Надёжный HTTP-триггер: устройство само качает .bin с локального сервера.
+        # GET блокируется до конца обновления/перезагрузки — гоняем в потоке.
+        path = f"/localota_handler?server={base}&type={otype}"
+        _append_line(f"> GET http://{device_ip}{path}")
+        threading.Thread(target=_http_get,
+                         args=(device_ip, path, timeout),
+                         daemon=True).start()
 
-        conn.send(part_head)
-        sent = 0
-        with open(path, "rb") as f:
-            while True:
-                chunk = f.read(_CHUNK_SIZE)
-                if not chunk:
-                    break
-                conn.send(chunk)
-                sent += len(chunk)
-                _set_progress(filename, sent, total)
-        conn.send(closing)
-        resp = conn.getresponse()
-        body = resp.read()
-        if resp.status != 200:
-            raise OtaError("Устройство ответило HTTP {}{}".format(
-                resp.status, ": " + body[:200].decode("utf-8", "replace").strip() if body else ""))
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            if _server_all_done(srv, need):
+                _append_line("Файлы полностью скачаны устройством")
+                # устройство завершает запись во flash и перезагружается
+                time.sleep(2.5)
+                return
+            time.sleep(0.5)
+        raise OtaError("Устройство не завершило скачивание за отведённое время")
     finally:
-        try:
-            conn.close()
-        except Exception:  # noqa: BLE001
+        _stop_bin_server(srv)
+
+
+def _start_bin_server(need_files):
+    """ThreadingHTTPServer, отдающий need_files {имя: абс_путь}, с прогрессом."""
+    state = {"completed": {}, "lock": threading.Lock()}
+
+    class _Handler(http.server.BaseHTTPRequestHandler):
+        protocol_version = "HTTP/1.1"
+
+        def do_GET(self):  # noqa: N802
+            name = self.path.lstrip("/").split("?")[0]
+            _append_line(f"[ota-server] GET {self.path} от {self.client_address[0]}")
+            path = need_files.get(name)
+            if not path or not os.path.isfile(path):
+                self.send_response(404)
+                self.send_header("Connection", "close")
+                self.end_headers()
+                return
+            size = os.path.getsize(path)
+            self.send_response(200)
+            self.send_header("Content-Type", "application/octet-stream")
+            self.send_header("Content-Length", str(size))
+            self.send_header("Connection", "close")
+            self.end_headers()
+            sent = 0
+            try:
+                with open(path, "rb") as f:
+                    while True:
+                        chunk = f.read(_PULL_SERVE_CHUNK)
+                        if not chunk:
+                            break
+                        self.wfile.write(chunk)
+                        sent += len(chunk)
+                        with state["lock"]:
+                            state["completed"][name] = max(state["completed"].get(name, 0), sent)
+                        _set_progress(name, sent, size)
+                        time.sleep(_PULL_SERVE_DELAY)
+            except (BrokenPipeError, ConnectionResetError, OSError):
+                _append_line(f"[ota-server] прервана отдача {name} ({sent}/{size})")
+            try:
+                self.wfile.flush()
+            except Exception:  # noqa: BLE001
+                pass
+
+        def log_message(self, *args):  # noqa: A003
             pass
+
+    srv = http.server.ThreadingHTTPServer(("0.0.0.0", 0), _Handler)
+    srv.state = state
+    srv.need_files = need_files
+    srv.thread = threading.Thread(target=srv.serve_forever, daemon=True)
+    srv.thread.start()
+    return srv
+
+
+def _server_all_done(srv, need_files):
+    with srv.state["lock"]:
+        return all(srv.state["completed"].get(n, 0) >= os.path.getsize(p)
+                   for n, p in need_files.items())
+
+
+def _stop_bin_server(srv):
+    try:
+        srv.shutdown()
+        srv.server_close()
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def _http_get(host, path, timeout=60):
+    """Простой GET; при ошибке возвращает (None, '')."""
+    try:
+        with urllib.request.urlopen(f"http://{host}{path}", timeout=timeout) as r:
+            return r.status, r.read().decode("utf-8", "replace")
+    except Exception:  # noqa: BLE001 — устройство перезагружается, ответ может пропасть
+        return None, ""
 
 
 # ==================== Пофайловая загрузка ФС (POST /edit) ====================
 
 def _copy_fs(ip, data_dir, timeout):
-    """Копирует все файлы из data_dir (data_svelte) на устройство через /edit.
-
-    Сначала создаёт недостающие каталоги (PUT /edit?path=/dir/), затем
-    загружает каждый файл (POST /edit multipart, filename = путь от корня '/').
-    """
+    """Копирует все файлы из data_dir (data_svelte) на устройство через /edit."""
     if not os.path.isdir(data_dir):
         raise OtaError(f"Не найден каталог data_svelte: {data_dir}")
 
-    items = []  # (abs_path, rel_path)
+    items = []
     for base, _dirs, fnames in os.walk(data_dir):
         for fn in fnames:
             abs_path = os.path.join(base, fn)
@@ -411,7 +468,6 @@ def _copy_fs(ip, data_dir, timeout):
         raise OtaError(f"Каталог data_svelte пуст: {data_dir}")
     items.sort(key=lambda x: x[1])
 
-    # создаём каталоги (без ведущего '/' у самого корня)
     dirs = sorted({os.path.dirname(r) for _a, r in items if os.path.dirname(r)})
     for d in dirs:
         _ensure_edit_dir(ip, "/" + d, timeout)
@@ -430,7 +486,6 @@ def _ensure_edit_dir(ip, dir_path, timeout):
     """Создаёт каталог dir_path (с '/') на устройстве через PUT /edit."""
     conn = http.client.HTTPConnection(ip, HTTP_PORT, timeout=timeout)
     try:
-        # HTTP.arg("path") декодируется сервером, слэши в query допустимы
         conn.request("PUT", UPLOAD_EDIT_PATH + "?path=" + dir_path)
         resp = conn.getresponse()
         resp.read()
@@ -449,7 +504,8 @@ def _post_edit_file(ip, path, filename, timeout):
     boundary = "----MagicIoTmEdit" + uuid.uuid4().hex
     part_head = (
         "--" + boundary + "\r\n"
-        'Content-Disposition: form-data; name="data"; filename="' + filename + '"\r\n'
+        'Content-Disposition: form-data; name="' + FIELD_NAME +
+        '"; filename="' + filename + '"\r\n'
         "Content-Type: application/octet-stream\r\n\r\n"
     ).encode("utf-8")
     closing = ("\r\n--" + boundary + "--\r\n").encode("utf-8")
@@ -469,6 +525,7 @@ def _post_edit_file(ip, path, filename, timeout):
                 if not chunk:
                     break
                 conn.send(chunk)
+                time.sleep(0.004)
         conn.send(closing)
         resp = conn.getresponse()
         body = resp.read()
