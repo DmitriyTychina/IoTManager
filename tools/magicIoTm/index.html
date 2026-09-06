@@ -59,10 +59,10 @@ body.dark{background:var(--bg);color:var(--text)}
 .device-status.grey{background:#999;box-shadow:0 0 4px #999}
 .device-status.offline{background:var(--muted)}
 .device-item .device-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-/* Кнопка удаления устройства (видна при наведении) */
-.device-item .device-del{margin-left:auto;flex:0 0 auto;background:none;border:none;cursor:pointer;font-size:12px;line-height:1;padding:0 4px;color:var(--muted);visibility:hidden}
-.device-item:hover .device-del{visibility:visible}
-.device-item .device-del:hover{color:var(--danger)}
+/* Кнопки действий устройства (в стиле proj-actions) */
+.device-item .device-actions{margin-left:auto;display:flex;gap:4px;visibility:hidden;pointer-events:none}
+.device-item:hover .device-actions,.device-item.active .device-actions{visibility:visible;pointer-events:auto}
+.device-item .device-actions button{cursor:pointer}
 
 /* Проект PlatformIO (в стиле дерева, с разделителями) */
 .platformio-sep{margin:2px 8px 0;border-top:2px solid var(--accent);border-bottom:2px solid var(--accent);padding:4px 2px}
@@ -443,7 +443,9 @@ function renderDevices(devices){
     html += `<div class="device-item${active}" data-key="${esc(d.key || '')}" data-ip="${esc(d.ip)}" data-name="${esc(d.name)}" data-net="${cls}" data-online="${d.online?1:0}" title="${esc(tip)}">
       <span class="device-status ${cls}" title="${STATUS_TIP[cls] || ''}"></span>
       <span class="device-name">${esc(label)}</span>
-      <button class="device-del" title="Удалить устройство" onclick="event.stopPropagation();deleteDevice('${esc(d.key || '')}')">✕</button>
+      <div class="device-actions">
+        <button class="btn-sm btn-danger" title="Удалить устройство" onclick="event.stopPropagation();deleteDevice('${esc(d.key || '')}')">✕</button>
+      </div>
     </div>`;
   }
   el.innerHTML = html;
@@ -467,7 +469,7 @@ function clearSidebarSelection(){
 document.getElementById('deviceTree').addEventListener('click', (e) => {
   const item = e.target.closest('.device-item');
   if(!item) return;
-  if(e.target.closest('.device-del')) return; // удаление обрабатывается в deleteDevice
+  if(e.target.closest('.device-actions')) return; // удаление обрабатывается в deleteDevice
   clearSidebarSelection();
   item.classList.add('active');
   selectDevice(item.dataset.key, item.dataset.ip, item.dataset.name, item.dataset.online === '1', item.dataset.net);
