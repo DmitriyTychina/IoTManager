@@ -2262,6 +2262,7 @@ def api_upload_detect():
 
     env = cfg.get("env", "")
     expected = esptool_tools.family_of_env(env)
+    expected_flash = esptool_tools.expected_flash_from_env(env)
     ports = esptool_tools.list_esp_ports()
     matched = [p for p in ports if p.get("family") == expected]
 
@@ -2275,6 +2276,7 @@ def api_upload_detect():
         "matched": matched,
         "env": env,
         "expected_family": expected,
+        "expected_flash": expected_flash,
         "has_firmware": _has_built_firmware(cfg),
     })
 
@@ -2303,6 +2305,21 @@ def api_upload_start():
 
     # Автоустановка esptool при необходимости
     esptool_tools.ensure_installed()
+
+    # Повторная защита: реальный объём флеш-памяти чипа должен быть >= ожидаемого
+    expected_flash = esptool_tools.expected_flash_from_env(cfg.get("env", ""))
+    dev_info = esptool_tools.detect_device(port)
+    if (dev_info and dev_info.get("flash_bytes") is not None
+            and expected_flash and dev_info["flash_bytes"] < expected_flash):
+        return jsonify({
+            "success": False,
+            "error": ("Флеш-память чипа {} ({}) меньше требуемой для платформы ({} МБ). "
+                      "Прошивка отменена.").format(
+                dev_info.get("model", "?"),
+                dev_info.get("flash_label", "?"),
+                expected_flash // 1048576,
+            )
+        }), 409
 
     cfg["mode"] = mode
     cfg["upload_port"] = port

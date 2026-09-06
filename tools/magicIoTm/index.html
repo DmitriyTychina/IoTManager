@@ -2233,9 +2233,9 @@ let uploadStream = null;
 let uploadDone = false;
 
 const UPLOAD_MODES = {
-  fs: ['uploadfs'],
-  firmware: ['upload'],
-  full: ['uploadfs', 'upload']
+  fs: ['Загрузка файловой системы FS'],
+  firmware: ['Загрузка прошивки'],
+  full: ['Загрузка файловой системы FS', 'Загрузка прошивки']
 };
 
 function setUploadButtons(enabled){
@@ -2383,7 +2383,19 @@ async function startUpload(){
     }
     if(d.matched && d.matched.length){
       const m = d.matched[0];
-      showUploadModeModal(m.port, d.env + ' (' + m.model + ')');
+      // Проверка объёма флеш-памяти: реальный объём чипа должен быть >= ожидаемого
+      if(m.flash_bytes != null && d.expected_flash && m.flash_bytes < d.expected_flash){
+        const msg = 'Чип ' + m.model + ' имеет флеш-память ' + formatBytes(m.flash_bytes)
+          + ', что меньше требуемой для платформы ' + d.env + ' (' + formatBytes(d.expected_flash) + '). Прошивка отменена.';
+        toast(msg,'error');
+        showModal(`<h3 style="color:var(--danger)">⚠️ Недостаточно флеш-памяти</h3>
+          <p style="font-size:13px;color:var(--text);margin:8px 0 16px">${esc(msg)}</p>
+          <div class="modal-actions"><button onclick="closeModal()">OK</button></div>`);
+        return;
+      }
+      const flashInfo = (m.flash_label || m.flash_bytes != null)
+        ? ' · Flash ' + (m.flash_label || formatBytes(m.flash_bytes)) : '';
+      showUploadModeModal(m.port, d.env + ' (' + m.model + ')' + flashInfo);
       return;
     }
     // Нет автоматически совпавшего чипа — разделяем случаи

@@ -24,10 +24,18 @@ import sys
 import threading
 
 # Режимы прошивки: id -> (label, порядок pio-шагов)
+# Каждый шаг: {"target": pio-target для запуска, "label": человекочитаемая метка}
 MODES = {
-    "fs":       {"label": "Только файловая система", "steps": ["uploadfs"]},
-    "firmware": {"label": "Только прошивка",         "steps": ["upload"]},
-    "full":     {"label": "Полная прошивка",         "steps": ["uploadfs", "upload"]},
+    "fs": {"label": "Только файловая система", "steps": [
+        {"target": "uploadfs", "label": "Загрузка файловой системы FS"},
+    ]},
+    "firmware": {"label": "Только прошивка", "steps": [
+        {"target": "upload", "label": "Загрузка прошивки"},
+    ]},
+    "full": {"label": "Полная прошивка", "steps": [
+        {"target": "uploadfs", "label": "Загрузка файловой системы FS"},
+        {"target": "upload", "label": "Загрузка прошивки"},
+    ]},
 }
 
 _ANSI_RE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
@@ -71,8 +79,8 @@ def _set_running(flag):
 
 def _reset_state(project_label="", mode="", port=""):
     steps = []
-    for i, name in enumerate(MODES[mode]["steps"], start=1):
-        steps.append({"id": i, "label": name, "status": "pending"})
+    for i, step in enumerate(MODES[mode]["steps"], start=1):
+        steps.append({"id": i, "label": step["label"], "status": "pending"})
     with _state["cond"]:
         _state.update({
             "running": False,
@@ -186,18 +194,20 @@ def _worker(cfg):
         _append_line(f"Режим: {MODES[mode]['label']} | Порт: {cfg.get('upload_port', '')}")
         _append_line("")
 
-        for idx, target in enumerate(MODES[mode]["steps"], start=1):
+        for idx, step in enumerate(MODES[mode]["steps"], start=1):
             step_id = idx
+            target = step["target"]
+            label = step["label"]
             _set_step_running(step_id)
             _append_line("")
-            _append_line(f"=== Шаг {step_id}. {target} ===")
+            _append_line(f"=== Шаг {step_id}. {label} ===")
             cmd = [cfg["pio"], "run", "-c", cfg["ini"], "-e", cfg["env"],
                    "-t", target, "--upload-port", cfg["upload_port"]]
             _append_line("> " + " ".join(cmd))
             rc, _out = _run_streaming(cmd, cfg["cwd"])
             if rc != 0:
                 _set_step_error(step_id)
-                _fail(step_id, f"Ошибка шага '{target}' (код {rc})")
+                _fail(step_id, f"Ошибка шага '{label}' (код {rc})")
                 return
             _set_step_done(step_id)
 

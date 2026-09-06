@@ -241,25 +241,41 @@ def _comports():
         return []
 
 
-def detect_chip(port):
-    """Определяет модель ESP-чипа на порту через esptool.
+def flash_label_to_bytes(label):
+    """Преобразует строку объёма из esptool (например '4MB', '512KB') в байты.
+
+    Returns:
+        int | None: размер в байтах или None, если строка не распознана.
+    """
+    m = re.match(r"(\d+)\s*(MB|KB)", (label or "").strip(), re.IGNORECASE)
+    if not m:
+        return None
+    n = int(m.group(1))
+    unit = m.group(2).upper()
+    return n * (1024 * 1024 if unit == "MB" else 1024)
+
+
+def detect_device(port):
+    """Определяет модель ESP-чипа и реальный объём флеш-памяти через esptool.
+
+    Используется команда `flash_id`, которая при подключении выводит и тип чипа
+    ("Chip is ..."/"Detecting chip type..."), и обнаруженный объём флеш-памяти
+    ("Detected flash size: ...").
 
     Args:
         port (str): имя COM-порта, например 'COM3'.
 
     Returns:
-        dict | None: {"port", "model", "family"} или None, если не ESP-чип
-                     или порт недоступен.
+        dict | None: {"port", "model", "family", "flash_bytes", "flash_label"}
+                     или None, если это не ESP-чип или порт недоступен.
     """
-    cmd = [sys.executable, "-m", "esptool", "--port", port, "chip_id"]
+    cmd = [sys.executable, "-m", "esptool", "--port", port, "flash_id"]
     try:
-        p = subprocess.run(cmd, capture_output=True, text=True, timeout=30,
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=40,
                            encoding="utf-8", errors="replace")
         out = (p.stdout or "") + (p.stderr or "")
 
         model = None
-        # esptool печатает и "Chip is ESP8266EX", и прогресс "Detecting chip type... ESP8266".
-        # Проверяем оба варианта, чтобы определение не зависело от конкретной версии esptool.
         m = re.search(r"Chip is\s+([^\r\n]+)", out, re.IGNORECASE)
         if m:
             model = m.group(1).strip()
@@ -269,32 +285,69 @@ def detect_chip(port):
                 model = m2.group(1).strip()
 
         if not model:
-            logger.debug(f"detect_chip({port}): чип не опознан. Вывод:\n{out[-1500:]}")
+            logger.debug(f"detect_device({port}): чип не опознан. Вывод:\n{out[-1500:]}")
             return None
 
         family = family_of_model(model)
         if family is None:
-            logger.debug(f"detect_chip({port}): неизвестное семейство для модели '{model}'")
+            logger.debug(f"detect_device({port}): неизвестное семейство для модели '{model}'")
             return None
-        return {"port": port, "model": model, "family": family}
+
+        # Реальный объём флеш-памяти
+        flash_label = None
+        flash_bytes = None
+        fm = re.search(r"Detected flash size:\s*([^\r\n]+)", out, re.IGNORECASE)
+        if fm:
+            flash_label = fm.group(1).strip()
+            flash_bytes = flash_label_to_bytes(flash_label)
+
+        return {"port": port, "model": model, "family": family,
+                "flash_bytes": flash_bytes, "flash_label": flash_label}
     except Exception as e:
-        logger.debug(f"detect_chip({port}) ошибка: {e}")
+        logger.debug(f"detect_device({port}) ошибка: {e}")
         return None
+
+
+def detect_chip(port):
+    """Определяет только модель ESP-чипа (без объёма флеш-памяти).
+
+    Returns:
+        dict | None: {"port", "model", "family"} или None.
+    """
+    info = detect_device(port)
+    if not info:
+        return None
+    return {k: info[k] for k in ("port", "model", "family")}
 
 
 def list_esp_ports():
     """Перебирает COM-порты и возвращает те, на которых есть ESP-чип.
 
     Returns:
-        list[dict]: [{"port", "model", "family"}, ...]
+        list[dict]: [{"port", "model", "family", "flash_bytes", "flash_label"}, ...]
     """
     found = []
     for comp in _comports():
         port = comp.device
-        info = detect_chip(port)
+        info = detect_device(port)
         if info:
             found.append(info)
     return found
+
+
+def expected_flash_from_env(env):
+    """Определяет ожидаемый физический объём флеш-памяти по имени env.
+
+    Объём кодируется суффиксом вида '4mb'/'1mb'/'16mb' в имени env, например:
+    esp8266_4mb -> 4 МБ, esp8285_1mb_ota -> 1 МБ.
+
+    Returns:
+        int | None: объём в байтах или None, если не найден.
+    """
+    m = re.search(r"(\d+)mb", (env or "").lower())
+    if not m:
+        return None
+    return int(m.group(1)) * 1024 * 1024
 
 
 def list_raw_ports():
@@ -312,13 +365,15 @@ def list_raw_ports():
 def family_of_model(model):
     """Сопоставляет строку модели чипа (из esptool) с семейством платформы.
 
-    Семейства согласованы с env в platformio.ini: esp8266, esp32, esp32s2,
-    esp32s3, esp32c3.
+    ESP8266 и ESP8285 — РАЗНЫЕ чипы и разделяются строго:
+      ESP8285 -> 'esp8285', ESP8266/ESP8266EX -> 'esp8266'.
     """
     m = (model or "").upper()
     if not m:
         return None
-    if "ESP8285" in m or "ESP8266" in m:
+    if "ESP8285" in m:
+        return "esp8285"
+    if "ESP8266" in m:
         return "esp8266"
     if "ESP32" in m:
         if "S2" in m:
@@ -332,9 +387,15 @@ def family_of_model(model):
 
 
 def family_of_env(env):
-    """Определяет ожидаемое семейство платформы по имени env (platformio.ini)."""
+    """Определяет ожидаемое семейство платформы по имени env (platformio.ini).
+
+    ESP8266 и ESP8285 — разные чипы, поэтому префиксы 'esp8266*' и 'esp8285*'
+    сопоставляются с разными семействами.
+    """
     e = (env or "").lower()
-    if e.startswith("esp8285") or e.startswith("esp8266"):
+    if e.startswith("esp8285"):
+        return "esp8285"
+    if e.startswith("esp8266"):
         return "esp8266"
     if e.startswith("esp32"):
         if "s2" in e:
