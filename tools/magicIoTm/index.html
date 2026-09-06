@@ -1692,8 +1692,11 @@ async function openProject(cat, name){
   const r = await fetch(url, {method:'POST'});
   const d = await r.json();
   if(!d.success){ toast(d.error||'Ошибка', 'error'); return; }
-  // Единое выделение: снимаем активность с устройств
+  // Единое выделение: снимаем активность с устройств и закрываем менеджер устройства.
+  // Обязательно сбрасываем activeDevice, иначе при очередном multicast renderDevices()
+  // снова повесит класс 'active' на последнее выбранное устройство, хотя активен проект.
   clearSidebarSelection();
+  activeDevice = null;
   configData = d.config;
   currentProject = {category: cat, name: name};
   const isPio = (name === 'PlatformIO');
