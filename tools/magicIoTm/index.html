@@ -793,7 +793,7 @@ function renderDeviceManager(){
       <div class="devmgr-panel">
         <div class="devmgr-panel-head">
           <span class="devmgr-panel-title">Файлы из RAM по WebSockets</span>
-          <button class="btn-sm btn-primary" onclick="fetchRam()" title="Получить файлы с устройства">⤵ Получить файлы</button>
+          <button class="btn-sm" onclick="fetchRam()" title="Получить файлы с устройства">⤵ Получить файлы</button>
         </div>
         <div class="devmgr-panel-body">
           <div class="devmgr-tree" id="ramTree" onclick="onTreeClick(event)"><div class="empty-state" style="padding:12px">Файлы не загружены</div></div>
@@ -804,7 +804,7 @@ function renderDeviceManager(){
                 <span class="file-size" id="ramFileSize"></span>
               </div>
               <button class="btn-sm" id="ramCheckBtn" style="display:none" onclick="checkScenarioLoops('ram')" title="Проверить сценарий на циклические зависимости (event-driven)">🔍 Проверка</button>
-              <button class="btn-sm btn-primary" id="ramPushBtn" onclick="pushFile('ram')" disabled title="">💾 Сохранить</button>
+              <button class="btn-sm" id="ramPushBtn" onclick="pushFile('ram')" disabled title="">💾 Сохранить</button>
             </div>
             <div class="devmgr-code">
               <div class="devmgr-gutter" id="ramGutter"><pre></pre></div>
@@ -826,7 +826,7 @@ function renderDeviceManager(){
       <div class="devmgr-panel">
         <div class="devmgr-panel-head">
           <span class="devmgr-panel-title">Файлы из файловой системы</span>
-          <button class="btn-sm btn-primary" onclick="fetchFs()" title="Получить файлы из FS устройства">⤵ Получить файлы</button>
+          <button class="btn-sm" onclick="fetchFs()" title="Получить файлы из FS устройства">⤵ Получить файлы</button>
         </div>
         <div class="devmgr-panel-body">
           <div class="devmgr-tree" id="fsTree" onclick="onTreeClick(event)"><div class="empty-state" style="padding:12px">Раздел FS пуст</div></div>
@@ -837,7 +837,7 @@ function renderDeviceManager(){
                 <span class="file-size" id="fsFileSize"></span>
               </div>
               <button class="btn-sm" id="fsCheckBtn" style="display:none" onclick="checkScenarioLoops('fs')" title="Проверить сценарий на циклические зависимости (event-driven)">🔍 Проверка</button>
-              <button class="btn-sm btn-primary" id="fsSaveBtn" onclick="saveFile('fs')" disabled title="Сохранить файл локально">💾 Сохранить</button>
+              <button class="btn-sm" id="fsSaveBtn" onclick="saveFile('fs')" disabled title="Сохранить файл локально">💾 Сохранить</button>
             </div>
             <div class="devmgr-code">
               <div class="devmgr-gutter" id="fsGutter"><pre></pre></div>
