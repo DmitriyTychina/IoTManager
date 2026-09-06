@@ -1200,7 +1200,7 @@ function parseScenarioRules(text){
 
   function peek(k){ return toks[idx + (k || 0)]; }
 
-  function skipToStatementEnd(){
+  function skipToStatementEnd(allowMultiLine){
     if(idx >= n) return;
     const startLine = peek().line;
     while(idx < n){
@@ -1209,12 +1209,14 @@ function parseScenarioRules(text){
       if(t.value === ';'){ idx++; return; }
       if(t.value === '}') return;
       if(t.type === 'word' && (t.value === 'else' || t.value === 'then')) return;
+      // Если разрешена многострочность — ограничиваемся только ; или }
+      if(allowMultiLine){ idx++; continue; }
       if(t.line !== startLine) return;
       idx++;
     }
   }
 
-  function parseBody(rule){
+  function parseBody(rule, allowMultiLine){
     const t = peek();
     if(!t) return;
     if(t.type === 'sym' && t.value === '{'){ idx++; parseRuleList(rule, true); return; }
@@ -1224,10 +1226,10 @@ function parseScenarioRules(text){
       if(nx && nx.type === 'sym' && (nx.value === '=' || nx.value === ':=')){
         // ':=' не вызывает событие (перепроверку условий) — в зацикливание не входит
         if(nx.value === '=') rule.writes.push(t.value);
-        idx += 2; skipToStatementEnd(); return;
+        idx += 2; skipToStatementEnd(allowMultiLine); return;
       }
     }
-    skipToStatementEnd();
+    skipToStatementEnd(allowMultiLine);
   }
 
   function parseIf(parentRule){
@@ -1244,10 +1246,12 @@ function parseScenarioRules(text){
       idx++;
     }
     rule.cond = Array.from(condSet);
-    parseBody(rule);
+    // Если после условия нет тела — выходим
+    if(idx >= n) { rules.push(rule); return; }
+    parseBody(rule, true);
     if(idx < n && peek().type === 'word' && peek().value === 'else'){
       idx++;
-      parseBody(rule);
+      parseBody(rule, true);
     }
     if(parentRule){ for(const w of rule.writes) parentRule.writes.push(w); }
     rules.push(rule);
@@ -1269,11 +1273,11 @@ function parseScenarioRules(text){
         if(nx && nx.type === 'sym' && (nx.value === '=' || nx.value === ':=')){
           // ':=' не вызывает событие (перепроверку условий) — в зацикливание не входит
           if(nx.value === '=' && targetRule) targetRule.writes.push(t.value);
-          idx += 2; skipToStatementEnd(); continue;
+          idx += 2; skipToStatementEnd(true); continue;
         }
-        skipToStatementEnd(); continue;
+        skipToStatementEnd(true); continue;
       }
-      skipToStatementEnd();
+      skipToStatementEnd(true);
     }
   }
 
