@@ -66,6 +66,88 @@ _devices = {}          # ip -> {ip, name, wg, id, status, fv, last_seen}
 _devices_lock = threading.Lock()
 _device_thread = None
 
+# Пропущенные проверки (пинг/мультикаст) подряд: ip -> {"missed": N, "confirmed": bool}
+_missed = {}
+_missed_lock = threading.Lock()
+MISSED_YELLOW = 1      # 1..MISSED_RED — жёлтый
+MISSED_RED = 5         # больше — красный
+PING_INTERVAL = 60.0   # период фонового пинга, сек
+_ping_thread = None
+
+
+def _mark_device_seen(ip, name=""):
+    """Отмечает устройство как живое (пришёл multicast или успешный пинг)."""
+    now = time.time()
+    with _devices_lock:
+        old = _devices.get(ip)
+        _devices[ip] = {
+            "ip": ip,
+            "name": (old or {}).get("name") or name,
+            "wg": (old or {}).get("wg", ""),
+            "id": (old or {}).get("id", ""),
+            "status": bool((old or {}).get("status", False)),
+            "fv": (old or {}).get("fv", ""),
+            "last_seen": now,
+        }
+    with _missed_lock:
+        _missed[ip] = {"missed": 0, "confirmed": True}
+
+
+def _ping_cycle():
+    """Один цикл фонового пинга устройств.
+
+    Пингуются устройства, от которых НЕТ свежего multicast-пакета.
+    Исключение: если у multicast-устройства красный статус (missed > MISSED_RED) —
+    его тоже пингуем. Успешный пинг сбрасывает счётчик пропусков.
+    Пинг помечает устройство как confirmed (статус перестаёт быть серым).
+    """
+    now = time.time()
+    with _device_folders_lock:
+        entries = [(e["key"], e.get("ip")) for e in _device_folders.values() if e.get("ip")]
+    for key, ip in entries:
+        with _devices_lock:
+            live = _devices.get(ip)
+        live_fresh = bool(live) and (now - live["last_seen"]) <= DEVICES_TIMEOUT
+        with _missed_lock:
+            data = _missed.get(ip, {"missed": 0, "confirmed": False})
+            missed = data["missed"]
+            confirmed = data["confirmed"]
+        # Если multicast свежий и статус не красный — пинг не нужен
+        if live_fresh and missed <= MISSED_RED:
+            continue
+        # Пингуем
+        if _host_pingable(ip):
+            _mark_device_seen(ip, name=key)
+            logger.info(f"Пинг OK: {ip} ({key})")
+        else:
+            with _missed_lock:
+                _missed[ip] = {"missed": missed + 1, "confirmed": True}
+            logger.info(f"Пинг fail: {ip} ({key}), пропусков: {_missed[ip]['missed']}")
+
+
+def _ping_worker():
+    """Фоновый поток: пинг устройств раз в PING_INTERVAL секунд.
+    
+    Первый цикл запускается через 10 сек после старта, последующие — каждые PING_INTERVAL.
+    """
+    time.sleep(10)  # первая проверка через 10 сек
+    while True:
+        try:
+            _ping_cycle()
+        except Exception as e:
+            logger.error(f"Ошибка пинг-цикла: {e}")
+        time.sleep(PING_INTERVAL)
+
+
+def start_ping_worker():
+    """Запуск фонового пинга устройств (идемпотентно). Первый цикл — сразу."""
+    global _ping_thread
+    if _ping_thread and _ping_thread.is_alive():
+        return
+    _ping_thread = threading.Thread(target=_ping_worker, daemon=True,
+                                    name="device-ping-worker")
+    _ping_thread.start()
+
 
 def _device_listener():
     """Фоновый поток: приём multicast-пакетов от устройств IoTManager.
@@ -117,31 +199,35 @@ def _ingest_payload(src_ip, text):
     except (json.JSONDecodeError, ValueError):
         return
     items = obj if isinstance(obj, list) else [obj]
-    now = time.time()
-    with _devices_lock:
-        for it in items:
-            if not isinstance(it, dict):
-                continue
-            _devices[src_ip] = {
-                "ip": src_ip,
-                "name": str(it.get("name", "")),
-                "wg": str(it.get("wg", "")),
-                "id": str(it.get("id", "")),
-                "status": bool(it.get("status", False)),
-                "fv": it.get("fv", ""),
-                "last_seen": now,
-            }
-            # создаём папку устройства <SSID>_<ip>_<name> с подпапками RAM и FS
-            ensure_device_folder(src_ip, str(it.get("name", "")), str(it.get("id", "")))
+    for it in items:
+        if not isinstance(it, dict):
+            continue
+        _mark_device_seen(src_ip, name=str(it.get("name", "")))
+        # дополняем запись данными из пакета (wg/id/status/fv)
+        with _devices_lock:
+            live = _devices.get(src_ip)
+            if live:
+                live["wg"] = str(it.get("wg", ""))
+                live["id"] = str(it.get("id", ""))
+                live["status"] = bool(it.get("status", False))
+                live["fv"] = it.get("fv", "")
+        # создаём папку устройства <имя>_<id> с подпапками RAM и FS
+        ensure_device_folder(src_ip, str(it.get("name", "")), str(it.get("id", "")))
 
 
 def _build_devices_payload():
-    """Текущий список устройств с признаком online/offline, отсортированный.
+    """Текущий список устройств с сетевым статусом, отсортированный.
 
     Источник — папки устройств: ключ = базовое имя папки (уникально на диске),
     поэтому КАЖДАЯ папка отображается как отдельное устройство (в т.ч. легаси-
     папки без IP в имени и дубликаты IP из разных сетей). Сетевая активность/имя
     подтягиваются из multicast по IP, если IP у записи указан.
+
+    Статус (net):
+    - grey   — статус ещё не подтверждён (ни multicast, ни пинг не проходили)
+    - green  — свежий multicast или успешный пинг, пропусков 0
+    - yellow — 1..5 пропущенных проверок (или ещё не подтверждено)
+    - red    — более 5 пропущенных проверок
     """
     now = time.time()
     with _device_folders_lock:
@@ -158,11 +244,20 @@ def _build_devices_payload():
             "status": False,
             "fv": "",
             "online": False,
+            "missed": 0,
+            "net": "grey",
         }
         live = None
+        missed = 0
+        confirmed = False
         if ip:
             with _devices_lock:
                 live = _devices.get(ip)
+            with _missed_lock:
+                data = _missed.get(ip, {"missed": 0, "confirmed": False})
+                missed = data["missed"]
+                confirmed = data["confirmed"]
+        live_fresh = bool(live) and (now - live["last_seen"]) <= DEVICES_TIMEOUT
         if live:
             # Имя устройства = базовое имя его папки (e["name"]), как в devices/.
             # Живое multicast-имя используется только для доп. атрибутов и статуса.
@@ -170,7 +265,17 @@ def _build_devices_payload():
             dev["id"] = live["id"]
             dev["status"] = bool(live["status"])
             dev["fv"] = live["fv"]
-            dev["online"] = (now - live["last_seen"]) <= DEVICES_TIMEOUT
+        # Определяем статус
+        if not confirmed:
+            dev["net"] = "grey"  # статус не подтверждён
+        elif missed > MISSED_RED:
+            dev["net"] = "red"
+        elif missed == 0:
+            dev["net"] = "green"
+        else:
+            dev["net"] = "yellow"
+        dev["missed"] = missed
+        dev["online"] = dev["net"] == "green"
         devices.append(dev)
     # Живые устройства, у которых не оказалось папки (например, не удалось создать)
     with _devices_lock:
@@ -178,6 +283,7 @@ def _build_devices_payload():
         for src_ip, d in _devices.items():
             if src_ip in known_ips:
                 continue
+            online = (now - d["last_seen"]) <= DEVICES_TIMEOUT
             devices.append({
                 "key": src_ip,
                 "ip": src_ip,
@@ -186,7 +292,9 @@ def _build_devices_payload():
                 "id": d["id"],
                 "status": bool(d["status"]),
                 "fv": d["fv"],
-                "online": (now - d["last_seen"]) <= DEVICES_TIMEOUT,
+                "online": online,
+                "missed": 0,
+                "net": "green" if online else "grey",
             })
     devices.sort(key=lambda x: (not x["online"], x["ip"], x["key"]))
     return {"success": True, "devices": devices}
@@ -202,7 +310,12 @@ def _devices_signature():
             (d["ip"], round(d["last_seen"], 1), (now - d["last_seen"]) <= DEVICES_TIMEOUT)
             for d in _devices.values()
         ))
-    return (folder_keys, online)
+    with _missed_lock:
+        missed = tuple(sorted(
+            (ip, d["missed"], d["confirmed"])
+            for ip, d in _missed.items()
+        ))
+    return (folder_keys, online, missed)
 
 
 def start_device_listener():
@@ -411,6 +524,241 @@ PING_TIMEOUT_MS = 700       # таймаут ping, мс
 PING_CONCURRENCY = 64       # параллельных ping-задач
 
 
+def _is_useful_interface(ip):
+    """Проверяет, что интерфейс может содержать IoT-устройства.
+
+    True для:
+    - Локальных сетей (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16)
+    - VPN-интерфейсов (любой другой непубличный и non-link-local адрес)
+    - Публичных IP (на случай, если ESP подключён напрямую)
+
+    False для:
+    - Loopback (127.0.0.0/8)
+    - Link-local / APIPA (169.254.0.0/16) — это автоматически назначенные
+      адреса без шлюза, там ESP-устройства не живут
+    """
+    try:
+        addr = ipaddress.ip_address(ip)
+    except ValueError:
+        return False
+
+    # Loopback
+    if addr.is_loopback:
+        return False
+
+    # Link-local / APIPA (автоконфигурация без DHCP)
+    if addr.is_link_local:
+        return False
+
+    # Все остальные — показываем
+    return True
+
+
+def _get_wifi_ssids():
+    """Карта «имя WiFi-интерфейса → SSID сети» (netsh, кэш 30 сек).
+
+    На русской Windows вывод в cp1251. Возвращает {} при любой ошибке.
+    """
+    cache = getattr(_get_wifi_ssids, "_cache", None)
+    now = time.time()
+    if cache and (now - cache[0]) < 30:
+        return cache[1]
+
+    result = {}
+    if os.name == "nt":
+        try:
+            raw = subprocess.run(
+                ["netsh", "wlan", "show", "interfaces"],
+                capture_output=True, timeout=5,
+            ).stdout or b""
+            # Кодировка зависит от системы: пробуем UTF-8, затем cp1251
+            out = None
+            for enc in ("utf-8", "cp1251"):
+                try:
+                    out = raw.decode(enc)
+                    break
+                except UnicodeDecodeError:
+                    continue
+            if out is None:
+                out = raw.decode("utf-8", errors="replace")
+            iface_name = None
+            for line in out.splitlines():
+                # «Имя» / «Name» — имя интерфейса; «SSID» (не BSSID) — сеть
+                m = re.match(r'\s*(?:Имя|Name)\s*:\s*(.+)$', line)
+                if m:
+                    iface_name = m.group(1).strip()
+                    continue
+                m = re.match(r'\s*SSID\s*:\s*(.+)$', line)
+                if m and iface_name:
+                    ssid = m.group(1).strip()
+                    if ssid:
+                        result[iface_name] = ssid
+        except Exception as e:
+            logger.warning(f"Не удалось получить SSID WiFi-интерфейсов: {e}")
+
+    _get_wifi_ssids._cache = (now, result)
+    return result
+
+
+def get_network_interfaces():
+    """Возвращает список сетевых интерфейсов, где могут быть ESP-устройства.
+
+    Фильтрует loopback и link-local (169.254.x.x), оставляя:
+    - Локальные сети (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+    - VPN-интерфейсы
+    - Публичные IP (редко, но возможно)
+
+    Для беспроводных интерфейсов вместо системного имени («Беспроводная сеть»)
+    показывается SSID подключённой сети.
+    """
+    try:
+        import psutil
+    except ImportError:
+        # Fallback: определяем только активный интерфейс
+        ip = _get_local_ip()
+        if _is_useful_interface(ip):
+            return [{"ip": ip, "label": f"{ip} (автоопределение)"}]
+        return []
+
+    wifi_ssids = _get_wifi_ssids()
+
+    addrs = []
+    for iface, addr_list in psutil.net_if_addrs().items():
+        for addr in addr_list:
+            if addr.family == socket.AF_INET and _is_useful_interface(addr.address):
+                # Беспроводной интерфейс: показываем SSID вместо системного имени
+                iface_label = wifi_ssids.get(iface, iface)
+                addrs.append({"ip": addr.address, "label": f"{addr.address} — {iface_label}"})
+
+    # Убираем дубликаты
+    seen = set()
+    unique = []
+    for a in addrs:
+        if a["ip"] not in seen:
+            seen.add(a["ip"])
+            unique.append(a)
+
+    # Сортируем: локальные сети первыми, затем остальные
+    def sort_key(item):
+        ip_str = item["ip"]
+        try:
+            addr = ipaddress.ip_address(ip_str)
+            # RFC 1918 — локальные сети
+            if addr.is_private:
+                return 0
+        except ValueError:
+            pass
+        return 1
+
+    unique.sort(key=sort_key)
+    return unique
+
+
+_scan_thread = None  # ссылка на поток сканирования (для проверки живости)
+
+
+def scan_network_worker(subnet_label=None):
+    """Фоновое сканирование подсети: ping -> идентификация -> добавление.
+
+    Если subnet_label указан, сканируется только указанная подсеть /24.
+    Если subnet_label == '__all__', сканируются все обнаруженные подсети.
+    Иначе — автоматически определяется активная подсеть.
+
+    Любое исключение гасится и попадает в состояние сканирования,
+    чтобы флаг running гарантированно сбросился (иначе UI зависает).
+    """
+    global _scan_thread
+    try:
+        if subnet_label == '__all__':
+            # Сканируем все интерфейсы
+            hosts = _get_all_subnet_hosts()
+            local_ip = "все интерфейсы"
+        elif subnet_label:
+            # Сканируем одну указанную подсеть
+            hosts = _get_subnet_hosts(subnet_label)
+            local_ip = subnet_label
+        else:
+            hosts = _get_local_subnet()
+            local_ip = _get_local_ip()
+
+        with _scan_lock:
+            _scan_state.update({
+                "total": len(hosts),
+                "done": 0,
+                "subnet": (subnet_label if subnet_label == '__all__' else f"{local_ip}/24") if hosts else "",
+                "alive": [],
+                "found": [],
+                "failed": [],
+                "error": None if hosts else "Не удалось определить локальную подсеть",
+            })
+        if not hosts:
+            return
+
+        with ThreadPoolExecutor(max_workers=PING_CONCURRENCY) as ex:
+            futures = {ex.submit(_host_pingable, ip): ip for ip in hosts}
+            for fut in as_completed(futures):
+                ip = futures[fut]
+                try:
+                    ok = bool(fut.result())
+                except Exception:
+                    ok = False
+                with _scan_lock:
+                    _scan_state["done"] += 1
+                    if ok:
+                        _scan_state["alive"].append(ip)
+                if ok:
+                    res = add_device_by_ip(ip)
+                    with _scan_lock:
+                        if res["success"]:
+                            _scan_state["found"].append(res["device"])
+                        else:
+                            _scan_state["failed"].append({"ip": ip, "error": res["error"]})
+    except Exception as e:
+        logger.error(f"Ошибка сканирования сети: {e}")
+        with _scan_lock:
+            _scan_state["error"] = f"Ошибка сканирования: {e}"
+    finally:
+        with _scan_lock:
+            _scan_state["running"] = False
+        _scan_thread = None
+
+
+def _get_all_subnet_hosts():
+    """Собирает все подсети /24 из всех полезных интерфейсов."""
+    all_hosts = []
+    seen = set()
+    
+    try:
+        import psutil
+    except ImportError:
+        ip = _get_local_ip()
+        if _is_useful_interface(ip):
+            for h in _get_subnet_hosts(ip):
+                if h not in seen:
+                    seen.add(h)
+                    all_hosts.append(h)
+        return all_hosts
+
+    for iface, addr_list in psutil.net_if_addrs().items():
+        for addr in addr_list:
+            if addr.family == socket.AF_INET and _is_useful_interface(addr.address):
+                for h in _get_subnet_hosts(addr.address):
+                    if h not in seen:
+                        seen.add(h)
+                        all_hosts.append(h)
+    
+    return all_hosts
+
+
+def _get_subnet_hosts(ip_label):
+    """Возвращает список IP-адресов подсети /24 для указанного IP."""
+    try:
+        net = ipaddress.ip_network(f"{ip_label}/24", strict=False)
+        return [str(h) for h in net.hosts()]
+    except ValueError:
+        return []
+
+
 def _get_local_ip():
     """Локальный IPv4 ноутбука."""
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -534,49 +882,6 @@ def _scan_snapshot():
     """Снимок состояния сканирования."""
     with _scan_lock:
         return dict(_scan_state)
-
-
-def scan_network_worker():
-    """Фоновое сканирование подсети: ping -> идентификация -> добавление."""
-    hosts = _get_local_subnet()
-    local_ip = _get_local_ip()
-    with _scan_lock:
-        _scan_state.update({
-            "total": len(hosts),
-            "done": 0,
-            "subnet": f"{local_ip}/24" if hosts else "",
-            "alive": [],
-            "found": [],
-            "failed": [],
-            "error": None if hosts else "Не удалось определить локальную подсеть",
-        })
-    if not hosts:
-        with _scan_lock:
-            _scan_state["running"] = False
-        return
-
-    with ThreadPoolExecutor(max_workers=PING_CONCURRENCY) as ex:
-        futures = {ex.submit(_host_pingable, ip): ip for ip in hosts}
-        for fut in as_completed(futures):
-            ip = futures[fut]
-            try:
-                ok = bool(fut.result())
-            except Exception:
-                ok = False
-            with _scan_lock:
-                _scan_state["done"] += 1
-                if ok:
-                    _scan_state["alive"].append(ip)
-            if ok:
-                res = add_device_by_ip(ip)
-                with _scan_lock:
-                    if res["success"]:
-                        _scan_state["found"].append(res["device"])
-                    else:
-                        _scan_state["failed"].append({"ip": ip, "error": res["error"]})
-
-    with _scan_lock:
-        _scan_state["running"] = False
 
 
 def _walk_tree(root):
@@ -1573,6 +1878,63 @@ def api_copy_modules():
 
 # ==================== Устройства: API ====================
 
+@app.route('/api/device/<device_key>', methods=['DELETE'])
+def _rmtree_with_retry(folder, attempts=5, delay=0.5):
+    """Пытается удалить папку несколько раз подряд. True — успех."""
+    for attempt in range(attempts):
+        try:
+            shutil.rmtree(folder)
+            return True
+        except OSError as e:
+            logger.warning(f"Удаление {folder}: попытка {attempt+1}/{attempts} не удалась: {e}")
+            time.sleep(delay)
+    return False
+
+
+def _rmtree_background(folder, max_minutes=10):
+    """Фоновое удаление «застрявшей» папки: ретраи каждые 5 сек.
+
+    Папку может блокировать сторонний процесс (например, acrotray.exe держит
+    её как рабочую директорию). Как только блокировка уйдёт — папка удалится.
+    """
+    deadline = time.time() + max_minutes * 60
+    while time.time() < deadline:
+        try:
+            shutil.rmtree(folder)
+            logger.info(f"Папка устройства удалена (отложенно): {folder}")
+            return
+        except OSError:
+            pass
+        time.sleep(5)
+    logger.error(f"Не удалось удалить папку устройства за {max_minutes} мин: {folder}")
+
+
+def api_device_delete(device_key):
+    """Удаление устройства: папка на диске и все записи о нём."""
+    with _device_folders_lock:
+        entry = _device_folders.get(device_key)
+    if not entry:
+        return jsonify({"success": False, "error": "Устройство не найдено"}), 404
+    folder = entry["folder"]
+    ip = entry.get("ip")
+    with _device_folders_lock:
+        _device_folders.pop(device_key, None)
+    if ip:
+        with _devices_lock:
+            _devices.pop(ip, None)
+        with _missed_lock:
+            _missed.pop(ip, None)
+    if _rmtree_with_retry(folder):
+        logger.info(f"Устройство удалено: {device_key} ({folder})")
+        return jsonify({"success": True})
+    # Папка заблокирована сторонним процессом — устройство убрано из списка,
+    # а папка удалится фоновым потоком, когда блокировка исчезнет.
+    logger.warning(f"Папка {folder} заблокирована; удаление отложено в фон")
+    threading.Thread(target=_rmtree_background, args=(folder,), daemon=True,
+                     name="device-folder-cleanup").start()
+    return jsonify({"success": True, "warning": "Папка занята другим процессом и будет удалена позже"})
+
+
 @app.route('/api/device/<device_key>/info', methods=['GET'])
 def api_device_info(device_key):
     """Информация об устройстве и путь к его папке на диске."""
@@ -1582,15 +1944,36 @@ def api_device_info(device_key):
     return jsonify({"success": True, **entry})
 
 
+@app.route('/api/devices/interfaces', methods=['GET'])
+def api_devices_interfaces():
+    """Возвращает список сетевых интерфейсов для выбора."""
+    interfaces = get_network_interfaces()
+    return jsonify({"success": True, "interfaces": interfaces})
+
+
 @app.route('/api/devices/scan', methods=['POST'])
 def api_devices_scan():
     """Запуск фонового сканирования сети."""
+    global _scan_thread
+    data = request.json or {}
+    subnet_label = data.get("subnet", "")  # IP выбранного интерфейса или '__all__'
     with _scan_lock:
         if _scan_state["running"]:
-            return jsonify({"success": True, "already": True})
+            # Защита от «зависшего» флага: если поток уже мёртв — сбрасываем
+            if _scan_thread and _scan_thread.is_alive():
+                return jsonify({"success": True, "already": True})
+            logger.warning("Сброс зависшего состояния сканирования (поток мёртв)")
+            _scan_state["running"] = False
+        _scan_state.update({
+            "total": 0, "done": 0, "subnet": "",
+            "alive": [], "found": [], "failed": [], "error": None,
+        })
         _scan_state["running"] = True
-    threading.Thread(target=scan_network_worker, daemon=True,
-                     name="scan-network").start()
+    _scan_thread = threading.Thread(
+        target=scan_network_worker, daemon=True,
+        args=(subnet_label if subnet_label else None,),
+        name="scan-network")
+    _scan_thread.start()
     return jsonify({"success": True})
 
 
@@ -1789,6 +2172,7 @@ def init():
     scan_modinfo()
     _scan_device_folders()
     start_device_listener()
+    start_ping_worker()
     logger.info("Готов к работе")
     logger.info("=" * 60)
 

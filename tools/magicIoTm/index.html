@@ -51,11 +51,18 @@ body.dark{background:var(--bg);color:var(--text)}
 .scan-host-list .scan-empty{color:var(--muted)}
 .scan-host-list div{padding:2px 4px;border-radius:4px}
 .device-item{display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:4px;font-size:13px;cursor:default}
-.device-item:hover{background:rgba(74,144,217,0.1)}
+.device-item:hover:not(.active){background:rgba(74,144,217,0.1)}
 .device-status{width:8px;height:8px;border-radius:50%;flex:0 0 auto;background:var(--muted)}
-.device-status.online{background:#4caf50;box-shadow:0 0 4px #4caf50}
+.device-status.online,.device-status.green{background:#4caf50;box-shadow:0 0 4px #4caf50}
+.device-status.yellow{background:#f0ad4e;box-shadow:0 0 4px #f0ad4e}
+.device-status.red{background:#d94a4a;box-shadow:0 0 4px #d94a4a}
+.device-status.grey{background:#999;box-shadow:0 0 4px #999}
 .device-status.offline{background:var(--muted)}
 .device-item .device-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Кнопка удаления устройства (видна при наведении) */
+.device-item .device-del{margin-left:auto;flex:0 0 auto;background:none;border:none;cursor:pointer;font-size:12px;line-height:1;padding:0 4px;color:var(--muted);visibility:hidden}
+.device-item:hover .device-del{visibility:visible}
+.device-item .device-del:hover{color:var(--danger)}
 
 /* Проект PlatformIO (в стиле дерева, с разделителями) */
 .platformio-sep{margin:2px 8px 0;border-top:2px solid var(--accent);border-bottom:2px solid var(--accent);padding:4px 2px}
@@ -280,7 +287,8 @@ body.dark .tok-op{color:#80deea}
 body.dark .tok-comment{color:#90a4ae}
 body.dark .tok-bracket{background:#f9a825;color:#1a1a1a}
 .device-item{cursor:pointer}
-.device-item.active{background:rgba(74,144,217,0.15);outline:1px solid var(--accent)}
+.device-item.active{background:var(--accent);color:#fff}
+.device-item.active .device-name,.device-item.active .device-del{color:#fff}
 @media(max-width:900px){.devmgr-tree{width:170px;min-width:150px}}
 </style>
 </head>
@@ -421,9 +429,10 @@ function renderDevices(devices){
     el.innerHTML = '<div class="empty-state" style="padding:16px"><p>Устройства не найдены</p></div>';
     return;
   }
+  const STATUS_TIP = {green:'Online', yellow:'Нет отклика (1-5 проверок)', red:'Нет отклика более 5 проверок', grey:'Статус не подтверждён'};
   let html = '';
   for(const d of devices){
-    const cls = d.online ? 'online' : 'offline';
+    const cls = d.net || (d.online ? 'green' : 'yellow');
     const shown = dispName(d.name);
     const label = shown;
     const tip = `${d.ip} · ${shown}` +
@@ -431,25 +440,59 @@ function renderDevices(devices){
       (d.fv !== '' && d.fv !== undefined ? ` · fw: ${d.fv}` : '') +
       (d.id ? ` · id: ${d.id}` : '');
     const active = activeDevice && (activeDevice.key === d.key || (!d.key && activeDevice.ip === d.ip)) ? ' active' : '';
-    html += `<div class="device-item${active}" data-key="${esc(d.key || '')}" data-ip="${esc(d.ip)}" data-name="${esc(d.name)}" data-online="${d.online?1:0}" title="${esc(tip)}">
-      <span class="device-status ${cls}" title="${d.online ? 'Online' : 'Offline'}"></span>
+    html += `<div class="device-item${active}" data-key="${esc(d.key || '')}" data-ip="${esc(d.ip)}" data-name="${esc(d.name)}" data-net="${cls}" data-online="${d.online?1:0}" title="${esc(tip)}">
+      <span class="device-status ${cls}" title="${STATUS_TIP[cls] || ''}"></span>
       <span class="device-name">${esc(label)}</span>
+      <button class="device-del" title="Удалить устройство" onclick="event.stopPropagation();deleteDevice('${esc(d.key || '')}')">✕</button>
     </div>`;
   }
   el.innerHTML = html;
   // Синхронизируем статус активного устройства (для индикатора в devmgr)
   const act = devices.find(x => activeDevice && (x.key === activeDevice.key || (!x.key && x.ip === activeDevice.ip)));
-  if(act && activeDevice.online !== act.online){
-    activeDevice.online = act.online;
+  if(act){
+    if(activeDevice.online !== act.online) activeDevice.online = act.online;
+    if(activeDevice.net !== act.net) activeDevice.net = act.net;
   }
+}
+
+// Единое выделение для всех деревьев сайдбара (PlatformIO, проекты, устройства)
+function clearSidebarSelection(){
+  document.querySelectorAll('.tree-project.active').forEach(el => el.classList.remove('active'));
+  const pio = document.getElementById('platformioEntry');
+  if(pio) pio.classList.remove('active');
+  document.querySelectorAll('#deviceTree .device-item.active').forEach(el => el.classList.remove('active'));
 }
 
 // Клик по устройству в списке (делегирование — список перерисовывается по SSE)
 document.getElementById('deviceTree').addEventListener('click', (e) => {
   const item = e.target.closest('.device-item');
   if(!item) return;
-  selectDevice(item.dataset.key, item.dataset.ip, item.dataset.name, item.dataset.online === '1');
+  if(e.target.closest('.device-del')) return; // удаление обрабатывается в deleteDevice
+  clearSidebarSelection();
+  item.classList.add('active');
+  selectDevice(item.dataset.key, item.dataset.ip, item.dataset.name, item.dataset.online === '1', item.dataset.net);
 });
+
+// Удаление устройства (папка + записи)
+async function deleteDevice(key){
+  if(!key) return;
+  const name = dispName(key);
+  showDeleteConfirm('Удалить устройство?',
+    `Удалить устройство "${name}" вместе с папкой скачанных файлов?`,
+    async () => {
+      const r = await fetch(`/api/device/${encodeURIComponent(key)}`, {method:'DELETE'});
+      const d = await r.json();
+      if(d.success){
+        if(activeDevice && activeDevice.key === key){
+          activeDevice = null;
+          exitDevice();
+        }
+        toast(d.warning || 'Устройство удалено', d.warning ? 'info' : 'success');
+      } else {
+        toast(d.error || 'Не удалось удалить устройство', 'error');
+      }
+    });
+}
 
 function connectDevicesStream(){
   if(deviceStream) deviceStream.close();
@@ -468,19 +511,114 @@ function connectDevicesStream(){
 
 // ==================== Сканирование сети / добавление по IP ====================
 let scanStreamSource = null;
+let scanBtnState = null;   // {btn, original} — для разблокировки кнопки 🔍 после отмены
 
 function scanNetwork(btn){
   if(btn && btn.disabled) return;
   const original = btn ? btn.textContent : '';
   if(btn) btn.disabled = true;
+  scanBtnState = {btn, original};
+  
+  // Загружаем список интерфейсов
+  fetch('/api/devices/interfaces')
+    .then(r=>r.json())
+    .then(d=>{
+      if(!d || !d.success || !d.interfaces.length){
+        toast('Нет доступных сетевых интерфейсов', 'error');
+        finishScanProgress();
+        return;
+      }
+      showInterfaceSelectModal(d.interfaces);
+    })
+    .catch(()=>{
+      toast('Ошибка загрузки интерфейсов', 'error');
+      finishScanProgress();
+    });
+}
+
+// Разблокирует кнопку 🔍 (после отмены выбора интерфейса)
+function releaseScanBtn(){
+  const st = scanBtnState;
+  scanBtnState = null;
+  if(st && st.btn){ st.btn.disabled = false; st.btn.textContent = st.original; }
+}
+
+function showInterfaceSelectModal(interfaces){
+  let html = `<h3>🔍 Сканирование сети</h3>
+    <p style="font-size:12px;color:var(--muted);margin:8px 0">Выберите сетевой интерфейс для сканирования:</p>
+    <div class="scan-host-list" id="interfaceList">`;
+  
+  // Кнопка "Сканировать все"
+  html += `<div class="device-item interface-item" data-ip="__all__" style="cursor:pointer; background:rgba(74,144,217,0.1);">
+      <span style="flex:1">📡 Сканировать все подсети</span>
+      <span style="font-size:11px;color:var(--accent)">→ все интерфейсы</span>
+    </div>`;
+  
+  for(let i = 0; i < interfaces.length; i++){
+    const ifc = interfaces[i];
+    const isPrivate = isPrivateIP(ifc.ip);
+    const typeIcon = isPrivate ? '🏠' : '🌐';
+    const typeLabel = isPrivate ? 'локальная' : 'внешняя';
+    html += `<div class="device-item interface-item" data-ip="${esc(ifc.ip)}" style="cursor:pointer">
+      <span style="flex:1">${esc(ifc.label)}</span>
+      <span style="font-size:11px;color:var(--muted)">${typeIcon} ${typeLabel}</span>
+    </div>`;
+  }
+  
+  html += `</div>
+    <div class="modal-actions">
+      <button onclick="closeModal();releaseScanBtn();">Отмена</button>
+    </div>`;
+  
+  showModal(html);
+  
+  // Делегирование событий — вешаем один обработчик на контейнер.
+  // Подсветка выбора не нужна: hover-эффект есть из CSS, клик сразу запускает скан.
+  const listEl = document.getElementById('interfaceList');
+  if(listEl){
+    listEl.addEventListener('click', (e) => {
+      const item = e.target.closest('.interface-item');
+      if(!item) return;
+      // Выбор сделан — ссылка на кнопку больше не нужна
+      scanBtnState = null;
+      startScanFromInterface(item.dataset.ip);
+    });
+  }
+}
+
+function isPrivateIP(ip){
+  try{
+    const parts = ip.split('.').map(Number);
+    if(parts.length !== 4) return false;
+    // 10.0.0.0/8
+    if(parts[0] === 10) return true;
+    // 172.16.0.0/12
+    if(parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
+    // 192.168.0.0/16
+    if(parts[0] === 192 && parts[1] === 168) return true;
+    return false;
+  }catch(_){
+    return false;
+  }
+}
+
+function startScanFromInterface(subnet){
+  if(!subnet) return;
+  
+  // Закрываем модалку выбора и показываем прогресс
+  closeModal();
   showScanProgressModal();
-  fetch('/api/devices/scan', {method:'POST'})
+  
+  fetch('/api/devices/scan', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({subnet: subnet}),
+  })
     .then(r=>r.json())
     .then(d=>{
       if(!d || !d.success){
         toast((d && d.error) || 'Не удалось запустить сканирование', 'error');
         finishScanProgress();
-        if(btn){ btn.disabled = false; btn.textContent = original; }
         return;
       }
       openScanStream();
@@ -488,7 +626,6 @@ function scanNetwork(btn){
     .catch(()=>{
       toast('Ошибка сканирования сети', 'error');
       finishScanProgress();
-      if(btn){ btn.disabled = false; btn.textContent = original; }
     });
 }
 
@@ -606,8 +743,8 @@ let deviceEditors = {
   fs:  {path:null, original:''},
 };
 
-function selectDevice(key, ip, name, online){
-  activeDevice = {key, ip, name, online};
+function selectDevice(key, ip, name, online, net){
+  activeDevice = {key, ip, name, online, net: net || (online ? 'green' : 'grey')};
   deviceEditors = {ram:{path:null,original:''}, fs:{path:null,original:''}};
   // Скрываем верхний тулбар, выбор платформы и датчики, пока открыт менеджер устройства
   const tb = document.querySelector('.topbar');
@@ -624,6 +761,7 @@ function selectDevice(key, ip, name, online){
 
 function exitDevice(){
   activeDevice = null;
+  clearSidebarSelection();
   document.getElementById('topProjectName').textContent = 'Проект не выбран';
   document.getElementById('platformSelectWrap').style.display = 'none';
   document.getElementById('gaugeBar').style.display = 'none';
@@ -646,7 +784,7 @@ function renderDeviceManager(){
   el.innerHTML = `
   <div class="devmgr">
     <div class="devmgr-top">
-      <span class="devmgr-title"><span class="device-status ${activeDevice.online?'online':'offline'}" title="${activeDevice.online?'Online':'Offline'}"></span>${esc(dispName(activeDevice.name))}</span>
+      <span class="devmgr-title"><span class="device-status ${activeDevice.net || (activeDevice.online?'green':'grey')}" title="${activeDevice.online?'Online':'Нет отклика'}"></span>${esc(dispName(activeDevice.name))}</span>
       <div class="devmgr-top-actions">
         <button class="btn-sm" onclick="reloadDeviceTrees()" title="Обновить деревья">🔄</button>
       </div>
@@ -1527,6 +1665,8 @@ async function openProject(cat, name){
   const r = await fetch(url, {method:'POST'});
   const d = await r.json();
   if(!d.success){ toast(d.error||'Ошибка', 'error'); return; }
+  // Единое выделение: снимаем активность с устройств
+  clearSidebarSelection();
   configData = d.config;
   currentProject = {category: cat, name: name};
   const isPio = (name === 'PlatformIO');
@@ -2208,8 +2348,24 @@ function showModal(html){
   document.getElementById('modalContent').innerHTML = html;
   document.getElementById('modalOverlay').classList.add('active');
 }
+
+// Подтверждение удаления: единое модальное окно для всех действий
+function showDeleteConfirm(title, message, onConfirm){
+  showModal(`<h3 style="color:var(--danger)">⚠️ ${title}</h3>
+    <p style="font-size:13px;color:var(--text);margin:8px 0 16px">${message}</p>
+    <div class="modal-actions">
+      <button onclick="closeModal()">Отмена</button>
+      <button class="btn-danger" id="deleteConfirmBtn" title="Подтвердить удаление">Удалить</button>
+    </div>`);
+  document.getElementById('deleteConfirmBtn').addEventListener('click', () => {
+    closeModal();
+    onConfirm();
+  });
+}
 function closeModal(e){
   if(!e || e.target.id === 'modalOverlay') document.getElementById('modalOverlay').classList.remove('active');
+  // Если закрыли модалку выбора интерфейса (Escape/клик по фону) — разблокируем 🔍
+  releaseScanBtn();
 }
 
 function showCreateCategory(){
@@ -2243,16 +2399,18 @@ async function renameCategory(oldName){
 }
 
 async function deleteCategory(name){
-  if(!confirm(`Удалить категорию "${name}" со всеми проектами? Будет создана резервная копия.`)) return;
-  const r = await fetch(`/api/projects/category/${encodeURIComponent(name)}`, {method:'DELETE'});
-  const d = await r.json();
-  if(d.success){
-    // Если удалена категория текущего проекта — сброс к начальной странице
-    if(currentProject && currentProject.category === name) resetToInitial();
-    loadProjects();
-    toast('Категория удалена', 'info');
-  }
-  else toast(d.error||'Ошибка', 'error');
+  showDeleteConfirm('Удалить категорию?',
+    `Удалить категорию "${name}" со всеми проектами? Будет создана резервная копия.`,
+    async () => {
+      const r = await fetch(`/api/projects/category/${encodeURIComponent(name)}`, {method:'DELETE'});
+      const d = await r.json();
+      if(d.success){
+        if(currentProject && currentProject.category === name) resetToInitial();
+        loadProjects();
+        toast('Категория удалена', 'info');
+      }
+      else toast(d.error||'Ошибка', 'error');
+    });
 }
 
 function showCreateProject(defaultCat=''){
@@ -2285,16 +2443,18 @@ async function createProject(){
 }
 
 async function deleteProject(cat, name){
-  if(!confirm(`Удалить проект "${name}"? Будет создана резервная копия.`)) return;
-  const r = await fetch(`/api/projects/${encodeURIComponent(cat)}/${encodeURIComponent(name)}`, {method:'DELETE'});
-  const d = await r.json();
-  if(d.success){
-    // Если удалён текущий проект — сброс к начальной странице
-    if(currentProject && currentProject.category === cat && currentProject.name === name) resetToInitial();
-    loadProjects();
-    toast('Проект удалён', 'info');
-  }
-  else toast(d.error||'Ошибка', 'error');
+  showDeleteConfirm('Удалить проект?',
+    `Удалить проект "${name}"? Будет создана резервная копия.`,
+    async () => {
+      const r = await fetch(`/api/projects/${encodeURIComponent(cat)}/${encodeURIComponent(name)}`, {method:'DELETE'});
+      const d = await r.json();
+      if(d.success){
+        if(currentProject && currentProject.category === cat && currentProject.name === name) resetToInitial();
+        loadProjects();
+        toast('Проект удалён', 'info');
+      }
+      else toast(d.error||'Ошибка', 'error');
+    });
 }
 
 // ==================== Reset to initial ====================
