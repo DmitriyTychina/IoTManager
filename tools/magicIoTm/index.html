@@ -185,6 +185,20 @@ button.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent
 .build-step.done{border-color:#4caf50;color:#4caf50}
 .build-step.error{border-color:var(--danger);color:var(--danger)}
 .build-log{background:#0d1117;color:#c9d1d9;font-family:Consolas,'Courier New',monospace;font-size:12px;line-height:1.45;height:300px;overflow-y:auto;padding:10px;border-radius:6px;white-space:pre-wrap;word-break:break-word;margin-bottom:12px}
+.ota-progress{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.ota-progress-track{flex:1;height:10px;background:var(--panel);border:1px solid var(--border);border-radius:5px;overflow:hidden}
+.ota-progress-fill{height:100%;width:0%;background:var(--accent,#4a90d9);transition:width .2s ease}
+.ota-progress-text{font-size:12px;color:var(--muted);white-space:nowrap}
+.ota-device-row{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;margin-bottom:8px;font-size:13px;background:var(--panel)}
+.ota-device-row.compatible{cursor:pointer}
+.ota-device-row.compatible:hover{border-color:var(--accent)}
+.ota-device-row.incompatible{opacity:.55;cursor:not-allowed}
+.ota-device-row.unknown{opacity:.85}
+.ota-device-row .ota-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:0 0 auto}
+.ota-device-row.compatible .ota-dot{background:var(--accent2)}
+.ota-device-row.unknown .ota-dot{background:var(--warn)}
+.ota-device-row .ota-dev-name{font-weight:600}
+.ota-device-row .ota-dev-meta{margin-left:auto;font-size:11px;color:var(--muted)}
 .build-sizes{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-bottom:12px}
 .size-card{border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px}
 .size-card .sc-title{display:block;margin-bottom:4px;color:var(--muted)}
@@ -344,7 +358,7 @@ body.dark .tok-bracket{background:#f9a825;color:#1a1a1a}
       <div class="build-upload">
         <button class="btn-sm btn-build" title="Сборка (Build)" onclick="startBuild()">🔨</button>
         <button class="btn-upload" id="btnUpload" title="Загрузка по USB (Upload)" onclick="event.stopPropagation(); startUpload()">🚀</button>
-        <button class="btn-upload" id="btnOta" title="OTA (обновление по воздуху) — в разработке" disabled>📡</button>
+        <button class="btn-upload" id="btnOta" title="OTA (обновление по воздуху)" onclick="event.stopPropagation(); startOta()">📡</button>
       </div>
     </div>
 
@@ -422,6 +436,25 @@ body.dark .tok-bracket{background:#f9a825;color:#1a1a1a}
     <div class="modal-actions">
       <div class="build-success-msg" id="uploadSuccessMsg" style="display:none"></div>
       <button id="uploadCloseBtn" onclick="closeUploadModal()" disabled title="Кнопка станет активной после завершения прошивки">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<!-- OTA modal -->
+<div class="modal-overlay" id="otaOverlay">
+  <div class="modal build-modal">
+    <h3>📡 Прошивка по воздуху (OTA)</h3>
+    <div class="build-sub" id="otaSub">—</div>
+    <div class="build-steps" id="otaSteps"></div>
+    <div class="build-log" id="otaLog"></div>
+    <div class="ota-progress" id="otaProgressWrap" style="display:none">
+      <div class="ota-progress-track"><div class="ota-progress-fill" id="otaProgressFill"></div></div>
+      <span class="ota-progress-text" id="otaProgressText"></span>
+    </div>
+    <div class="build-error" id="otaError" style="display:none"></div>
+    <div class="modal-actions">
+      <div class="build-success-msg" id="otaSuccessMsg" style="display:none"></div>
+      <button id="otaCloseBtn" onclick="closeOtaModal()" disabled title="Кнопка станет активной после завершения OTA">Закрыть</button>
     </div>
   </div>
 </div>
@@ -813,7 +846,7 @@ function renderDeviceManager(){
   el.innerHTML = `
   <div class="devmgr">
     <div class="devmgr-top">
-      <span class="devmgr-title"><span class="device-status ${activeDevice.net || (activeDevice.online?'green':'grey')}" title="${activeDevice.online?'Online':'Нет отклика'}"></span>${esc(dispName(activeDevice.name))}<span class="devmgr-ip">${esc(activeDevice.ip || '')}</span><button class="btn-sm" style="margin-left:6px" onclick="openDeviceWeb()" title="Открыть веб-страницу устройства">🌐</button></span>
+      <span class="devmgr-title"><span class="device-status ${activeDevice.net || (activeDevice.online?'green':'grey')}" title="${activeDevice.online?'Online':'Нет отклика'}"></span>${esc(dispName(activeDevice.name))}<span class="devmgr-ip">${esc(activeDevice.ip || '')}</span><button class="btn-sm" style="margin-left:6px" onclick="openDeviceWeb()" title="Открыть веб-страницу устройства">🌐</button><button class="btn-sm" style="margin-left:4px" onclick="rebootActiveDevice()" title="Перезагрузить устройство">🔁</button></span>
       <div class="devmgr-top-actions">
         <button class="btn-sm" onclick="reloadDeviceTrees()" title="Обновить деревья">🔄</button>
       </div>
@@ -2316,13 +2349,13 @@ function startUploadStream(){
   uploadStream.addEventListener('done', () => {
     const msg = document.getElementById('uploadSuccessMsg');
     msg.style.display = 'block';
-    msg.textContent = '✅ Прошивка успешно записана.';
+    msg.textContent = '✅ Загрузка успешно завершена.';
     uploadFinish();
   });
   uploadStream.addEventListener('error', e => {
     const d = JSON.parse(e.data);
     document.getElementById('uploadError').style.display = 'block';
-    document.getElementById('uploadError').textContent = '❌ Ошибка прошивки: ' + (d.error||'неизвестная ошибка');
+    document.getElementById('uploadError').textContent = '❌ Ошибка загрузки: ' + (d.error||'неизвестная ошибка');
     uploadFinish();
   });
   uploadStream.addEventListener('finish', () => {
@@ -2430,6 +2463,213 @@ async function startUpload(){
       <div class="modal-actions"><button onclick="closeModal()">OK</button></div>`);
   } finally {
     setUploadButtons(true);
+  }
+}
+
+// ==================== OTA (прошивка по воздуху) ====================
+let otaStream = null;
+let otaDone = false;
+let otaDeviceKey = null;
+
+function otaStepsFor(mode, fsMethod){
+  const steps = [];
+  if(mode === 'fs' || mode === 'full') steps.push(fsMethod === 'copy' ? 'Копирование файлов FS' : 'Загрузка файловой системы FS');
+  if(mode === 'firmware' || mode === 'full') steps.push('Загрузка прошивки');
+  return steps;
+}
+
+function initOtaSteps(mode, fsMethod){
+  const steps = otaStepsFor(mode, fsMethod);
+  const el = document.getElementById('otaSteps');
+  el.innerHTML = steps.map((s,i)=>`<div class="build-step pending" data-step="${i+1}">${i+1}. ${s}</div>`).join('');
+}
+
+function setOtaStep(id, status){
+  document.querySelectorAll('#otaSteps [data-step]').forEach(el=>{
+    if(parseInt(el.dataset.step,10)===id) el.className = 'build-step ' + status;
+  });
+}
+
+function openOtaModal(deviceLabel){
+  document.getElementById('otaSteps').innerHTML = '';
+  document.getElementById('otaLog').textContent = '';
+  document.getElementById('otaError').style.display = 'none';
+  document.getElementById('otaSuccessMsg').style.display = 'none';
+  document.getElementById('otaProgressWrap').style.display = 'none';
+  document.getElementById('otaProgressFill').style.width = '0%';
+  document.getElementById('otaProgressText').textContent = '';
+  otaDone = false;
+  document.getElementById('otaOverlay').classList.add('active');
+  const btn = document.getElementById('otaCloseBtn');
+  btn.disabled = true;
+  btn.title = 'Кнопка станет активной после завершения OTA';
+  document.getElementById('otaSub').textContent = deviceLabel;
+}
+
+function closeOtaModal(){
+  if(!otaDone) return;
+  document.getElementById('otaOverlay').classList.remove('active');
+  if(otaStream){ otaStream.close(); otaStream = null; }
+}
+
+async function rebootDevice(deviceKey){
+  if(!deviceKey){ toast('Устройство не выбрано','error'); return; }
+  if(!confirm('Перезагрузить устройство?')) return;
+  try{
+    const r = await fetch(`/api/device/${encodeURIComponent(deviceKey)}/reboot`, {method:'POST'});
+    const d = await r.json();
+    if(d.success) toast('Команда перезагрузки отправлена','info');
+    else toast(d.error || 'Ошибка отправки перезагрузки','error');
+  }catch(e){ toast('Ошибка отправки перезагрузки','error'); }
+}
+
+async function rebootActiveDevice(){
+  if(!activeDevice){ toast('Сначала выберите устройство','error'); return; }
+  const key = activeDevice.key || activeDevice.ip;
+  if(!key){ toast('У устройства нет ключа/IP','error'); return; }
+  await rebootDevice(key);
+}
+
+function otaFinish(){
+  otaDone = true;
+  const btn = document.getElementById('otaCloseBtn');
+  btn.disabled = false;
+  btn.title = 'Закрыть';
+}
+
+function startOtaStream(){
+  otaStream = new EventSource('/api/ota/stream');
+  otaStream.addEventListener('log', e => {
+    const d = JSON.parse(e.data);
+    const log = document.getElementById('otaLog');
+    log.textContent += (d.text||'') + '\n';
+    log.scrollTop = log.scrollHeight;
+  });
+  otaStream.addEventListener('step', e => {
+    const d = JSON.parse(e.data);
+    setOtaStep(d.id, d.status);
+  });
+  otaStream.addEventListener('progress', e => {
+    const d = JSON.parse(e.data);
+    document.getElementById('otaProgressWrap').style.display = 'flex';
+    const fill = document.getElementById('otaProgressFill');
+    const txt = document.getElementById('otaProgressText');
+    if(d.total > 0){
+      const pct = Math.min(100, Math.round((d.done/d.total)*100));
+      fill.style.width = pct + '%';
+      txt.textContent = `${d.file || ''} ${formatBytes(d.done)} / ${formatBytes(d.total)} (${pct}%)`;
+    } else {
+      txt.textContent = (d.file||'') + ' — подготовка...';
+    }
+  });
+  otaStream.addEventListener('done', () => {
+    const msg = document.getElementById('otaSuccessMsg');
+    msg.style.display = 'block';
+    msg.innerHTML = '✅ OTA успешно завершена.<br><button class="btn-sm" style="margin-top:8px" onclick="rebootDevice(otaDeviceKey)" title="Перезагрузить устройство">🔁 Перезагрузить устройство</button>';
+    otaFinish();
+  });
+  otaStream.addEventListener('error', e => {
+    const d = JSON.parse(e.data);
+    document.getElementById('otaError').style.display = 'block';
+    document.getElementById('otaError').textContent = '❌ Ошибка OTA: ' + (d.error||'неизвестная ошибка');
+    otaFinish();
+  });
+  otaStream.addEventListener('finish', () => {
+    if(otaStream){ otaStream.close(); otaStream = null; }
+  });
+  otaStream.onerror = () => {
+    if(!otaDone){
+      document.getElementById('otaError').style.display = 'block';
+      document.getElementById('otaError').textContent = '⚠️ Соединение с OTA потеряно. Если прошивка ещё идёт — обновите страницу.';
+      otaFinish();
+    }
+  };
+}
+
+function pickOtaMode(mode, fsMethod, deviceKey, deviceName){
+  closeModal();
+  otaDeviceKey = deviceKey;
+  const fsM = fsMethod || 'flash';
+  fetch('/api/ota/start', {method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({mode:mode, fs_method:fsM, device_key:deviceKey})})
+    .then(r=>r.json())
+    .then(d=>{
+      if(!d.success){ toast(d.error||'Ошибка запуска OTA','error'); return; }
+      const parts = [deviceName];
+      if(mode === 'firmware') parts.push('прошивка');
+      else if(mode === 'fs') parts.push(fsM === 'copy' ? 'копия FS' : 'образ FS');
+      else parts.push('FS + прошивка', fsM === 'copy' ? 'копия FS' : 'образ FS');
+      openOtaModal(parts.join(' · '));
+      initOtaSteps(mode, fsM);
+      startOtaStream();
+    })
+    .catch(()=>toast('Ошибка запуска OTA','error'));
+}
+
+function showOtaModeModal(device){
+  const actions = [
+    {id:'firmware', fs:'', label:'② Только прошивка', desc:'Записать только firmware.bin'},
+    {id:'fs', fs:'flash', label:'① ФС: записать образ', desc:'Записать littlefs.bin целиком'},
+    {id:'fs', fs:'copy', label:'① ФС: скопировать файлы', desc:'Загрузить файлы data_svelte пофайлово (/edit)'},
+    {id:'full', fs:'flash', label:'③ Полная (образ ФС + прошивка)', desc:'Сначала littlefs.bin, затем firmware.bin'},
+    {id:'full', fs:'copy', label:'③ Полная (копия ФС + прошивка)', desc:'Скопировать файлы ФС, затем прошивка'}
+  ];
+  const platHtml = device.platform
+    ? `платформа: <b>${esc(device.platform)}</b>`
+    : '<span style="color:var(--warn)">платформа неизвестна — возможна несовместимость</span>';
+  showModal(`<h3>📡 OTA · режим</h3>
+    <p style="color:var(--muted);font-size:12px;margin-bottom:12px">Устройство: <b>${esc(device.name)}</b> · ${esc(device.ip)} · ${platHtml}</p>
+    <div class="measure-scope-list">
+      ${actions.map(a=>`<button class="btn-sm" onclick="pickOtaMode('${a.id}','${a.fs}','${esc(device.key)}','${esc(device.name)}')">${a.label}<span class="ms-desc">${a.desc}</span></button>`).join('')}
+    </div>
+    <div class="modal-actions"><button onclick="closeModal()">Отмена</button></div>`);
+}
+
+async function startOta(){
+  if(!currentProject){ toast('Сначала откройте проект','error'); return; }
+  const ob = document.getElementById('btnOta');
+  if(ob && ob.disabled){ toast('Сначала соберите прошивку (🔨)','warning'); return; }
+  try{
+    const r = await fetch('/api/ota/candidates');
+    const d = await r.json();
+    if(!d.success){ toast(d.error||'Ошибка получения устройств','error'); return; }
+    const online = d.candidates || [];
+    if(online.length === 0){
+      toast('Нет онлайн-устройств для OTA','warning');
+      showModal(`<h3 style="color:var(--danger)">⚠️ Нет устройств</h3>
+        <p style="font-size:13px;color:var(--text);margin:8px 0 16px">Не найдено онлайн-устройств для прошивки по воздуху. Платформа проекта: <b>${esc(d.env)}</b>. Проверьте, что устройство в сети.</p>
+        <div class="modal-actions"><button onclick="closeModal()">OK</button></div>`);
+      return;
+    }
+    let html = online.map((c,i)=>{
+      const compat = !!c.compatible;
+      const unknown = !!c.unknown;
+      const selectable = compat || unknown;
+      const cls = selectable ? 'compatible' + (unknown ? ' unknown' : '') : 'incompatible';
+      const tip = !selectable ? 'Несовместимая платформа — выбор заблокирован'
+                 : (unknown ? 'Платформа неизвестна — возможна несовместимость' : 'Выбрать для OTA');
+      const meta = c.platform
+        ? (compat ? esc(c.platform) : `⚠️ ${esc(c.platform)}`)
+        : 'платформа неизвестна';
+      return `<div class="ota-device-row ${cls}" data-idx="${i}" title="${tip}">
+        <span class="ota-dot"></span>
+        <span class="ota-dev-name">${esc(c.name)}</span>
+        <span style="font-size:11px;color:var(--muted)">${esc(c.ip)}</span>
+        <span class="ota-dev-meta">${meta}</span>
+      </div>`;
+    }).join('');
+    showModal(`<h3>📡 Выберите устройство для OTA</h3>
+      <p style="color:var(--muted);font-size:12px;margin-bottom:12px">Платформа проекта: <b>${esc(d.env)}</b>. Совместимые и устройства с неизвестной платформой доступны; заведомо несовместимые — заблокированы.</p>
+      <div class="measure-scope-list" id="otaDeviceList">${html}</div>
+      <div class="modal-actions"><button onclick="closeModal()">Отмена</button></div>`);
+    document.querySelectorAll('#otaDeviceList .ota-device-row.compatible').forEach(row=>{
+      row.addEventListener('click', ()=>{
+        const c = online[parseInt(row.dataset.idx,10)];
+        if(c) showOtaModeModal(c);
+      });
+    });
+  }catch(e){
+    toast('Ошибка получения списка устройств','error');
   }
 }
 

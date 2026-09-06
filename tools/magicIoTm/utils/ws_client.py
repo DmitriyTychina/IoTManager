@@ -263,6 +263,108 @@ def fetch_ram(host, out_dir, port=PORT, timeout=DEFAULT_TIMEOUT, keep_only_ram=T
         sock.close()
 
 
+def fetch_profile(host, port=PORT, timeout=DEFAULT_TIMEOUT):
+    """Скачивает только profile.json (команда /profile|) с устройства.
+
+    Используется для определения платформы (env) устройства при проверке
+    совместимости OTA. Возвращает содержимое файла как dict (json) либо None,
+    если устройство недоступно или не вернуло profile.
+    """
+    try:
+        sock = socket.create_connection((host, port), timeout=timeout)
+        sock.settimeout(timeout)
+    except OSError:
+        return None
+    try:
+        buf = _handshake(sock, host, port)
+        sock.sendall(build_text_frame("/profile|"))
+
+        current_type, current_data = None, b""
+        start = time.time()
+        last_response_time = start
+        QUIET = 1.5
+        profile_bytes = None
+
+        while time.time() - start < timeout:
+            # защита от зависшего (но не закрытого) соединения
+            if time.time() - last_response_time > QUIET:
+                break
+            fin, opcode, pl, rest = parse_frame(buf)
+            if pl is None:
+                try:
+                    chunk = sock.recv(4096)
+                except socket.timeout:
+                    break
+                if not chunk:
+                    break
+                buf = buf + chunk
+                continue
+            buf = rest
+
+            if opcode == 0x8:   # Close
+                break
+            if opcode in (0x9, 0xA):   # Ping/Pong
+                last_response_time = time.time()
+                continue
+            if opcode == 0x0:   # continuation
+                current_data += pl
+            elif opcode in (0x1, 0x2):
+                current_type, _size_str, current_data = _split_header(pl)
+
+            if not (fin and current_type):
+                continue
+
+            hdr, data = current_type, current_data
+            current_type, current_data = None, b""
+
+            if hdr.startswith("/"):
+                last_response_time = time.time()
+                continue
+
+            if FILE_NAMES.get(hdr) == "profile.json":
+                profile_bytes = data
+                break
+            last_response_time = time.time()
+
+        if profile_bytes is not None:
+            try:
+                return json.loads(profile_bytes.decode("utf-8", errors="replace"))
+            except Exception:
+                return None
+        return None
+    finally:
+        try:
+            sock.sendall(bytes([0x88, 0x00]))
+        except Exception:
+            pass
+        sock.close()
+
+
+def reboot(host, port=PORT, timeout=DEFAULT_TIMEOUT):
+    """Отправляет устройству команду перезагрузки по WebSocket (/reboot|).
+
+    Прошивка (WsServer.cpp) при получении /reboot| выполняет ESP.restart().
+    Возвращает True, если команда отправлена успешно.
+    """
+    try:
+        sock = socket.create_connection((host, port), timeout=timeout)
+        sock.settimeout(timeout)
+    except OSError:
+        return False
+    try:
+        _handshake(sock, host, port)
+        sock.sendall(build_text_frame("/reboot|"))
+        return True
+    except Exception:  # noqa: BLE001
+        return False
+    finally:
+        try:
+            sock.sendall(bytes([0x88, 0x00]))
+        except Exception:  # noqa: BLE001
+            pass
+        sock.close()
+
+
 # ----------------------------------------------------------------------
 # Файловая система (HTTP, порт 80)
 # ----------------------------------------------------------------------

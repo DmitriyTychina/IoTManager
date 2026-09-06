@@ -21,7 +21,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Flask, request, jsonify, send_from_directory, Response
 from flask_cors import CORS
 
-from utils import projects, build, measure_run, ws_client, esptool_tools, flash
+from utils import projects, build, measure_run, ws_client, esptool_tools, flash, ota
 
 # ==================== Логирование ====================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -121,6 +121,11 @@ def _ping_cycle():
         entries = [(e["key"], e.get("ip")) for e in _device_folders.values() if e.get("ip")]
     for key, ip in entries:
         if _device_busy_fetching(ip):
+            continue
+        # Не пингуем устройство, которое сейчас прошивается по воздуху:
+        # одинаковые IP могут быть у нескольких устройств, а пинг во время
+        # записи мешает передаче файлов на ESP8266 (однопоточный стек).
+        if ota.busy_ip() == ip:
             continue
         with _devices_lock:
             live = _devices.get(ip)
@@ -2179,6 +2184,27 @@ def api_device_write_ram(device_key):
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@app.route('/api/device/<device_key>/reboot', methods=['POST'])
+def api_device_reboot(device_key):
+    """Перезагрузка устройства по WebSocket (команда /reboot|)."""
+    entry = get_device_folder(device_key)
+    if not entry:
+        return jsonify({"success": False, "error": "Устройство не найдено"}), 404
+    ip = entry.get("ip")
+    if not ip:
+        return jsonify({"success": False, "error": "У устройства не указан IP"}), 400
+    try:
+        ok = ws_client.reboot(ip)
+    except Exception as e:
+        logger.error(f"reboot {ip}: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    if not ok:
+        return jsonify({"success": False,
+                        "error": f"Не удалось отправить команду перезагрузки на {ip} (WS порт 81 недоступен)"}), 502
+    logger.info(f"Команда перезагрузки отправлена: {ip}")
+    return jsonify({"success": True})
+
+
 # ==================== Инструменты: esptool ====================
 
 @app.route('/api/tools/esptool', methods=['GET'])
@@ -2233,6 +2259,79 @@ def _has_built_firmware(cfg):
         os.path.join(os.path.dirname(cfg.get("profile", "")), "iotm", env, "400", "firmware.bin"),
     ]
     return any(os.path.isfile(c) for c in candidates)
+
+
+# ==================== OTA (прошивка по воздуху) ====================
+
+def _resolve_ota_files(cfg):
+    """Пути собранных .bin для OTA: firmware.bin и littlefs.bin (что есть).
+
+    Имя файла в dict соответствует имени multipart-поля на /update прошивки.
+    """
+    env = cfg.get("env", "")
+    cwd = cfg.get("cwd", "")
+    build_dir = os.path.join(cwd, ".pio", "build", env)
+    dist_dir = os.path.join(os.path.dirname(cfg.get("profile", "")), "iotm", env, "400")
+
+    files = {}
+    for c in [os.path.join(build_dir, "firmware.bin"),
+              os.path.join(dist_dir, "firmware.bin")]:
+        if os.path.isfile(c):
+            files["firmware.bin"] = c
+            break
+    for c in [os.path.join(build_dir, "littlefs.bin"),
+              os.path.join(build_dir, "spiffs.bin")]:
+        if os.path.isfile(c):
+            files["littlefs.bin"] = c
+            break
+    return files
+
+
+def _profile_env(data):
+    """Извлекает env платформы из profile.json устройства."""
+    if not isinstance(data, dict):
+        return None
+    try:
+        return data["projectProp"]["platformio"]["default_envs"]
+    except Exception:
+        return None
+
+
+def _device_platform(device_key):
+    """Платформа (env) устройства по profile.json.
+
+    1) читает локальный кэш <папка>/RAM/profile.json (если уже скачан);
+    2) если нет — запрашивает профиль по WebSocket (/profile|) и кладёт в кэш.
+
+    Возвращает строку env либо None (профиль недоступен).
+    """
+    entry = get_device_folder(device_key)
+    if not entry:
+        return None
+    prof_path = os.path.join(entry.get("ram_dir", ""), "profile.json")
+    data = None
+    if os.path.isfile(prof_path):
+        try:
+            with open(prof_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception:
+            data = None
+    if not data or not _profile_env(data):
+        ip = entry.get("ip")
+        if ip:
+            try:
+                live = ws_client.fetch_profile(ip)
+                if live and _profile_env(live):
+                    data = live
+                    try:
+                        os.makedirs(entry["ram_dir"], exist_ok=True)
+                        with open(prof_path, "w", encoding="utf-8") as f:
+                            json.dump(data, f, ensure_ascii=False, indent=2)
+                    except Exception:
+                        pass
+            except Exception as e:
+                logger.warning(f"Не удалось получить profile устройства {device_key}: {e}")
+    return _profile_env(data)
 
 
 @app.route('/api/upload/status', methods=['GET'])
@@ -2333,6 +2432,128 @@ def api_upload_stream():
     """SSE-поток событий прошивки (лог, шаги, финал)."""
     def gen():
         for chunk in flash.event_stream():
+            yield chunk
+    return Response(gen(), mimetype="text/event-stream",
+                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+# ==================== OTA (прошивка по воздуху) ====================
+
+@app.route('/api/ota/candidates', methods=['GET'])
+def api_ota_candidates():
+    """Список онлайн-устройств с платформой и признаком совместимости с проектом."""
+    cfg = _resolve_upload_config()
+    if cfg is None:
+        return jsonify({"success": False, "error": "Проект не открыт"}), 400
+    env = cfg.get("env", "")
+    files = _resolve_ota_files(cfg)
+    if not _has_built_firmware(cfg):
+        return jsonify({"success": False,
+                        "error": "Прошивка не собрана. Сначала выполните сборку (🔨)."}), 400
+
+    payload = _build_devices_payload().get("devices", [])
+    candidates = []
+    for d in payload:
+        if not d.get("online"):
+            continue
+        dev_env = _device_platform(d["key"])
+        compatible = bool(dev_env) and dev_env == env
+        unknown = not dev_env
+        candidates.append({
+            "key": d["key"],
+            "ip": d.get("ip", ""),
+            "name": d.get("name") or d["key"],
+            "platform": dev_env,
+            "compatible": compatible,
+            "unknown": unknown,
+        })
+    candidates.sort(key=lambda x: (not x["compatible"], x["name"].lower()))
+    return jsonify({
+        "success": True,
+        "env": env,
+        "files": files,
+        "candidates": candidates,
+    })
+
+
+@app.route('/api/ota/start', methods=['POST'])
+def api_ota_start():
+    """Запуск OTA в фоне.
+
+    body: {device_key, mode: 'fs'|'firmware'|'full',
+           fs_method: 'flash'|'copy' (для режимов с ФС)}.
+    """
+    data = request.json or {}
+    device_key = (data.get('device_key') or '').strip()
+    mode = data.get('mode', 'firmware')
+    fs_method = data.get('fs_method', 'flash')
+
+    if mode not in ("fs", "firmware", "full"):
+        return jsonify({"success": False, "error": f"Неизвестный режим OTA: {mode}"}), 400
+    if fs_method not in ("flash", "copy"):
+        return jsonify({"success": False, "error": f"Неизвестный способ записи FS: {fs_method}"}), 400
+    if not device_key:
+        return jsonify({"success": False, "error": "Не указано устройство"}), 400
+    if build.is_running():
+        return jsonify({"success": False, "error": "Сборка выполняется — дождитесь её завершения"}), 409
+    if flash.is_running():
+        return jsonify({"success": False, "error": "Идёт прошивка по USB — дождитесь её завершения"}), 409
+    if ota.is_running():
+        return jsonify({"success": False, "error": "OTA уже выполняется"}), 409
+
+    entry = get_device_folder(device_key)
+    if not entry:
+        return jsonify({"success": False, "error": "Устройство не найдено"}), 404
+    ip = entry.get("ip")
+    if not ip:
+        return jsonify({"success": False, "error": "У устройства не указан IP"}), 400
+
+    cfg = _resolve_upload_config()
+    if cfg is None:
+        return jsonify({"success": False, "error": "Проект не открыт"}), 400
+    files = _resolve_ota_files(cfg)
+
+    # Проверяем наличие необходимых файлов по шагам выбранного режима
+    steps = ota.build_steps(mode, fs_method)
+    missing = [st["file"] for st in steps
+               if st["kind"] == "ota" and st["file"] not in files]
+    if missing:
+        return jsonify({"success": False,
+                        "error": "Не собраны файлы для выбранного режима: " + ", ".join(missing) +
+                                 ". Выполните сборку (🔨)."}), 400
+    if any(st["kind"] == "copy" for st in steps):
+        data_dir = cfg.get("data_dir", "")
+        if not data_dir or not os.path.isdir(data_dir):
+            return jsonify({"success": False,
+                            "error": f"Не найден каталог данных data_svelte: {data_dir}"}), 400
+
+    # Проверка совместимости платформы (если профиль устройства доступен)
+    dev_env = _device_platform(device_key)
+    if dev_env and dev_env != cfg.get("env", ""):
+        return jsonify({"success": False,
+                        "error": ("Платформа устройства ({}) не совпадает с платформой проекта ({}). "
+                                  "OTA отменена.").format(dev_env, cfg.get("env", ""))}), 409
+
+    ota_cfg = {
+        "mode": mode,
+        "fs_method": fs_method,
+        "ip": ip,
+        "env": cfg.get("env", ""),
+        "project_label": cfg.get("project_label", ""),
+        "files": files,
+        "data_dir": cfg.get("data_dir", ""),
+        "timeout": 180,
+    }
+    ota.start(ota_cfg)
+    logger.info(f"OTA запущена: env={cfg.get('env')}, mode={mode}, fs_method={fs_method}, ip={ip}")
+    return jsonify({"success": True})
+
+
+@app.route('/api/ota/stream')
+def api_ota_stream():
+    """SSE-поток событий OTA (лог, шаги, прогресс, финал)."""
+    def gen():
+        for chunk in ota.event_stream():
             yield chunk
     return Response(gen(), mimetype="text/event-stream",
                     headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
