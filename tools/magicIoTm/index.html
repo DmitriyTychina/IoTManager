@@ -81,6 +81,8 @@ body.dark{background:var(--bg);color:var(--text)}
 .build-upload .btn-upload{font-size:18px;line-height:1;padding:3px 7px;background:var(--panel);border:1px solid var(--border);color:var(--text);border-radius:4px}
 .build-upload .btn-build:hover,
 .build-upload .btn-upload:hover{background:rgba(74,144,217,0.12);border-color:var(--accent);color:var(--text)}
+.build-upload .btn-upload[disabled],
+.build-upload .btn-upload[disabled]:hover{opacity:.35;cursor:not-allowed;background:var(--panel);color:var(--muted);border-color:var(--border)}
 
 /* Gauge */
 .gauge-bar{padding:3px 6px 3px 16px;background:var(--panel);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:8px}
@@ -221,7 +223,8 @@ textarea{resize:vertical;min-height:60px;font-family:inherit}
 /* Device manager */
 .devmgr{display:flex;flex-direction:column;gap:10px;height:100%;min-height:calc(100vh - 150px)}
 .devmgr-top{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:8px 12px}
-.devmgr-title{font-weight:600;font-size:14px}
+.devmgr-title{font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px}
+.devmgr-title .devmgr-ip{font-weight:400;font-size:12px;color:var(--muted)}
 .devmgr-title .device-status{display:inline-block;margin-right:6px}
 .devmgr-top-actions{margin-left:auto;display:flex;gap:6px}
 /* Прогресс загрузки файлов с устройства */
@@ -340,8 +343,8 @@ body.dark .tok-bracket{background:#f9a825;color:#1a1a1a}
       </div>
       <div class="build-upload">
         <button class="btn-sm btn-build" title="Сборка (Build)" onclick="startBuild()">🔨</button>
-        <button class="btn-upload" title="Загрузка (Upload)" onclick="event.stopPropagation()">🚀</button>
-        <button class="btn-upload" title="OTA (обновление по воздуху)" onclick="event.stopPropagation()">📡</button>
+        <button class="btn-upload" id="btnUpload" title="Загрузка по USB (Upload)" onclick="event.stopPropagation(); startUpload()">🚀</button>
+        <button class="btn-upload" id="btnOta" title="OTA (обновление по воздуху) — в разработке" disabled>📡</button>
       </div>
     </div>
 
@@ -404,6 +407,21 @@ body.dark .tok-bracket{background:#f9a825;color:#1a1a1a}
     <div class="modal-actions">
       <div class="build-success-msg" id="measureSuccessMsg" style="display:none"></div>
       <button id="measureCloseBtn" onclick="closeMeasureModal()" disabled title="Кнопка станет активной после завершения замера">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<!-- Upload modal -->
+<div class="modal-overlay" id="uploadOverlay">
+  <div class="modal build-modal">
+    <h3>🚀 Прошивка по USB</h3>
+    <div class="build-sub" id="uploadSub">Проект: —</div>
+    <div class="build-steps" id="uploadSteps"></div>
+    <div class="build-log" id="uploadLog"></div>
+    <div class="build-error" id="uploadError" style="display:none"></div>
+    <div class="modal-actions">
+      <div class="build-success-msg" id="uploadSuccessMsg" style="display:none"></div>
+      <button id="uploadCloseBtn" onclick="closeUploadModal()" disabled title="Кнопка станет активной после завершения прошивки">Закрыть</button>
     </div>
   </div>
 </div>
@@ -786,7 +804,7 @@ function renderDeviceManager(){
   el.innerHTML = `
   <div class="devmgr">
     <div class="devmgr-top">
-      <span class="devmgr-title"><span class="device-status ${activeDevice.net || (activeDevice.online?'green':'grey')}" title="${activeDevice.online?'Online':'Нет отклика'}"></span>${esc(dispName(activeDevice.name))}</span>
+      <span class="devmgr-title"><span class="device-status ${activeDevice.net || (activeDevice.online?'green':'grey')}" title="${activeDevice.online?'Online':'Нет отклика'}"></span>${esc(dispName(activeDevice.name))}<span class="devmgr-ip">${esc(activeDevice.ip || '')}</span></span>
       <div class="devmgr-top-actions">
         <button class="btn-sm" onclick="reloadDeviceTrees()" title="Обновить деревья">🔄</button>
       </div>
@@ -1595,6 +1613,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (localStorage.getItem('magicIoTm_dark') === '1') document.body.classList.add('dark');
   loadProjects();
   connectDevicesStream();
+  checkEsptoolUpdate();
   // По умолчанию открываем проект PlatformIO
   openProject('__virtual__', 'PlatformIO');
 });
@@ -1713,6 +1732,7 @@ async function openProject(cat, name){
   await loadCompatibility();
   renderContent(d.about || '');
   updateGauge();
+  refreshUploadButtons(); // включаем/затеняем 🚀 в зависимости от наличия прошивки
   loadProjects(); // обновить дерево (active)
 }
 
@@ -2186,6 +2206,7 @@ async function startBuild(){
     msg.textContent = '✅ Прошивка успешно собрана.';
     buildFinish();
     updateGauge(); // обновляем верхние полосы FLASH/RAM/FS после сборки
+    refreshUploadButtons(); // после сборки появилась прошивка — включаем 🚀
   });
   buildStream.addEventListener('error', e => {
     const d = JSON.parse(e.data);
@@ -2205,6 +2226,214 @@ async function startBuild(){
       document.getElementById('buildError').textContent = '⚠️ Соединение со сборкой потеряно. Если сборка ещё идёт, обновите страницу.';
     }
   };
+}
+
+// ==================== Upload (прошивка по USB) ====================
+let uploadStream = null;
+let uploadDone = false;
+
+const UPLOAD_MODES = {
+  fs: ['uploadfs'],
+  firmware: ['upload'],
+  full: ['uploadfs', 'upload']
+};
+
+function setUploadButtons(enabled){
+  ['btnUpload','btnOta'].forEach(id=>{
+    const b = document.getElementById(id);
+    if(b) b.disabled = !enabled;
+  });
+}
+
+async function refreshUploadButtons(){
+  if(!currentProject){ setUploadButtons(false); return; }
+  try{
+    const r = await fetch('/api/upload/status');
+    const d = await r.json();
+    setUploadButtons(!!(d.success && d.has_firmware));
+  }catch(e){ setUploadButtons(false); }
+}
+
+function initUploadSteps(mode){
+  const steps = UPLOAD_MODES[mode] || [];
+  const el = document.getElementById('uploadSteps');
+  el.innerHTML = steps.map((s,i)=>`<div class="build-step pending" data-step="${i+1}">${i+1}. ${s}</div>`).join('');
+}
+
+function setUploadStep(id, status){
+  document.querySelectorAll('#uploadSteps [data-step]').forEach(el=>{
+    if(parseInt(el.dataset.step,10)===id) el.className = 'build-step ' + status;
+  });
+}
+
+function openUploadModal(mode, port){
+  document.getElementById('uploadSteps').innerHTML = '';
+  document.getElementById('uploadLog').textContent = '';
+  document.getElementById('uploadError').style.display = 'none';
+  document.getElementById('uploadSuccessMsg').style.display = 'none';
+  uploadDone = false;
+  document.getElementById('uploadOverlay').classList.add('active');
+  initUploadSteps(mode);
+  const btn = document.getElementById('uploadCloseBtn');
+  btn.disabled = true;
+  btn.title = 'Кнопка станет активной после завершения прошивки';
+}
+
+function closeUploadModal(){
+  if(!uploadDone) return;
+  document.getElementById('uploadOverlay').classList.remove('active');
+  if(uploadStream){ uploadStream.close(); uploadStream = null; }
+}
+
+function uploadFinish(){
+  uploadDone = true;
+  const btn = document.getElementById('uploadCloseBtn');
+  btn.disabled = false;
+  btn.title = 'Закрыть';
+}
+
+function startUploadStream(){
+  uploadStream = new EventSource('/api/upload/stream');
+  uploadStream.addEventListener('log', e => {
+    const d = JSON.parse(e.data);
+    const log = document.getElementById('uploadLog');
+    log.textContent += (d.text||'') + '\n';
+    log.scrollTop = log.scrollHeight;
+  });
+  uploadStream.addEventListener('step', e => {
+    const d = JSON.parse(e.data);
+    setUploadStep(d.id, d.status);
+  });
+  uploadStream.addEventListener('done', () => {
+    const msg = document.getElementById('uploadSuccessMsg');
+    msg.style.display = 'block';
+    msg.textContent = '✅ Прошивка успешно записана.';
+    uploadFinish();
+  });
+  uploadStream.addEventListener('error', e => {
+    const d = JSON.parse(e.data);
+    document.getElementById('uploadError').style.display = 'block';
+    document.getElementById('uploadError').textContent = '❌ Ошибка прошивки: ' + (d.error||'неизвестная ошибка');
+    uploadFinish();
+  });
+  uploadStream.addEventListener('finish', () => {
+    if(uploadStream){ uploadStream.close(); uploadStream = null; }
+  });
+  uploadStream.onerror = () => {
+    if(!uploadDone){
+      document.getElementById('uploadError').style.display = 'block';
+      document.getElementById('uploadError').textContent = '⚠️ Соединение с прошивкой потеряно. Если прошивка ещё идёт — обновите страницу.';
+      uploadFinish();
+    }
+  };
+}
+
+function pickUploadMode(mode, port){
+  closeModal();
+  fetch('/api/upload/start', {method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({mode:mode, port:port})})
+    .then(r=>r.json())
+    .then(d=>{
+      if(!d.success){ toast(d.error||'Ошибка запуска прошивки','error'); return; }
+      const label = currentProject && currentProject.name === 'PlatformIO'
+        ? 'PlatformIO' : `${currentProject.category} / ${currentProject.name}`;
+      openUploadModal(mode, port);
+      document.getElementById('uploadSub').textContent = 'Проект: ' + label + ' · Порт: ' + port;
+      startUploadStream();
+    })
+    .catch(()=>toast('Ошибка запуска прошивки','error'));
+}
+
+function showUploadModeModal(port, envLabel){
+  const modes = [
+    {id:'fs', label:'① Только файловая система', desc:'Записать только FS (littlefs/spiffs)'},
+    {id:'firmware', label:'② Только прошивка', desc:'Записать только firmware.bin'},
+    {id:'full', label:'③ Полная прошивка', desc:'Сначала FS, затем прошивка'}
+  ];
+  showModal(`<h3>🚀 Прошивка</h3>
+    <p style="color:var(--muted);font-size:12px;margin-bottom:12px">Порт: <b>${esc(port)}</b> · Платформа: <b>${esc(envLabel)}</b></p>
+    <div class="measure-scope-list">
+      ${modes.map(m=>`<button class="btn-sm" onclick="pickUploadMode('${m.id}','${esc(port)}')">${m.label}<span class="ms-desc">${m.desc}</span></button>`).join('')}
+    </div>
+    <div class="modal-actions"><button onclick="closeModal()">Отмена</button></div>`);
+}
+
+function showManualPortModal(rawPorts){
+  const options = rawPorts.map(p=>
+    `<button class="btn-sm" onclick="showUploadModeModal('${esc(p.port)}','ручной выбор')">${esc(p.port)} <span class="ms-desc">${esc(p.description||'')}</span></button>`
+  ).join('');
+  showModal(`<h3>⚠️ Чип не определён автоматически</h3>
+    <p style="font-size:13px;color:var(--text);margin:8px 0 4px">Автоопределение чипа через esptool не сработало.</p>
+    <p style="font-size:12px;color:var(--muted);margin:0 0 12px">Выберите порт вручную, убедившись, что это ваша плата. Соответствие платформе при этом не проверяется.</p>
+    <div class="measure-scope-list">${options || '<p style="color:var(--muted);font-size:12px">Портов не найдено</p>'}</div>
+    <div class="modal-actions"><button onclick="closeModal()">Отмена</button></div>`);
+}
+
+async function startUpload(){
+  if(!currentProject){ toast('Сначала откройте проект','error'); return; }
+  const ub = document.getElementById('btnUpload');
+  if(ub && ub.disabled){ toast('Сначала соберите прошивку (🔨)','warning'); return; }
+  setUploadButtons(false);
+  try{
+    const r = await fetch('/api/upload/detect', {method:'POST'});
+    const d = await r.json();
+    if(!d.success){ toast(d.error||'Ошибка определения чипа','error'); return; }
+    if(!d.has_firmware){
+      toast('Прошивка не собрана. Сначала выполните сборку (🔨)','warning'); return;
+    }
+    if(d.matched && d.matched.length){
+      const m = d.matched[0];
+      showUploadModeModal(m.port, d.env + ' (' + m.model + ')');
+      return;
+    }
+    // Нет автоматически совпавшего чипа — разделяем случаи
+    if(d.ports && d.ports.length){
+      // Порты есть, но семейство чипа не совпадает с платформой — блок
+      let msg = 'Найдены чипы: ' + d.ports.map(p=>p.port+' ('+p.model+', '+p.family+')').join(', ')
+        + '. Ожидается семейство: ' + (d.expected_family||'?') + '.';
+      toast(msg,'error');
+      showModal(`<h3 style="color:var(--danger)">⚠️ Чип не соответствует платформе</h3>
+        <p style="font-size:13px;color:var(--text);margin:8px 0 16px">${esc(msg)}</p>
+        <div class="modal-actions"><button onclick="closeModal()">OK</button></div>`);
+      return;
+    }
+    if(d.raw_ports && d.raw_ports.length){
+      // Порт есть, но чип не опознан автоматически — ручной выбор
+      showManualPortModal(d.raw_ports);
+      return;
+    }
+    const nd = 'ESP-устройство не обнаружено. Проверьте USB-подключение и драйвер USB-UART.';
+    toast(nd,'error');
+    showModal(`<h3 style="color:var(--danger)">⚠️ Устройство не обнаружено</h3>
+      <p style="font-size:13px;color:var(--text);margin:8px 0 16px">${nd}</p>
+      <div class="modal-actions"><button onclick="closeModal()">OK</button></div>`);
+  } finally {
+    setUploadButtons(true);
+  }
+}
+
+// ==================== Проверка обновления esptool ====================
+function checkEsptoolUpdate(){
+  fetch('/api/tools/esptool').then(r=>r.json()).then(d=>{
+    if(d && d.needs_update && d.latest_version &&
+       !localStorage.getItem('magicIoTm_esptool_skip_' + d.latest_version)){
+      showModal(`<h3>🛠️ Обновление esptool</h3>
+        <p style="font-size:13px;color:var(--text);margin:8px 0 16px">Доступна новая версия esptool: <b>${esc(d.latest_version)}</b> (текущая: ${esc(d.installed_version||'—')}). Обновить?</p>
+        <div class="modal-actions">
+          <button onclick="closeModal(); localStorage.setItem('magicIoTm_esptool_skip_${d.latest_version}','1')">Позже</button>
+          <button id="esptoolUpdateBtn" title="Обновить esptool до последней версии">Обновить</button>
+        </div>`);
+      document.getElementById('esptoolUpdateBtn').addEventListener('click', async ()=>{
+        closeModal();
+        toast('Обновление esptool...');
+        try{
+          const rr = await fetch('/api/tools/esptool/update', {method:'POST'});
+          const dd = await rr.json();
+          toast(dd.success ? 'esptool обновлён' : ('Ошибка: '+(dd.error||'')), dd.success?'info':'error');
+        }catch(e){ toast('Ошибка обновления esptool','error'); }
+      });
+    }
+  }).catch(()=>{});
 }
 
 // ==================== Measure (замер размера модулей) ====================

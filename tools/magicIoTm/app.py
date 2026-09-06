@@ -21,7 +21,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Flask, request, jsonify, send_from_directory, Response
 from flask_cors import CORS
 
-from utils import projects, build, measure_run, ws_client
+from utils import projects, build, measure_run, ws_client, esptool_tools, flash
 
 # ==================== Логирование ====================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -2179,6 +2179,148 @@ def api_device_write_ram(device_key):
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+# ==================== Инструменты: esptool ====================
+
+@app.route('/api/tools/esptool', methods=['GET'])
+def api_tools_esptool():
+    """Статус проверки esptool: установлен ли, версия, актуальность."""
+    return jsonify(esptool_tools.status())
+
+
+@app.route('/api/tools/esptool/install', methods=['POST'])
+def api_tools_esptool_install():
+    """Автоматическая установка esptool (без подтверждения пользователя)."""
+    try:
+        st = esptool_tools.ensure_installed()
+        return jsonify({"success": st.get("available", False), "status": st})
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"Не удалось установить esptool: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/tools/esptool/update', methods=['POST'])
+def api_tools_esptool_update():
+    """Обновление esptool (вызывается ТОЛЬКО после согласия пользователя)."""
+    try:
+        res = esptool_tools.ensure_updated()
+        return jsonify(res)
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"Не удалось обновить esptool: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/tools/ports', methods=['GET'])
+def api_tools_ports():
+    """Список COM-портов, на которых определён ESP-чип (через esptool)."""
+    ports = esptool_tools.list_esp_ports()
+    return jsonify({"success": True, "ports": ports})
+
+
+# ==================== Загрузка прошивки по USB ====================
+
+def _resolve_upload_config():
+    """Формирует cfg для flash.start() по текущему проекту (или None)."""
+    if not current_project:
+        return None
+    return _resolve_build_config(current_project, current_config or {})
+
+
+def _has_built_firmware(cfg):
+    """Есть ли собранная прошивка для env проекта (firmware.bin)."""
+    env = cfg.get("env", "")
+    candidates = [
+        os.path.join(cfg.get("cwd", ""), ".pio", "build", env, "firmware.bin"),
+        os.path.join(os.path.dirname(cfg.get("profile", "")), "iotm", env, "400", "firmware.bin"),
+    ]
+    return any(os.path.isfile(c) for c in candidates)
+
+
+@app.route('/api/upload/status', methods=['GET'])
+def api_upload_status():
+    """Готовность к загрузке: собрана ли прошивка и ожидаемое семейство чипа."""
+    cfg = _resolve_upload_config()
+    if cfg is None:
+        return jsonify({"success": False, "error": "Проект не открыт"}), 400
+    env = cfg.get("env", "")
+    return jsonify({
+        "success": True,
+        "has_firmware": _has_built_firmware(cfg),
+        "env": env,
+        "expected_family": esptool_tools.family_of_env(env),
+    })
+
+
+@app.route('/api/upload/detect', methods=['POST'])
+def api_upload_detect():
+    """Определяет подключённый ESP-чип и проверяет соответствие платформе проекта."""
+    cfg = _resolve_upload_config()
+    if cfg is None:
+        return jsonify({"success": False, "error": "Проект не открыт"}), 400
+
+    # Автоустановка esptool при необходимости (без подтверждения)
+    esptool_tools.ensure_installed()
+
+    env = cfg.get("env", "")
+    expected = esptool_tools.family_of_env(env)
+    ports = esptool_tools.list_esp_ports()
+    matched = [p for p in ports if p.get("family") == expected]
+
+    # Сырые COM-порты (без определения чипа) — запасной вариант для ручного выбора
+    raw_ports = esptool_tools.list_raw_ports()
+
+    return jsonify({
+        "success": True,
+        "ports": ports,
+        "raw_ports": raw_ports,
+        "matched": matched,
+        "env": env,
+        "expected_family": expected,
+        "has_firmware": _has_built_firmware(cfg),
+    })
+
+
+@app.route('/api/upload/start', methods=['POST'])
+def api_upload_start():
+    """Запуск прошивки в фоне. body: {mode: 'fs'|'firmware'|'full', port: 'COMx'}."""
+    data = request.json or {}
+    mode = data.get('mode', 'firmware')
+    port = (data.get('port') or '').strip()
+
+    if mode not in flash.MODES:
+        return jsonify({"success": False, "error": f"Неизвестный режим прошивки: {mode}"}), 400
+    if not port:
+        return jsonify({"success": False, "error": "Не указан COM-порт"}), 400
+    if build.is_running():
+        return jsonify({"success": False, "error": "Сборка выполняется — дождитесь её завершения"}), 409
+    if flash.is_running():
+        return jsonify({"success": False, "error": "Прошивка уже выполняется"}), 409
+
+    cfg = _resolve_upload_config()
+    if cfg is None:
+        return jsonify({"success": False, "error": "Проект не открыт"}), 400
+    if not _has_built_firmware(cfg):
+        return jsonify({"success": False, "error": "Прошивка не собрана. Сначала выполните сборку (🔨)."}), 400
+
+    # Автоустановка esptool при необходимости
+    esptool_tools.ensure_installed()
+
+    cfg["mode"] = mode
+    cfg["upload_port"] = port
+    flash.start(cfg)
+    logger.info(f"Прошивка запущена: env={cfg['env']}, mode={mode}, port={port}")
+    return jsonify({"success": True})
+
+
+@app.route('/api/upload/stream')
+def api_upload_stream():
+    """SSE-поток событий прошивки (лог, шаги, финал)."""
+    def gen():
+        for chunk in flash.event_stream():
+            yield chunk
+    return Response(gen(), mimetype="text/event-stream",
+                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
 # ==================== Инициализация ====================
 
 def init():
@@ -2191,6 +2333,8 @@ def init():
     _scan_device_folders()
     start_device_listener()
     start_ping_worker()
+    # Проверка установки и актуальности esptool (неблокирующий фоновый поток)
+    esptool_tools.startup_check()
     logger.info("Готов к работе")
     logger.info("=" * 60)
 
