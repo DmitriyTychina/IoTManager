@@ -93,6 +93,19 @@ def _mark_device_seen(ip, name=""):
         _missed[ip] = {"missed": 0, "confirmed": True}
 
 
+def _device_busy_fetching(ip):
+    """True, если для этого IP сейчас идёт активное скачивание раздела.
+
+    На ESP8266 стек однопоточный: поток ICMP-ответов на фоновый пинг
+    конкурирует с TCP-отправкой больших файлов и может срывать скачивание.
+    Поэтому пинг устройства во время fetch приостанавливается.
+    """
+    return any(
+        st.get("stage") == "running" and st.get("ip") == ip
+        for st in _fetch_progress.values()
+    )
+
+
 def _ping_cycle():
     """Один цикл фонового пинга устройств.
 
@@ -107,6 +120,8 @@ def _ping_cycle():
     with _device_folders_lock:
         entries = [(e["key"], e.get("ip")) for e in _device_folders.values() if e.get("ip")]
     for key, ip in entries:
+        if _device_busy_fetching(ip):
+            continue
         with _devices_lock:
             live = _devices.get(ip)
         live_fresh = bool(live) and (now - live["last_seen"]) <= DEVICES_TIMEOUT
@@ -2023,7 +2038,8 @@ def api_device_fetch(device_key, section):
         return jsonify({"success": False, "error": "У устройства не указан IP"}), 400
 
     state = {"stage": "running", "done": 0, "total": 0,
-             "name": "Подключение к устройству...", "files": [], "error": None}
+             "name": "Подключение к устройству...", "files": [], "error": None,
+             "ip": dev_ip}
     _fetch_progress[(device_key, sec)] = state
 
     def progress(fname, done, total):

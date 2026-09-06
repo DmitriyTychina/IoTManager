@@ -267,11 +267,23 @@ def fetch_ram(host, out_dir, port=PORT, timeout=DEFAULT_TIMEOUT, keep_only_ram=T
 # Файловая система (HTTP, порт 80)
 # ----------------------------------------------------------------------
 
-def _http_get(host, path):
-    """GET по HTTP (порт 80); возвращает тело ответа байтами."""
+def _http_get(host, path, retries=3, delay=0.8):
+    """GET по HTTP (порт 80); возвращает тело ответа байтами.
+
+    При нестабильном Wi-Fi соединении с устройством делает несколько
+    попыток (retries) с паузой delay перед тем как сдаться.
+    """
     url = "http://{}:{}{}".format(host, HTTP_PORT, path)
-    with urllib.request.urlopen(url, timeout=DEFAULT_TIMEOUT) as resp:
-        return resp.read()
+    last_err = None
+    for attempt in range(retries):
+        try:
+            with urllib.request.urlopen(url, timeout=DEFAULT_TIMEOUT) as resp:
+                return resp.read()
+        except Exception as e:  # noqa: BLE001 — сеть/сервер, повторяем
+            last_err = e
+            if attempt + 1 < retries:
+                time.sleep(delay)
+    raise last_err
 
 
 def fetch_fs(host, out_dir, progress=None):
@@ -294,11 +306,19 @@ def fetch_fs(host, out_dir, progress=None):
             items = json.loads(raw.decode("utf-8"))
         except Exception:
             items = []
+        # base — текущий каталог без ведущего '/'; для корня пустая строка
+        base = "" if path in ("", "/") else path.rstrip("/")
         for it in items:
-            name = (it.get("name") or "").strip()
+            raw_name = (it.get("name") or "").strip().lstrip("/")
+            if not raw_name:
+                continue
+            # Прошивка может отдавать как просто имя, так и полный путь
+            # (ядро ESP32 2.x — basename, ядро 3.x — полный путь с '/').
+            # Берём последний компонент, чтобы пути не дублировались.
+            name = raw_name.rsplit("/", 1)[-1]
             if not name:
                 continue
-            joined = path.rstrip("/") + "/" + name
+            joined = "/" + name if not base else base + "/" + name
             if it.get("type") == "dir":
                 walk(joined)
             else:

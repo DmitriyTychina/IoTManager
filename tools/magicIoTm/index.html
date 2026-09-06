@@ -1259,10 +1259,17 @@ function parseScenarioRules(text){
 
   function parseRuleList(targetRule, stopOnClose){
     while(idx < n){
+      const startIdx = idx;
       const t = peek();
       if(!t) break;
       if(t.type === 'sym'){
-        if(t.value === '}'){ if(stopOnClose) idx++; return; }
+        if(t.value === '}'){
+          if(stopOnClose){ idx++; return; }
+          // лишняя '}' вне блока (остатки закомментированных правил) — пропускаем,
+          // чтобы не обрывать разбор остальных условий
+          idx++;
+          continue;
+        }
         if(t.value === '{'){ idx++; parseRuleList(targetRule, true); continue; }
         if(t.value === ';'){ idx++; continue; }
       }
@@ -1273,11 +1280,18 @@ function parseScenarioRules(text){
         if(nx && nx.type === 'sym' && (nx.value === '=' || nx.value === ':=')){
           // ':=' не вызывает событие (перепроверку условий) — в зацикливание не входит
           if(nx.value === '=' && targetRule) targetRule.writes.push(t.value);
-          idx += 2; skipToStatementEnd(true); continue;
+          idx += 2; skipToStatementEnd(true);
+          if(idx === startIdx) idx++;
+          continue;
         }
-        skipToStatementEnd(true); continue;
+        skipToStatementEnd(true);
+        // Защита от бесконечного цикла: граничные токены (then/else/})
+        // возвращаются из skipToStatementEnd без продвижения idx.
+        if(idx === startIdx) idx++;
+        continue;
       }
       skipToStatementEnd(true);
+      if(idx === startIdx) idx++;
     }
   }
 
@@ -1285,17 +1299,22 @@ function parseScenarioRules(text){
   return rules;
 }
 
-function findVarCycles(edges){
+const CYCLE_LIMIT = 2000;   // предел найденных циклов, чтобы браузер не зависал на плотном графе
+function findVarCycles(edges, limit = CYCLE_LIMIT){
   const adj = {};
   for(let i = 0; i < edges.length; i++){
     const e = edges[i];
     (adj[e.from] = adj[e.from] || []).push({to: e.to, ei: i});
   }
   const cycles = [], visited = {}, inStack = {}, pathVars = [], pathEdges = [];
+  let limited = false;
   function dfs(u){
+    if(limited) return;
+    if(cycles.length >= limit){ limited = true; return; }
     visited[u] = true; inStack[u] = true; pathVars.push(u);
     const outs = adj[u] || [];
     for(const o of outs){
+      if(limited || cycles.length >= limit){ limited = true; break; }
       if(inStack[o.to]){
         const si = pathVars.indexOf(o.to);
         if(si >= 0) cycles.push({vars: pathVars.slice(si).concat(o.to), edges: pathEdges.slice(si).concat(o.ei)});
@@ -1305,8 +1324,8 @@ function findVarCycles(edges){
     }
     pathVars.pop(); inStack[u] = false;
   }
-  for(const s of Object.keys(adj)){ if(!visited[s]) dfs(s); }
-  return cycles;
+  for(const s of Object.keys(adj)){ if(!limited && !visited[s]) dfs(s); }
+  return {cycles, limited};
 }
 
 function dedupeCycles(cycles){
@@ -1364,7 +1383,8 @@ function checkScenarioLoops(section){
     return {from: e.from, to: e.to, line: Math.min.apply(null, e.lines), lines: e.lines};
   });
 
-  const rawCycles = dedupeCycles(findVarCycles(edges));
+  const {cycles: foundCycles, limited} = findVarCycles(edges);
+  const rawCycles = dedupeCycles(foundCycles);
   const srcLines = text.split('\n');
   const srcOf = ls => ls.map(L => (srcLines[L - 1] || '').trim()).filter(Boolean).join('  ‖  ');
   const selfCycles = rawCycles.filter(c => c.vars[0] === c.vars[1]);
@@ -1372,7 +1392,8 @@ function checkScenarioLoops(section){
 
   let html = '<p><b>🔁 Проверка сценария на зацикливание</b></p>';
   html += `<p style="color:var(--muted);margin:0 0 8px">Файл: <code>${esc(path)}</code></p>`;
-  html += `<p style="color:var(--muted);margin:0 0 8px">Найдено условий: <b>${rules.length}</b> · зависимостей: <b>${edges.length}</b></p>`;
+  html += `<p style="color:var(--muted);margin:0 0 8px">Найдено условий: <b>${rules.length}</b> · зависимостей: <b>${edges.length}</b>` +
+    (limited ? ` · циклов больше ${CYCLE_LIMIT} — показаны первые` : '') + `</p>`;
 
   if(rawCycles.length === 0){
     html += '<p style="color:#2e7d32">✓ Зацикливаний (циклических зависимостей) не обнаружено.</p>';
