@@ -779,6 +779,15 @@ function selectDevice(key, ip, name, online, net){
   loadTree('fs');
 }
 
+function openDeviceWeb(){
+  if(!activeDevice || !activeDevice.ip){
+    toast('IP устройства не найден', 'warning');
+    return;
+  }
+  // Открываем веб-страницу устройства в новой вкладке браузера
+  window.open('http://' + activeDevice.ip, '_blank', 'noopener');
+}
+
 function exitDevice(){
   activeDevice = null;
   clearSidebarSelection();
@@ -804,7 +813,7 @@ function renderDeviceManager(){
   el.innerHTML = `
   <div class="devmgr">
     <div class="devmgr-top">
-      <span class="devmgr-title"><span class="device-status ${activeDevice.net || (activeDevice.online?'green':'grey')}" title="${activeDevice.online?'Online':'Нет отклика'}"></span>${esc(dispName(activeDevice.name))}<span class="devmgr-ip">${esc(activeDevice.ip || '')}</span></span>
+      <span class="devmgr-title"><span class="device-status ${activeDevice.net || (activeDevice.online?'green':'grey')}" title="${activeDevice.online?'Online':'Нет отклика'}"></span>${esc(dispName(activeDevice.name))}<span class="devmgr-ip">${esc(activeDevice.ip || '')}</span><button class="btn-sm" style="margin-left:6px" onclick="openDeviceWeb()" title="Открыть веб-страницу устройства">🌐</button></span>
       <div class="devmgr-top-actions">
         <button class="btn-sm" onclick="reloadDeviceTrees()" title="Обновить деревья">🔄</button>
       </div>
