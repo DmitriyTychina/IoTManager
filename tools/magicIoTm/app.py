@@ -99,7 +99,9 @@ def _ping_cycle():
     Пингуются устройства, от которых НЕТ свежего multicast-пакета.
     Исключение: если у multicast-устройства красный статус (missed > MISSED_RED) —
     его тоже пингуем. Успешный пинг сбрасывает счётчик пропусков.
-    Пинг помечает устройство как confirmed (статус перестаёт быть серым).
+    
+    confirmed=True устанавливается ТОЛЬКО при multicast или успешном пинге.
+    При fail пинге confirmed остаётся как был — grey, а не yellow.
     """
     now = time.time()
     with _device_folders_lock:
@@ -115,13 +117,13 @@ def _ping_cycle():
         # Если multicast свежий и статус не красный — пинг не нужен
         if live_fresh and missed <= MISSED_RED:
             continue
-        # Пингуем
+        # Пингуем (в т.ч. красные устройства с live_fresh)
         if _host_pingable(ip):
             _mark_device_seen(ip, name=key)
             logger.info(f"Пинг OK: {ip} ({key})")
         else:
             with _missed_lock:
-                _missed[ip] = {"missed": missed + 1, "confirmed": True}
+                _missed[ip] = {"missed": missed + 1, "confirmed": confirmed}
             logger.info(f"Пинг fail: {ip} ({key}), пропусков: {_missed[ip]['missed']}")
 
 
@@ -1878,7 +1880,6 @@ def api_copy_modules():
 
 # ==================== Устройства: API ====================
 
-@app.route('/api/device/<device_key>', methods=['DELETE'])
 def _rmtree_with_retry(folder, attempts=5, delay=0.5):
     """Пытается удалить папку несколько раз подряд. True — успех."""
     for attempt in range(attempts):
@@ -1909,6 +1910,7 @@ def _rmtree_background(folder, max_minutes=10):
     logger.error(f"Не удалось удалить папку устройства за {max_minutes} мин: {folder}")
 
 
+@app.route('/api/device/<device_key>', methods=['DELETE'])
 def api_device_delete(device_key):
     """Удаление устройства: папка на диске и все записи о нём."""
     with _device_folders_lock:
