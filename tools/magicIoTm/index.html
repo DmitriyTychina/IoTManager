@@ -1625,6 +1625,17 @@ async function checkScenarioLoops(section){
   const text = ta ? ta.value : '';
   // config.json ищем в той же папке, что и scenario.txt
   const cfgPath = path.replace(/[^/\\]*$/, 'config.json');
+  const deviceKey = activeDevice ? (activeDevice.key || activeDevice.ip) : null;
+
+  // Набор «известных» имён: функции из sceninfo.json и модулей, функции после точки,
+  // системные события. Их не считаем неизвестными переменными config.json.
+  const scenFuncs = await getScenFuncs();
+  const knownFuncNames = new Set(scenFuncs.reserved);
+  for(const k in scenFuncs.bySubtype){
+    for(const f of scenFuncs.bySubtype[k]) knownFuncNames.add(f);
+  }
+  for(const c of extractDottedCalls(text)) knownFuncNames.add(c.func);
+  ['onStart','onError','onInit','onWifi'].forEach(n => knownFuncNames.add(n));
 
   const srcLines = text.split('\n');
   const srcOf = ls => ls.map(L => (srcLines[L - 1] || '').trim()).filter(Boolean).join('  ‖  ');
@@ -1706,12 +1717,11 @@ async function checkScenarioLoops(section){
   html += '<div style="margin-top:12px"><h4 style="font-size:13px;margin-bottom:6px">📌 Проверка переменных в config.json</h4>';
   html += `<p style="color:var(--muted);font-size:12px">Загрузка <code>${esc(cfgPath)}</code> с устройства...</p>`;
   
-  const deviceKey = activeDevice ? (activeDevice.key || activeDevice.ip) : null;
   if(!deviceKey){
     html += '<p style="color:#c62828;font-size:12px">⚠ Устройство не выбрано, нельзя проверить переменные.</p>';
   } else {
     const itemIds = await fetchConfigFromDevice(section, deviceKey, cfgPath);
-    const scenarioVars = extractScenarioVars(text);
+    const scenarioVars = extractScenarioVars(text).filter(v => !knownFuncNames.has(v));
     const unknownVars = scenarioVars.filter(v => !itemIds.includes(v));
     
     html += `<p style="color:var(--muted);font-size:12px">Переменных в сценарии: <b>${scenarioVars.length}</b> · найдено в config.json: <b>${itemIds.length}</b>`;
@@ -1738,7 +1748,6 @@ async function checkScenarioLoops(section){
   if(dottedCalls.length === 0){
     html += '<p style="color:var(--muted);font-size:12px">Вызовов функций через точку (ID.функция()) не найдено.</p>';
   } else {
-    const scenFuncs = await getScenFuncs();
     const reservedSet = new Set(scenFuncs.reserved);
     const cfgItems = await fetchConfigItems(section, deviceKey || '', cfgPath);
     const subtypeById = {};
