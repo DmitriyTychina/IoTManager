@@ -1566,23 +1566,54 @@ function extractScenarioVars(text){
 // ==================== Загрузка config.json с устройства ====================
 // config.json берётся из той же папки, где лежит проверяемый scenario.txt
 async function fetchConfigFromDevice(section, deviceKey, configPath = 'config.json'){
+  const items = await fetchConfigItems(section, deviceKey, configPath);
+  const ids = new Set();
+  for(const item of items){
+    if(item && typeof item === 'object' && item.id){
+      ids.add(String(item.id));
+    }
+  }
+  return Array.from(ids);
+}
+
+// Сырой список элементов config.json (id + subtype) с устройства.
+async function fetchConfigItems(section, deviceKey, configPath){
   try{
     const r = await fetch(`/api/device/${encodeURIComponent(deviceKey)}/file/${section}?path=${encodeURIComponent(configPath)}`);
     const d = await r.json();
     if(!d.success || !d.content) return [];
     const items = JSON.parse(d.content);
-    if(!Array.isArray(items)) return [];
-    // Извлекаем все id из элементов
-    const ids = new Set();
-    for(const item of items){
-      if(item && typeof item === 'object' && item.id){
-        ids.add(String(item.id));
-      }
-    }
-    return Array.from(ids);
+    return Array.isArray(items) ? items : [];
   }catch(e){
     return [];
   }
+}
+
+// Кэш списков функций для проверки сценариев (из /api/scenario/functions).
+let scenFuncCache = null;
+async function getScenFuncs(){
+  if(scenFuncCache) return scenFuncCache;
+  try{
+    const r = await fetch('/api/scenario/functions');
+    const d = await r.json();
+    scenFuncCache = (d && d.success) ? {reserved: d.reserved || [], bySubtype: d.bySubtype || {}} : {reserved: [], bySubtype: {}};
+  }catch(e){
+    scenFuncCache = {reserved: [], bySubtype: {}};
+  }
+  return scenFuncCache;
+}
+
+// Извлекает вызовы вида <ID>.<функция> из токенов сценария.
+function extractDottedCalls(text){
+  const toks = tokenizeScenario(text);
+  const calls = [];
+  for(let i = 0; i < toks.length - 2; i++){
+    const a = toks[i], b = toks[i + 1], c = toks[i + 2];
+    if(a.type === 'word' && b.type === 'sym' && b.value === '.' && c.type === 'word'){
+      calls.push({item: a.value, func: c.value, line: a.line});
+    }
+  }
+  return calls;
 }
 
 // ==================== Расширенная проверка scenario.txt ====================
@@ -1697,6 +1728,55 @@ async function checkScenarioLoops(section){
       }
       if(unknownVars.length > 30) html += `<p style="color:var(--muted);font-size:11px">…и ещё ${unknownVars.length - 30} переменных.</p>`;
       html += '<p style="color:var(--muted);font-size:11px;margin-top:4px">Совет: проверьте, что ID элементов в config.json совпадают с именами переменных в сценарии.</p>';
+    }
+  }
+  html += '</div>';
+  
+  // ===== 5. Проверка встроенных функций (ID.функция) =====
+  html += '<div style="margin-top:12px"><h4 style="font-size:13px;margin-bottom:6px">📌 Проверка встроенных функций</h4>';
+  const dottedCalls = extractDottedCalls(text);
+  if(dottedCalls.length === 0){
+    html += '<p style="color:var(--muted);font-size:12px">Вызовов функций через точку (ID.функция()) не найдено.</p>';
+  } else {
+    const scenFuncs = await getScenFuncs();
+    const reservedSet = new Set(scenFuncs.reserved);
+    const cfgItems = await fetchConfigItems(section, deviceKey || '', cfgPath);
+    const subtypeById = {};
+    for(const it of cfgItems){
+      if(it && typeof it === 'object' && it.id){
+        subtypeById[String(it.id)] = it.subtype || it.type || '';
+      }
+    }
+    const seen = new Set();
+    const unknown = [];
+    let checked = 0;
+    for(const c of dottedCalls){
+      const key = c.item + '.' + c.func;
+      if(seen.has(key)) continue;
+      seen.add(key);
+      const sub = subtypeById[c.item];
+      let valid = false;
+      if(reservedSet.has(c.func)){
+        valid = true;               // глобальная/зарезервированная функция (sceninfo.json)
+      } else if(sub && scenFuncs.bySubtype[sub]){
+        valid = scenFuncs.bySubtype[sub].includes(c.func);   // функция модуля элемента
+      }
+      checked++;
+      if(!valid){
+        unknown.push({item: c.item, func: c.func, line: c.line, sub});
+      }
+    }
+    html += `<p style="color:var(--muted);font-size:12px">Уникальных вызовов ID.функция: <b>${checked}</b></p>`;
+    if(unknown.length === 0){
+      html += '<p style="color:#2e7d32;font-size:12px;margin-top:4px">✓ Все функции найдены в funcInfo модулей / зарезервированном списке.</p>';
+    } else {
+      html += `<p style="color:#c62828;font-size:12px;margin-top:4px">⚠ Неизвестные встроенные функции: <b>${unknown.length}</b></p>`;
+      for(const u of unknown.slice(0, 30)){
+        html += `<p style="color:#c62828;font-size:11px;margin:2px 0">• стр. ${u.line}: <code>${esc(u.item)}.${esc(u.func)}()</code>` +
+          (u.sub ? ` (модуль элемента: <code>${esc(u.sub)}</code>)` : ' (элемент не найден в config.json по id)') + '</p>';
+      }
+      if(unknown.length > 30) html += `<p style="color:var(--muted);font-size:11px">…и ещё ${unknown.length - 30}.</p>`;
+      html += '<p style="color:var(--muted);font-size:11px;margin-top:4px">Функция после точки должна существовать в about.funcInfo модуля элемента (или быть зарезервированной в sceninfo.json).</p>';
     }
   }
   html += '</div>';
