@@ -865,7 +865,7 @@ function renderDeviceManager(){
                 <span class="file-name" id="ramFileName">— не выбран файл —</span>
                 <span class="file-size" id="ramFileSize"></span>
               </div>
-              <button class="btn-sm" id="ramCheckBtn" style="display:none" onclick="checkScenarioLoops('ram')" title="Проверить сценарий на циклические зависимости (event-driven)">🔍 Проверка</button>
+              <button class="btn-sm" id="ramCheckBtn" style="display:none" onclick="checkScenarioLoops('ram')" title="Проверка: зацикливание, скобки, if/then/else, переменные">🔍 Проверка</button>
               <button class="btn-sm" id="ramPushBtn" onclick="pushFile('ram')" disabled title="">💾 Сохранить</button>
             </div>
             <div class="devmgr-code">
@@ -898,7 +898,7 @@ function renderDeviceManager(){
                 <span class="file-name" id="fsFileName">— не выбран файл —</span>
                 <span class="file-size" id="fsFileSize"></span>
               </div>
-              <button class="btn-sm" id="fsCheckBtn" style="display:none" onclick="checkScenarioLoops('fs')" title="Проверить сценарий на циклические зависимости (event-driven)">🔍 Проверка</button>
+              <button class="btn-sm" id="fsCheckBtn" style="display:none" onclick="checkScenarioLoops('fs')" title="Проверка: зацикливание, скобки, if/then/else, переменные">🔍 Проверка</button>
               <button class="btn-sm" id="fsSaveBtn" onclick="saveFile('fs')" disabled title="Сохранить файл локально">💾 Сохранить</button>
             </div>
             <div class="devmgr-code">
@@ -1420,13 +1420,217 @@ function cycleHtml(c, edges, srcOf, label){
   return h;
 }
 
-function checkScenarioLoops(section){
+// ==================== Проверка непарных скобок ====================
+function checkBraces(text){
+  const errors = [];
+  // Используем токенизатор — он уже пропускает комментарии (# ...) и строки (" ... "),
+  // поэтому скобки внутри комментариев и строк не считаются.
+  const toks = tokenizeScenario(text);
+  const opens = {'{':'}', '(':')', '[':']'};
+  const closes = {'}':'{', ')':'(', ']':'['};
+  const stack = [];
+  for(const t of toks){
+    if(t.type !== 'sym') continue;
+    const v = t.value;
+    if(opens[v]){
+      stack.push({ch: v, line: t.line});
+    } else if(closes[v]){
+      if(stack.length === 0){
+        errors.push(`Непарная закрывающая скобка ${v} на стр. ${t.line}`);
+      } else {
+        const top = stack[stack.length - 1];
+        if(top.ch !== closes[v]){
+          errors.push(`Непарная скобка: открыта «${top.ch}» на стр. ${top.line}, а закрыта «${v}» на стр. ${t.line}`);
+        }
+        stack.pop();
+      }
+    }
+  }
+  for(const s of stack){
+    errors.push(`Непарная открывающая скобка ${s.ch} на стр. ${s.line}`);
+  }
+  return errors;
+}
+
+// ==================== Проверка непарных if/then/else ====================
+// Рекурсивный разбор: корректно учитывает вложенность {} и конструкции
+// `if cond then { ... } else { ... }`. Комментарии и строки пропускает
+// через tokenizeScenario.
+function checkIfThenElse(text){
+  const errors = [];
+  const toks = tokenizeScenario(text);
+  let i = 0, n = toks.length;
+
+  function peek(k){ return toks[i + (k || 0)]; }
+
+  // Пропуск одиночного оператора до конца строки / ; / } (границы оператора).
+  function skipStatement(){
+    const startLine = peek() ? peek().line : 0;
+    while(i < n){
+      const t = peek();
+      if(!t) break;
+      if(t.type === 'sym' && (t.value === ';' || t.value === '}')) break;
+      if(t.type === 'word' && (t.value === 'else' || t.value === 'then' || t.value === 'if')) break;
+      if(t.line !== startLine) break;
+      i++;
+    }
+  }
+
+  function parseBlock(){
+    i++; // съесть '{'
+    while(i < n){
+      const t = peek();
+      if(!t) break;
+      if(t.type === 'sym' && t.value === '}'){ i++; return; }
+      parseStatement();
+    }
+  }
+
+  function parseBody(){
+    const t = peek();
+    if(!t) return;
+    if(t.type === 'sym' && t.value === '{'){ parseBlock(); return; }
+    if(t.type === 'word' && t.value === 'if'){ parseIf(); return; }
+    skipStatement();
+  }
+
+  function parseStatement(){
+    const t = peek();
+    if(!t) return;
+    if(t.type === 'word' && t.value === 'if'){ parseIf(); return; }
+    if(t.type === 'sym' && t.value === '{'){ parseBlock(); return; }
+    if(t.type === 'sym' && t.value === ';'){ i++; return; }
+    if(t.type === 'sym' && t.value === '}'){ return; } // закроет вызывающий блок
+    skipStatement();
+  }
+
+  function parseIf(){
+    const ifTok = peek();
+    i++; // съесть 'if'
+    // условие до then / else
+    while(i < n){
+      const t = peek();
+      if(!t) break;
+      if(t.type === 'word' && t.value === 'then'){ i++; break; }
+      if(t.type === 'word' && t.value === 'else'){
+        errors.push(`if на стр. ${ifTok.line} имеет else без then`);
+        i++;
+        return;
+      }
+      i++;
+    }
+    const after = peek();
+    if(after && after.type === 'sym' && (after.value === '}' || after.value === ';')){
+      errors.push(`if на стр. ${ifTok.line} не имеет тела после then`);
+      if(after.value === ';') i++;
+      return;
+    }
+    parseBody();
+    if(i < n && peek().type === 'word' && peek().value === 'else'){
+      i++;
+      parseBody();
+    }
+  }
+
+  // ---- разбор верхнего уровня ----
+  while(i < n){
+    const t = peek();
+    if(!t) break;
+    if(t.type === 'word' && t.value === 'if'){ parseIf(); continue; }
+    if(t.type === 'word' && (t.value === 'then' || t.value === 'else')){
+      errors.push(`${t.value} на стр. ${t.line} без соответствующего if`);
+      i++; continue;
+    }
+    if(t.type === 'sym' && t.value === ';'){ i++; continue; }
+    if(t.type === 'sym' && t.value === '{'){ parseBlock(); continue; }
+    if(t.type === 'sym' && t.value === '}'){ i++; continue; } // лишняя скобка (разбирает checkBraces)
+    skipStatement();
+    if(!peek()) break;
+  }
+
+  return errors;
+}
+
+// ==================== Сбор всех переменных из сценария ====================
+function extractScenarioVars(text){
+  const vars = new Set();
+  const toks = tokenizeScenario(text);
+  for(const t of toks){
+    if(t.type === 'word' && !SCEN_KW_COND.has(t.value)){
+      vars.add(t.value);
+    }
+  }
+  return Array.from(vars);
+}
+
+// ==================== Загрузка config.json с устройства ====================
+// config.json берётся из той же папки, где лежит проверяемый scenario.txt
+async function fetchConfigFromDevice(section, deviceKey, configPath = 'config.json'){
+  try{
+    const r = await fetch(`/api/device/${encodeURIComponent(deviceKey)}/file/${section}?path=${encodeURIComponent(configPath)}`);
+    const d = await r.json();
+    if(!d.success || !d.content) return [];
+    const items = JSON.parse(d.content);
+    if(!Array.isArray(items)) return [];
+    // Извлекаем все id из элементов
+    const ids = new Set();
+    for(const item of items){
+      if(item && typeof item === 'object' && item.id){
+        ids.add(String(item.id));
+      }
+    }
+    return Array.from(ids);
+  }catch(e){
+    return [];
+  }
+}
+
+// ==================== Расширенная проверка scenario.txt ====================
+async function checkScenarioLoops(section){
   const ed = deviceEditors[section];
   const path = (ed && ed.path) || '';
   if(!/scenario\.txt$/i.test(path)){ toast('Откройте файл scenario.txt для проверки', 'info'); return; }
   const ta = document.getElementById(section + 'Editor');
   const text = ta ? ta.value : '';
+  // config.json ищем в той же папке, что и scenario.txt
+  const cfgPath = path.replace(/[^/\\]*$/, 'config.json');
 
+  const srcLines = text.split('\n');
+  const srcOf = ls => ls.map(L => (srcLines[L - 1] || '').trim()).filter(Boolean).join('  ‖  ');
+  
+  let html = '<p><b>🔍 Расширенная проверка сценария</b></p>';
+  html += `<p style="color:var(--muted);margin:0 0 8px">Файл: <code>${esc(path)}</code></p>`;
+  
+  // ===== 1. Проверка скобок =====
+  html += '<div style="margin-top:12px"><h4 style="font-size:13px;margin-bottom:6px">📌 Проверка скобок</h4>';
+  const braceErrors = checkBraces(text);
+  if(braceErrors.length === 0){
+    html += '<p style="color:#2e7d32;font-size:12px">✓ Все скобки {}.()[] сбалансированы.</p>';
+  } else {
+    html += '<p style="color:#c62828;font-size:12px">⚠ Найдено проблем со скобками: ' + braceErrors.length + '</p>';
+    for(const err of braceErrors.slice(0, 20)){
+      html += `<p style="color:#c62828;font-size:11px;margin:2px 0">• ${esc(err)}</p>`;
+    }
+    if(braceErrors.length > 20) html += `<p style="color:var(--muted);font-size:11px">…и ещё ${braceErrors.length - 20} ошибок.</p>`;
+  }
+  html += '</div>';
+  
+  // ===== 2. Проверка if/then/else =====
+  html += '<div style="margin-top:12px"><h4 style="font-size:13px;margin-bottom:6px">📌 Проверка if/then/else</h4>';
+  const ifElseErrors = checkIfThenElse(text);
+  if(ifElseErrors.length === 0){
+    html += '<p style="color:#2e7d32;font-size:12px">✓ Все if/then/else имеют пары.</p>';
+  } else {
+    html += '<p style="color:#c62828;font-size:12px">⚠ Найдено проблем с if/then/else: ' + ifElseErrors.length + '</p>';
+    for(const err of ifElseErrors.slice(0, 20)){
+      html += `<p style="color:#c62828;font-size:11px;margin:2px 0">• ${esc(err)}</p>`;
+    }
+    if(ifElseErrors.length > 20) html += `<p style="color:var(--muted);font-size:11px">…и ещё ${ifElseErrors.length - 20} ошибок.</p>`;
+  }
+  html += '</div>';
+  
+  // ===== 3. Проверка зацикливания =====
+  html += '<div style="margin-top:12px"><h4 style="font-size:13px;margin-bottom:6px">📌 Проверка на зацикливание (event-driven)</h4>';
   const rules = parseScenarioRules(text);
   const edgeMap = {};
   for(const r of rules){
@@ -1442,37 +1646,61 @@ function checkScenarioLoops(section){
     const e = edgeMap[k];
     return {from: e.from, to: e.to, line: Math.min.apply(null, e.lines), lines: e.lines};
   });
-
+  
+  html += `<p style="color:var(--muted);font-size:12px">Условий: <b>${rules.length}</b> · зависимостей: <b>${edges.length}</b>`;
+  
   const {cycles: foundCycles, limited} = findVarCycles(edges);
   const rawCycles = dedupeCycles(foundCycles);
-  const srcLines = text.split('\n');
-  const srcOf = ls => ls.map(L => (srcLines[L - 1] || '').trim()).filter(Boolean).join('  ‖  ');
   const selfCycles = rawCycles.filter(c => c.vars[0] === c.vars[1]);
   const multiCycles = rawCycles.filter(c => c.vars[0] !== c.vars[1]);
-
-  let html = '<p><b>🔁 Проверка сценария на зацикливание</b></p>';
-  html += `<p style="color:var(--muted);margin:0 0 8px">Файл: <code>${esc(path)}</code></p>`;
-  html += `<p style="color:var(--muted);margin:0 0 8px">Найдено условий: <b>${rules.length}</b> · зависимостей: <b>${edges.length}</b>` +
-    (limited ? ` · циклов больше ${CYCLE_LIMIT} — показаны первые` : '') + `</p>`;
-
+  
   if(rawCycles.length === 0){
-    html += '<p style="color:#2e7d32">✓ Зацикливаний (циклических зависимостей) не обнаружено.</p>';
+    html += '<p style="color:#2e7d32;font-size:12px;margin-top:4px">✓ Заципливаний не обнаружено.</p>';
   } else {
-    html += `<p style="color:#c62828">⚠ Возможное зацикливание программы: найдено циклов — <b>${rawCycles.length}</b> (многошаговых: <b>${multiCycles.length}</b>, самозамыканий: <b>${selfCycles.length}</b>).</p>`;
-    html += '<p style="color:var(--muted);font-size:12px">В сценарии изменение любой переменной оператором <code>=</code> перепроверяет все условия, где она используется. Если цепочка «условие → изменение → условие» замыкается, программа может срабатывать бесконечно. Присваивание через <code>:=</code> события (перепроверки) не вызывает и в циклах не учитывается.</p>';
-
+    html += ` · циклов: <b>${rawCycles.length}</b> (многошаговых: <b>${multiCycles.length}</b>, самозамыканий: <b>${selfCycles.length}</b>)</p>`;
+    html += '<p style="color:var(--muted);font-size:11px;margin-top:4px">Изменение переменной оператором <code>=</code> перепроверяет условия. <code>:=</code> события не вызывает.</p>';
+    
     if(multiCycles.length){
-      html += '<div style="margin-top:6px"><b style="color:#c62828">Высокий риск — многошаговые циклы (переменные «пингуют» друг друга):</b></div>';
-      multiCycles.slice(0, 25).forEach((c, ci) => { html += cycleHtml(c, edges, srcOf, ci + 1); });
+      html += '<div style="margin-top:6px"><b style="color:#c62828;font-size:12px">Многошаговые циклы:</b></div>';
+      multiCycles.slice(0, 10).forEach((c, ci) => { html += cycleHtml(c, edges, srcOf, ci + 1); });
     }
     if(selfCycles.length){
-      html += '<div style="margin-top:10px"><b style="color:#b26a00">Обратите внимание — правило читает и записывает одну переменную:</b> обычно это корректная защита (например <code>if page<1 then page=1</code>), но если значение не сходится к стабильному — произойдёт зацикливание.</div>';
-      selfCycles.slice(0, 25).forEach((c, ci) => { html += cycleHtml(c, edges, srcOf, 'С' + (ci + 1)); });
+      html += '<div style="margin-top:6px"><b style="color:#b26a00;font-size:12px">Самозамыкания:</b> обычно корректная защита, но может зациклиться</div>';
+      selfCycles.slice(0, 10).forEach((c, ci) => { html += cycleHtml(c, edges, srcOf, 'С' + (ci + 1)); });
     }
-    if(rawCycles.length > 50) html += `<p style="color:var(--muted)">…и ещё ${rawCycles.length - 50} циклов.</p>`;
-    html += '<div style="margin-top:10px;padding:8px;background:rgba(178,106,0,.14);border-radius:6px">Рекомендация: добавьте флаг-защиту от повторного входа (например <code>if guard==0 then { guard=1; …действия…; guard=0 }</code>) либо явный счётчик итераций, чтобы оборвать бесконечное срабатывание.</div>';
   }
-
+  html += '</div>';
+  
+  // ===== 4. Проверка переменных в config.json =====
+  html += '<div style="margin-top:12px"><h4 style="font-size:13px;margin-bottom:6px">📌 Проверка переменных в config.json</h4>';
+  html += `<p style="color:var(--muted);font-size:12px">Загрузка <code>${esc(cfgPath)}</code> с устройства...</p>`;
+  
+  const deviceKey = activeDevice ? (activeDevice.key || activeDevice.ip) : null;
+  if(!deviceKey){
+    html += '<p style="color:#c62828;font-size:12px">⚠ Устройство не выбрано, нельзя проверить переменные.</p>';
+  } else {
+    const itemIds = await fetchConfigFromDevice(section, deviceKey, cfgPath);
+    const scenarioVars = extractScenarioVars(text);
+    const unknownVars = scenarioVars.filter(v => !itemIds.includes(v));
+    
+    html += `<p style="color:var(--muted);font-size:12px">Переменных в сценарии: <b>${scenarioVars.length}</b> · найдено в config.json: <b>${itemIds.length}</b>`;
+    
+    if(itemIds.length === 0){
+      html += ' (config.json пуст или не загружен)</p>';
+    } else if(unknownVars.length === 0){
+      html += '<p style="color:#2e7d32;font-size:12px;margin-top:4px">✓ Все переменные сценария найдены в config.json по полю "id".</p>';
+    } else {
+      html += ` · неизвестных: <b style="color:#c62828">${unknownVars.length}</b></p>`;
+      html += '<p style="color:#c62828;font-size:11px;margin-top:4px">⚠ Эти переменные не найдены в config.json по полю "id":</p>';
+      for(const v of unknownVars.slice(0, 30)){
+        html += `<p style="color:#c62828;font-size:11px;margin:2px 0">• <code>${esc(v)}</code></p>`;
+      }
+      if(unknownVars.length > 30) html += `<p style="color:var(--muted);font-size:11px">…и ещё ${unknownVars.length - 30} переменных.</p>`;
+      html += '<p style="color:var(--muted);font-size:11px;margin-top:4px">Совет: проверьте, что ID элементов в config.json совпадают с именами переменных в сценарии.</p>';
+    }
+  }
+  html += '</div>';
+  
   const panel = document.getElementById(section + 'Check');
   const body = document.getElementById(section + 'CheckBody');
   if(panel && body){
@@ -1481,7 +1709,6 @@ function checkScenarioLoops(section){
     showLineNumbers(section);
   }
 }
-
 function closeCheck(section){
   const panel = document.getElementById(section + 'Check');
   if(panel) panel.classList.remove('active');
