@@ -11,25 +11,40 @@ Get-CimInstance Win32_Process -Filter "Name='python.exe'" | Where-Object {
     Stop-Process -Id $_.ProcessId -Force
 }
 
-# [2] Kill cmd.exe windows running run.bat by window title
-#     The run.bat sets title to "magicIoTm - Configurator"
-Get-CimInstance Win32_Process -Filter "Name='cmd.exe'" | Where-Object {
-    $cmd = $_.CommandLine
-    ($cmd -like "*run.bat*") -and
-    ($cmd -notlike "*stop*") -and
-    ($cmd -notlike "*restart*")
-} | ForEach-Object {
-    Stop-Process -Id $_.ProcessId -Force
+# [2] Kill cmd.exe windows running run.bat
+#     Search by command line AND window title as fallback
+$found = @()
+
+# Method A: by command line - look for run.bat in the magicIoTm folder
+$cmdProcs = Get-CimInstance Win32_Process -Filter "Name='cmd.exe'" -ErrorAction SilentlyContinue
+if ($cmdProcs) {
+    foreach ($p in $cmdProcs) {
+        $cmd = $p.CommandLine
+        if ($cmd -and ($cmd -like "*\magicIoTm\run.bat*" -or $cmd -like "*magicIoTm\run*") -and
+                         ($cmd -notlike "*stop*") -and ($cmd -notlike "*restart*")) {
+            $found += $p.ProcessId
+        }
+    }
 }
 
-# [3] Also try by window title (only if not already killed above)
-Get-Process | Where-Object {
-    $_.MainWindowTitle -like "*Configurator*"
-} | ForEach-Object {
-    # Double-check it's not our own stop/restart window
-    $proc = Get-CimInstance Win32_Process -Filter "ProcessId=$($_.Id)" -ErrorAction SilentlyContinue
-    if ($proc -and $proc.CommandLine -like "*run.bat*") {
-        Stop-Process -Id $_.Id -Force
+# Method B: by window title (fallback)
+$procList = Get-Process -ErrorAction SilentlyContinue
+if ($procList) {
+    foreach ($p in $procList) {
+        if ($p.MainWindowTitle -like "*Configurator*" -and $p.Id -notin $found) {
+            # Double-check it's not our own stop/restart window
+            $cmdInfo = Get-CimInstance Win32_Process -Filter "ProcessId=$($p.Id)" -ErrorAction SilentlyContinue
+            if ($cmdInfo -and $cmdInfo.CommandLine -like "*\magicIoTm\run*") {
+                $found += $p.Id
+            }
+        }
+    }
+}
+
+# Kill all found processes
+if ($found) {
+    foreach ($id in $found) {
+        Stop-Process -Id $id -Force -ErrorAction SilentlyContinue
     }
 }
 
