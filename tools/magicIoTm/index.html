@@ -480,11 +480,11 @@ function renderDevices(devices){
     el.innerHTML = '<div class="empty-state" style="padding:16px"><p>Устройства не найдены</p></div>';
     return;
   }
-  const STATUS_TIP = {green:'Online', yellow:'Нет отклика (1-5 проверок)', red:'Нет отклика более 5 проверок', grey:'Статус не подтверждён'};
+  const STATUS_TIP = {green:'Online', yellow:'Нет отклика (1-3 проверки)', red:'Нет отклика более 3 проверок', grey:'Статус не подтверждён'};
   let html = '';
   for(const d of devices){
     const cls = d.net || (d.online ? 'green' : 'yellow');
-    const shown = dispName(d.name);
+    const shown = dispDeviceName(d.name);
     const label = shown;
     const tip = `${d.ip} · ${shown}` +
       (d.wg ? ` · группа: ${d.wg}` : '') +
@@ -529,7 +529,7 @@ document.getElementById('deviceTree').addEventListener('click', (e) => {
 // Удаление устройства (папка + записи)
 async function deleteDevice(key){
   if(!key) return;
-  const name = dispName(key);
+  const name = dispDeviceName(key);
   showDeleteConfirm('Удалить устройство?',
     `Удалить устройство "${name}" вместе с папкой скачанных файлов?`,
     async () => {
@@ -717,7 +717,7 @@ function renderScanHosts(devices, emptyMsg){
   if(!hosts) return;
   const list = (devices || []);
   hosts.innerHTML = list.length
-    ? list.map(x=>`<div>🟢 ${esc(dispName(x.name))} (${x.ip})</div>`).join('')
+    ? list.map(x=>`<div>🟢 ${esc(dispDeviceName(x.name))} (${x.ip})</div>`).join('')
     : `<div class="scan-empty">${emptyMsg}</div>`;
 }
 
@@ -750,7 +750,7 @@ function finishScanProgress(st){
   renderScanHosts(st.found, 'IoTManager-устройства не найдены');
   const found = st.found || [];
   if(st.error) toast(st.error, 'error');
-  else if(found.length) toast(`Найдено устройств: ${found.length} — ${found.map(x=>dispName(x.name)).join(', ')}`, 'success');
+  else if(found.length) toast(`Найдено устройств: ${found.length} — ${found.map(x=>dispDeviceName(x.name)).join(', ')}`, 'success');
   else toast('Сканирование завершено. Устройств не найдено.', 'info');
 }
 
@@ -781,7 +781,7 @@ function addDeviceByIp(){
     .then(d=>{
       if(d && d.success){
         closeModal();
-        toast(`Устройство добавлено: ${dispName(d.device.name)} (${d.device.ip})`, 'success');
+        toast(`Устройство добавлено: ${dispDeviceName(d.device.name)} (${d.device.ip})`, 'success');
       }else{
         toast((d && d.error) || 'Не удалось добавить устройство', 'error');
       }
@@ -846,7 +846,7 @@ function renderDeviceManager(){
   el.innerHTML = `
   <div class="devmgr">
     <div class="devmgr-top">
-      <span class="devmgr-title"><span class="device-status ${activeDevice.net || (activeDevice.online?'green':'grey')}" title="${activeDevice.online?'Online':'Нет отклика'}"></span>${esc(dispName(activeDevice.name))}<span class="devmgr-ip">${esc(activeDevice.ip || '')}</span><button class="btn-sm" style="margin-left:6px" onclick="openDeviceWeb()" title="Открыть веб-страницу устройства">🌐</button><button class="btn-sm" style="margin-left:4px" onclick="rebootActiveDevice()" title="Перезагрузить устройство">🔁</button></span>
+      <span class="devmgr-title"><span class="device-status ${activeDevice.net || (activeDevice.online?'green':'grey')}" title="${activeDevice.online?'Online':'Нет отклика'}"></span>${esc(dispDeviceName(activeDevice.name))}<span class="devmgr-ip">${esc(activeDevice.ip || '')}</span><button class="btn-sm" style="margin-left:6px" onclick="openDeviceWeb()" title="Открыть веб-страницу устройства">🌐</button><button class="btn-sm" style="margin-left:4px" onclick="rebootActiveDevice()" title="Перезагрузить устройство">🔁</button></span>
       <div class="devmgr-top-actions">
         <button class="btn-sm" onclick="reloadDeviceTrees()" title="Обновить деревья">🔄</button>
       </div>
@@ -3150,7 +3150,9 @@ async function showModuleInfo(path){
   showModal(html + `<div class="modal-actions"><button title="Закрыть окно" onclick="closeModal()">Закрыть</button></div>`);
 }
 
-// Отображаемое имя устройства: название папки, подчёркивания заменяются на пробелы
+// Отображаемое имя устройства: показывается БЕЗ изменений (подчёркивания сохраняются)
+function dispDeviceName(s){ return String(s == null ? '' : s); }
+// Отображаемое имя (проекты/прочее): подчёркивания заменяются на пробелы
 function dispName(s){ return String(s == null ? '' : s).replace(/_/g, ' '); }
 
 // ==================== Utils ====================

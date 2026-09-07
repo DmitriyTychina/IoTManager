@@ -340,6 +340,84 @@ def fetch_profile(host, port=PORT, timeout=DEFAULT_TIMEOUT):
         sock.close()
 
 
+def fetch_settings(host, port=PORT, timeout=DEFAULT_TIMEOUT):
+    """Скачивает актуальный settings.json с устройства (команда '/list|').
+
+    Прошивка (WsServer.cpp) на '/list|' отвечает широковещательным блоком 'settin'
+    (settingsFlashJson). Лёгкая альтернатива полному fetch_ram: возвращается один файл.
+    Используется для подтверждения идентичности устройства по пингу (name+id).
+    Возвращает содержимое как dict либо None, если устройство недоступно.
+    """
+    try:
+        sock = socket.create_connection((host, port), timeout=timeout)
+        sock.settimeout(timeout)
+    except OSError:
+        return None
+    try:
+        buf = _handshake(sock, host, port)
+        sock.sendall(build_text_frame("/list|"))
+
+        current_type, current_data = None, b""
+        start = time.time()
+        last_response_time = start
+        QUIET = 1.5
+        settings_bytes = None
+
+        while time.time() - start < timeout:
+            # защита от зависшего (но не закрытого) соединения
+            if time.time() - last_response_time > QUIET:
+                break
+            fin, opcode, pl, rest = parse_frame(buf)
+            if pl is None:
+                try:
+                    chunk = sock.recv(4096)
+                except socket.timeout:
+                    break
+                if not chunk:
+                    break
+                buf = buf + chunk
+                continue
+            buf = rest
+
+            if opcode == 0x8:   # Close
+                break
+            if opcode in (0x9, 0xA):   # Ping/Pong
+                last_response_time = time.time()
+                continue
+            if opcode == 0x0:   # continuation
+                current_data += pl
+            elif opcode in (0x1, 0x2):
+                current_type, _size_str, current_data = _split_header(pl)
+
+            if not (fin and current_type):
+                continue
+
+            hdr, data = current_type, current_data
+            current_type, current_data = None, b""
+
+            if hdr.startswith("/"):
+                last_response_time = time.time()
+                continue
+
+            if FILE_NAMES.get(hdr) == "settings.json":
+                settings_bytes = data
+                break
+            last_response_time = time.time()
+
+        if settings_bytes is not None:
+            try:
+                return json.loads(settings_bytes.decode("utf-8", errors="replace"))
+            except Exception:
+                return None
+        return None
+    finally:
+        try:
+            sock.sendall(bytes([0x88, 0x00]))
+        except Exception:
+            pass
+        sock.close()
+
+
 def send_command(host, command, payload="", port=PORT, timeout=DEFAULT_TIMEOUT):
     """Отправляет устройству произвольную WS-команду (command с завершающим '|').
 

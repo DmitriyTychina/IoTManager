@@ -61,22 +61,34 @@ platforms_cache = {}
 MULTICAST_GROUP = "239.255.255.255"
 MULTICAST_PORT = 4210
 DEVICES_TIMEOUT = 90  # секунды без пакета, после чего устройство считается offline
+PING_SKIP_AFTER_MULTICAST = 70.0  # после свежего multicast не пингуем устройство 70 сек
 
 _devices = {}          # ip -> {ip, name, wg, id, status, fv, last_seen}
 _devices_lock = threading.Lock()
 _device_thread = None
 
-# Пропущенные проверки (пинг/мультикаст) подряд: ip -> {"missed": N, "confirmed": bool}
-_missed = {}
-_missed_lock = threading.Lock()
-MISSED_YELLOW = 1      # 1..MISSED_RED — жёлтый
-MISSED_RED = 5         # больше — красный
+# Состояние-машина статуса устройства (ключ = базовое имя папки <имя>_<id>).
+# Статус НЕ зависит только от пинга: зелёный требует подтверждения идентичности —
+# свежий multicast с совпадением name+id ИЛИ успешный пинг + актуальный settings.json.
+# Жёлтый/красный достижимы только ПОСЛЕ зелёного (переходные стадии при пропадании).
+STATE_GREEN = "green"
+STATE_YELLOW = "yellow"
+STATE_RED = "red"
+STATE_GREY = "grey"
+_device_states = {}          # key -> {"state": ..., "fails": int, "last_confirm": ts}
+_device_states_lock = threading.Lock()
+FAILS_YELLOW = 3             # 1..FAILS_YELLOW провалов пинга после зелёного -> жёлтый
+FAILS_RED = 3                # более FAILS_RED провалов -> красный
 PING_INTERVAL = 60.0   # период фонового пинга, сек
 _ping_thread = None
 
 
 def _mark_device_seen(ip, name=""):
-    """Отмечает устройство как живое (пришёл multicast или успешный пинг)."""
+    """Отмечает факт прихода multicast-пакета от IP (обновляет атрибуты устройства).
+
+    Пинг НЕ вызывает эту функцию — он не подтверждает идентичность и не должен
+    обновлять last_seen (иначе multicast-свежесть была бы неразличима от пинга).
+    """
     now = time.time()
     with _devices_lock:
         old = _devices.get(ip)
@@ -89,8 +101,101 @@ def _mark_device_seen(ip, name=""):
             "fv": (old or {}).get("fv", ""),
             "last_seen": now,
         }
-    with _missed_lock:
-        _missed[ip] = {"missed": 0, "confirmed": True}
+
+
+def _get_state(key):
+    """Возвращает запись состояния-машины для ключа папки (создаёт при обращении)."""
+    with _device_states_lock:
+        st = _device_states.get(key)
+        if st is None:
+            st = {"state": STATE_GREY, "fails": 0, "last_confirm": 0.0}
+            _device_states[key] = st
+        return st
+
+
+def _confirm_device(key, now=None):
+    """Подтверждает устройство (мультикаст или пинг+settings): сразу зелёный, счётчик 0."""
+    with _device_states_lock:
+        st = _device_states.setdefault(
+            key, {"state": STATE_GREY, "fails": 0, "last_confirm": 0.0})
+        st["state"] = STATE_GREEN
+        st["fails"] = 0
+        st["last_confirm"] = now or time.time()
+
+
+def _next_state(cur, fails, confirmed, ping_ok):
+    """Вычисляет следующее состояние конечного автомата статуса устройства.
+
+    Аргументы:
+      cur       — текущее состояние ("grey"/"green"/"yellow"/"red")
+      fails     — текущий счётчик провалов пинга
+      confirmed — подтверждена ли идентичность (multicast или пинг+settings)
+      ping_ok   — успешен ли пинг
+
+    Возвращает (new_state, new_fails).
+
+    Правила (по требованиям):
+      - confirmed -> сразу зелёный, счётчик сбрасывается.
+      - пинг успешен БЕЗ подтверждения -> серый, счётчик сбрасывается (из любого).
+      - провал пинга: зелёный -> жёлтый (1..FAILS_YELLOW) -> красный (>FAILS_RED);
+        жёлтый -> красный (>FAILS_RED); серый и красный остаются в своём состоянии.
+    """
+    if confirmed:
+        return STATE_GREEN, 0
+    if ping_ok:
+        return STATE_GREY, 0
+    f = fails + 1
+    if cur == STATE_GREEN:
+        return (STATE_YELLOW if f <= FAILS_YELLOW else STATE_RED), f
+    if cur == STATE_YELLOW:
+        return (STATE_RED if f > FAILS_RED else STATE_YELLOW), f
+    # grey / red остаются в своём состоянии
+    return cur, f
+
+
+def _enforce_single_green(ip, keys, confirmed_here):
+    """Гарантирует, что на одном IP зелёным может быть только одно устройство.
+
+    Физически по IP отвечает один активный узел, поэтому среди нескольких папок,
+    разделяющих один IP, зелёным должен остаться только подтверждённый в текущем
+    цикле (confirmed_here); остальные зелёные переводятся в серый. Защита от
+    дублей и коллизий ключей папок.
+
+    Возвращает список ключей, оставшихся зелёными.
+    """
+    with _device_states_lock:
+        green_here = [k for k in keys
+                      if _device_states.get(k, {}).get("state") == STATE_GREEN]
+        if len(green_here) > 1:
+            keep = confirmed_here[0] if confirmed_here else green_here[0]
+            for k in green_here:
+                if k != keep:
+                    st = _device_states[k]
+                    st["state"] = STATE_GREY
+                    st["fails"] = 0
+                    logger.warning(f"Один зелёный на IP {ip}: {keep} остаётся, {k} -> серый")
+            green_here = [keep]
+    return list(green_here)
+
+
+def _fetch_settings_identity(ip):
+    """Скачивает актуальный settings.json с устройства и возвращает (name, id) либо None.
+
+    Используется как подтверждение идентичности по пингу, когда multicast недоступен.
+
+    Во время активного скачивания файлов устройства WS-запрос к нему НЕ выполняется:
+    на ESP8266 однопоточный стек — конкуренция TCP с передачей файлов срывает скачивание.
+    """
+    if _device_busy_fetching(ip) or ota.busy_ip() == ip:
+        return None
+    try:
+        data = ws_client.fetch_settings(ip)
+    except Exception:  # noqa: BLE001
+        logger.warning(f"Не удалось получить settings.json с {ip}")
+        return None
+    if not data:
+        return None
+    return str(data.get("name", "")), str(data.get("id", ""))
 
 
 def _device_busy_fetching(ip):
@@ -107,44 +212,91 @@ def _device_busy_fetching(ip):
 
 
 def _ping_cycle():
-    """Один цикл фонового пинга устройств.
+    """Один цикл фоновой проверки устройств (ping + подтверждение идентичности).
 
-    Пингуются устройства, от которых НЕТ свежего multicast-пакета.
-    Исключение: если у multicast-устройства красный статус (missed > MISSED_RED) —
-    его тоже пингуем. Успешный пинг сбрасывает счётчик пропусков.
-    
-    confirmed=True устанавливается ТОЛЬКО при multicast или успешном пинге.
-    При fail пинге confirmed остаётся как был — grey, а не yellow.
+    Пинг выполняется ОДИН раз на уникальный IP-адрес: если несколько папок устройств
+    разделяют один IP, он проверяется единожды, а результат применяется ко всем таким
+    папкам. Это исключает избыточные сетевые запросы.
+
+    Логика статуса (привязка к ключу папки, см. _device_states):
+    1. Свежий multicast с совпадением name+id -> зелёный (пинг не нужен).
+    2. Иначе пинг: успех + актуальный settings.json с совпадением name+id -> зелёный;
+       успех без подтверждения -> серый (переход из зелёного/жёлтого/красного);
+       провал: зелёный -> жёлтый (1..FAILS_YELLOW) -> красный (>FAILS_RED).
+    3. Из серого жёлтый/красный недоступны (нужно сначала стать зелёным).
     """
     now = time.time()
     with _device_folders_lock:
         entries = [(e["key"], e.get("ip")) for e in _device_folders.values() if e.get("ip")]
+
+    # Группируем папки по уникальному IP, исключая занятые (скачивание/прошивка):
+    # сетевые операции в это время мешают передаче больших файлов на ESP8266.
+    by_ip = {}
     for key, ip in entries:
-        if _device_busy_fetching(ip):
+        if _device_busy_fetching(ip) or ota.busy_ip() == ip:
             continue
-        # Не пингуем устройство, которое сейчас прошивается по воздуху:
-        # одинаковые IP могут быть у нескольких устройств, а пинг во время
-        # записи мешает передаче файлов на ESP8266 (однопоточный стек).
-        if ota.busy_ip() == ip:
-            continue
+        by_ip.setdefault(ip, []).append(key)
+
+    for ip, keys in by_ip.items():
         with _devices_lock:
             live = _devices.get(ip)
-        live_fresh = bool(live) and (now - live["last_seen"]) <= DEVICES_TIMEOUT
-        with _missed_lock:
-            data = _missed.get(ip, {"missed": 0, "confirmed": False})
-            missed = data["missed"]
-            confirmed = data["confirmed"]
-        # Если multicast свежий и статус не красный — пинг не нужен
-        if live_fresh and missed <= MISSED_RED:
-            continue
-        # Пингуем (в т.ч. красные устройства с live_fresh)
-        if _host_pingable(ip):
-            _mark_device_seen(ip, name=key)
-            logger.info(f"Пинг OK: {ip} ({key})")
-        else:
-            with _missed_lock:
-                _missed[ip] = {"missed": missed + 1, "confirmed": confirmed}
-            logger.info(f"Пинг fail: {ip} ({key}), пропусков: {_missed[ip]['missed']}")
+        confirmed_here = []   # ключи, подтверждённые идентичностью в этом цикле
+        live_name = str(live.get("name", "")) if live else ""
+        live_id = str(live.get("id", "")) if live else ""
+        sj_name = sj_id = ""
+        # 1) Подтверждение свежим multicast'ом (индивидуально для каждой папки)
+        pending = []   # папки, которым нужен пинг (нет multicast-подтверждения)
+        mc_fresh = bool(live) and (now - live["last_seen"]) <= DEVICES_TIMEOUT
+        # После свежего multicast (<70 сек) устройство не пингуем: multicast уже
+        # подтверждает живость и идентичность (multicast идёт каждые 60 сек).
+        mc_no_ping = bool(live) and (now - live["last_seen"]) <= PING_SKIP_AFTER_MULTICAST
+        for key in keys:
+            if mc_fresh and key in _folder_key_candidates(
+                    str(live.get("name", "")), str(live.get("id", "")), ip):
+                _confirm_device(key, now)
+                confirmed_here.append(key)
+            else:
+                pending.append(key)
+        # 2) Пинг и settings.json выполняем только если multicast давно не приходил
+        #    (>70 сек): при разделяемом IP settings.json может вернуть имя другого
+        #    устройства, поэтому живой multicast считается авторитетным источником.
+        if pending and not mc_no_ping:
+            if _host_pingable(ip):
+                logger.info(f"Пинг OK: {ip}")
+                # актуальный settings.json скачиваем тоже один раз на IP
+                sj = _fetch_settings_identity(ip)
+                sj_name, sj_id = (sj[0], sj[1]) if sj else ("", "")
+                sj_keys = set(_folder_key_candidates(sj[0], sj[1], ip)) if sj else set()
+                for key in pending:
+                    if key in sj_keys:
+                        _confirm_device(key, now)
+                        confirmed_here.append(key)
+                        logger.info(f"Пинг+settings OK: {ip} ({key})")
+                    else:
+                        # пинг успешен, но multicast и settings.json не подтверждают name+id
+                        with _device_states_lock:
+                            st = _device_states.setdefault(
+                                key, {"state": STATE_GREY, "fails": 0, "last_confirm": 0.0})
+                            st["state"], st["fails"] = _next_state(
+                                st["state"], st["fails"], False, True)
+                        logger.info(f"Пинг OK, нет подтверждения идентичности: {ip} ({key})")
+            else:
+                logger.info(f"Пинг fail (нет ответа): {ip}")
+                for key in pending:
+                    with _device_states_lock:
+                        st = _device_states.setdefault(
+                            key, {"state": STATE_GREY, "fails": 0, "last_confirm": 0.0})
+                        st["state"], st["fails"] = _next_state(
+                            st["state"], st["fails"], False, False)
+                    logger.info(f"Пинг fail: {ip} ({key}), провалов: {st['fails']}")
+        elif pending and mc_no_ping:
+            logger.info(f"Пинг пропущен для {ip}: свежий multicast "
+                        f"({now - live['last_seen']:.0f} сек назад)")
+        # 3) Гарантия: на одном IP только один зелёный
+        _enforce_single_green(ip, keys, confirmed_here)
+        logger.info(f"Статус-цикл IP={ip} keys={keys} "
+                    f"live='{live_name}/{live_id}' settings='{sj_name}/{sj_id}' "
+                    f"confirmed={confirmed_here}")
 
 
 def _ping_worker():
@@ -214,27 +366,65 @@ def _device_listener():
     logger.info("Multicast слушатель остановлен")
 
 
+def _grey_peers_on_ip(src_ip, mc_candidates, confirmed_keys):
+    """Переводит в серый папки, делящие указанный IP, но НЕ совпавшие по name+id.
+
+    На одном IP физически отвечает один активный узел. Если multicast подтвердил
+    конкретные имя+id, прочие папки, привязанные к этому же IP (не вошедшие в
+    candidates), не должны оставаться зелёными/жёлтыми — они переводятся в серый.
+    """
+    with _device_folders_lock:
+        peers = [k for k, e in _device_folders.items() if e.get("ip") == src_ip]
+    with _device_states_lock:
+        for key in peers:
+            if key in confirmed_keys or key in mc_candidates:
+                continue
+            st = _device_states.setdefault(
+                key, {"state": STATE_GREY, "fails": 0, "last_confirm": 0.0})
+            if st["state"] != STATE_GREY:
+                st["state"] = STATE_GREY
+                st["fails"] = 0
+                logger.info(f"Multicast {src_ip}: {key} -> серый (не совпало с name+id)")
+
+
 def _ingest_payload(src_ip, text):
-    """Разбор payload: JSON-массив или единичный объект. ip берём из заголовка пакета."""
+    """Разбор payload: JSON-массив или единичный объект. ip берём из заголовка пакета.
+
+    После прихода multicast: папка, совпавшая по ip+name+id, сразу становится
+    зелёной, а все прочие папки с этим же IP переводятся в серый (_grey_peers_on_ip).
+    """
     try:
         obj = json.loads(text)
     except (json.JSONDecodeError, ValueError):
+        logger.warning(f"Multicast от {src_ip}: не JSON ({text[:120]!r})")
         return
     items = obj if isinstance(obj, list) else [obj]
+    logger.info(f"Multicast пришёл от {src_ip}, объектов: {len(items)}, данные: {text}")
+    mc_candidates = set()
+    confirmed_keys = []
     for it in items:
         if not isinstance(it, dict):
             continue
-        _mark_device_seen(src_ip, name=str(it.get("name", "")))
+        name = str(it.get("name", ""))
+        dev_id = str(it.get("id", ""))
+        mc_candidates.update(_folder_key_candidates(name, dev_id, src_ip))
+        _mark_device_seen(src_ip, name=name)
         # дополняем запись данными из пакета (wg/id/status/fv)
         with _devices_lock:
             live = _devices.get(src_ip)
             if live:
                 live["wg"] = str(it.get("wg", ""))
-                live["id"] = str(it.get("id", ""))
+                live["id"] = dev_id
                 live["status"] = bool(it.get("status", False))
                 live["fv"] = it.get("fv", "")
         # создаём папку устройства <имя>_<id> с подпапками RAM и FS
-        ensure_device_folder(src_ip, str(it.get("name", "")), str(it.get("id", "")))
+        entry = ensure_device_folder(src_ip, name, dev_id)
+        # свежий multicast с совпадением name+id папки -> сразу зелёный
+        if entry and entry["key"] in mc_candidates:
+            _confirm_device(entry["key"])
+            confirmed_keys.append(entry["key"])
+    # остальные папки с этим же IP -> серый
+    _grey_peers_on_ip(src_ip, mc_candidates, confirmed_keys)
 
 
 def _build_devices_payload():
@@ -270,16 +460,9 @@ def _build_devices_payload():
             "net": "grey",
         }
         live = None
-        missed = 0
-        confirmed = False
         if ip:
             with _devices_lock:
                 live = _devices.get(ip)
-            with _missed_lock:
-                data = _missed.get(ip, {"missed": 0, "confirmed": False})
-                missed = data["missed"]
-                confirmed = data["confirmed"]
-        live_fresh = bool(live) and (now - live["last_seen"]) <= DEVICES_TIMEOUT
         if live:
             # Имя устройства = базовое имя его папки (e["name"]), как в devices/.
             # Живое multicast-имя используется только для доп. атрибутов и статуса.
@@ -287,17 +470,11 @@ def _build_devices_payload():
             dev["id"] = live["id"]
             dev["status"] = bool(live["status"])
             dev["fv"] = live["fv"]
-        # Определяем статус
-        if not confirmed:
-            dev["net"] = "grey"  # статус не подтверждён
-        elif missed > MISSED_RED:
-            dev["net"] = "red"
-        elif missed == 0:
-            dev["net"] = "green"
-        else:
-            dev["net"] = "yellow"
-        dev["missed"] = missed
-        dev["online"] = dev["net"] == "green"
+        # Статус берётся из состояния-машины папки (см. _device_states)
+        st = _get_state(e["key"])
+        dev["net"] = st["state"]
+        dev["missed"] = st["fails"]
+        dev["online"] = st["state"] == STATE_GREEN
         devices.append(dev)
     # Живые устройства, у которых не оказалось папки (например, не удалось создать)
     with _devices_lock:
@@ -332,12 +509,12 @@ def _devices_signature():
             (d["ip"], round(d["last_seen"], 1), (now - d["last_seen"]) <= DEVICES_TIMEOUT)
             for d in _devices.values()
         ))
-    with _missed_lock:
-        missed = tuple(sorted(
-            (ip, d["missed"], d["confirmed"])
-            for ip, d in _missed.items()
+    with _device_states_lock:
+        states = tuple(sorted(
+            (k, v["state"], v["fails"], round(v["last_confirm"], 1))
+            for k, v in _device_states.items()
         ))
-    return (folder_keys, online, missed)
+    return (folder_keys, online, states)
 
 
 def start_device_listener():
@@ -397,14 +574,24 @@ def _get_wifi_ssid():
 
 
 def _folder_base_name(name, dev_id, ip):
-    """Базовое имя папки устройства: <имя>_<id>, либо <имя>_<ip> если id пуст.
+    """Каноническое базовое имя папки устройства: <имя> <id>, либо <имя> <ip>.
 
-    Стабильное имя без изменчивого SSID — исключает дубликаты папок при смене сети.
+    Разделитель — пробел (а не '_'), чтобы символы '_' внутри имени устройства
+    не путались с границей имени и id/IP. Стабильное имя без изменчивого SSID.
+    """
+    return _folder_key_candidates(name, dev_id, ip)[0]
+
+
+def _folder_key_candidates(name, dev_id, ip):
+    """Возможные ключи папки для (name, id/ip): новый разделитель ' ' и легаси '_'.
+
+    Обратная совместимость: папки, созданные старым кодом с разделителем '_',
+    должны продолжать сопоставляться, чтобы после обновления не было дублей.
     """
     base = _sanitize_name(name)
     if dev_id:
-        return f"{base}_{dev_id}"
-    return f"{base}_{ip}"
+        return [f"{base} {dev_id}", f"{base}_{dev_id}"]
+    return [f"{base} {ip}", f"{base}_{ip}"]
 
 
 def _device_meta_path(folder):
@@ -470,7 +657,7 @@ def _register_folder_entry(key, ip=None, name=None, create=True):
 
 
 def ensure_device_folder(ip, name, dev_id=""):
-    """Создаёт/возвращает папку устройства с ключом <имя>_<id>.
+    """Создаёт/возвращает папку устройства с ключом <имя> <id> (разделитель — пробел).
 
     Идентичность устройства — имя+id (ключ = базовое имя папки, уникально на диске).
     Идемпотентна: если папка с таким именем уже есть в памяти или на диске,
@@ -479,13 +666,17 @@ def ensure_device_folder(ip, name, dev_id=""):
     """
     base = _folder_base_name(name, dev_id, ip)
     with _device_folders_lock:
-        if base in _device_folders:
-            entry = _device_folders[base]
+        # ищем по всем вариантам ключа (новый ' ' и легаси '_') — чтобы не плодить
+        # дубликаты папок после смены разделителя
+        for cand in _folder_key_candidates(name, dev_id, ip):
+            entry = _device_folders.get(cand)
+            if entry is None:
+                continue
             # освежаем IP: устройство могло сменить адрес или запись была
             # восстановлена из диска без IP (после рестарта сервера)
             if entry.get("ip") != ip:
                 entry["ip"] = ip
-                logger.info(f"Обновлён IP устройства '{base}': {ip}")
+                logger.info(f"Обновлён IP устройства '{cand}': {ip}")
                 _save_folder_meta(entry)
             return entry
     return _register_folder_entry(base, ip=ip, name=base)
@@ -1981,8 +2172,8 @@ def api_device_delete(device_key):
     if ip:
         with _devices_lock:
             _devices.pop(ip, None)
-        with _missed_lock:
-            _missed.pop(ip, None)
+        with _device_states_lock:
+            _device_states.pop(device_key, None)
     if _rmtree_with_retry(folder):
         logger.info(f"Устройство удалено: {device_key} ({folder})")
         return jsonify({"success": True})
