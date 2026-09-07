@@ -8,3 +8,9 @@ tools/magicIoTm/__pycache__/*
 tools/magicIoTm/utils/__pycache__/*
 tools/magicIoTm/magicIoTm.log
 tools/magicIoTm/__pycache__/app.cpython-314.pyc
+
+# Runtime/generated artifacts
+__pycache__/
+*.py[cod]
+*.log
+data_svelte/settings.json
