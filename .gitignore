@@ -19,3 +19,6 @@ data_svelte/settings.json
 data_full — копия/
 iotm/
 
+# Compiled Python — трекинг .pyc отключён
+tools/magicIoTm/utils/__pycache__/
+
