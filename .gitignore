@@ -1,24 +1,28 @@
-.pio/*
-.vscode/*
-tools/magicIoTm/projects/*
-tools/magicIoTm/devices/*
-/tools/measure_size/logs/*
-/tools/measure_size/venv/*
-tools/magicIoTm/__pycache__/*
-tools/magicIoTm/utils/__pycache__/*
-tools/magicIoTm/magicIoTm.log
-tools/magicIoTm/__pycache__/app.cpython-314.pyc
+# Virtual environments
+.venv/
+.venv-1/
 
-# Runtime/generated artifacts
+# Python artifacts
 __pycache__/
 *.py[cod]
 *.log
-data_svelte/settings.json
+
+# IDE & editors
+.vscode/
+.codeassistant/
+.continue/
+.kilo/
+.qodo/
+
+# PlatformIO
+.pio/
 
 # Build output
 data_full — копия/
 iotm/
 
-# Compiled Python — трекинг .pyc отключён
+# Project-specific
+data_svelte/settings.json
+tools/magicIoTm/projects/*
+tools/magicIoTm/devices/*
 tools/magicIoTm/utils/__pycache__/
-
