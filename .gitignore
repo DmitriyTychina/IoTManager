@@ -14,3 +14,8 @@ __pycache__/
 *.py[cod]
 *.log
 data_svelte/settings.json
+
+# Build output
+data_full — копия/
+iotm/
+

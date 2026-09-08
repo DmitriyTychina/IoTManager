@@ -3578,7 +3578,7 @@ function updateCopyFromDeviceButton(){
     // Кнопка доступна если есть хотя бы одна папка устройства с RAM или FS
     const hasDevices = devices && devices.some(d => d.has_ram || d.has_fs);
     btn.disabled = !hasDevices;
-    btn.title = hasDevices ? 'Скопировать все значения (кроме name и apssid) из устройства' : 'Нет доступных устройств';
+    btn.title = hasDevices ? 'Скопировать все значения из устройства' : 'Нет доступных устройств';
     // Кнопка модулей из устройства
     const btnMod = document.getElementById('btnCopyModulesFromDevice');
     if(!btnMod) return;

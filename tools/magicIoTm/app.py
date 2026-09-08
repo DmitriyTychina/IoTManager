@@ -94,7 +94,9 @@ def _mark_device_seen(ip, name=""):
         old = _devices.get(ip)
         _devices[ip] = {
             "ip": ip,
-            "name": (old or {}).get("name") or name,
+            # имя из свежего multicast приоритетно: устройство могло быть
+            # переименовано, устаревшее имя ломает подтверждение идентичности
+            "name": name or (old or {}).get("name", ""),
             "wg": (old or {}).get("wg", ""),
             "id": (old or {}).get("id", ""),
             "status": bool((old or {}).get("status", False)),

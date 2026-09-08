@@ -7,7 +7,7 @@
     "modules": {
         "executive_devices": [
             {
-                "active": true,
+                "active": false,
                 "path": "src/modules/exec/AnalogBtn"
             },
             {
@@ -15,11 +15,11 @@
                 "path": "src/modules/exec/BrokerMQTT"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/exec/ButtonIn"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/exec/ButtonOut"
             },
             {
@@ -421,7 +421,7 @@
                 "path": "src/modules/virtual/Ping"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/virtual/Timer"
             },
             {
@@ -429,11 +429,11 @@
                 "path": "src/modules/virtual/UpdateServer"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/virtual/Variable"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/virtual/VButton"
             },
             {

@@ -381,6 +381,11 @@ def get_all_field_values(field, exclude_project=None):
     Возвращает словарь {значение: [список проектов, использующих значение]}.
     """
     values = {}
+    # Нормализация исключаемого проекта: PlatformIO приходит с фронтенда как
+    # "PlatformIO/PlatformIO" (category/name), а внутри кода ключ — "PlatformIO".
+    if exclude_project and (exclude_project == PLATFORMIO_PROJECT
+                            or exclude_project.split('/')[-1] == PLATFORMIO_PROJECT):
+        exclude_project = PLATFORMIO_PROJECT
     tree = list_projects()
     for cat, projects in tree.items():
         for proj in projects:

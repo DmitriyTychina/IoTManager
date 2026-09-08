@@ -1,7 +1,7 @@
 {
     "iotmSettings": {
-        "appass": "",
-        "apssid": "IoTmanager",
+        "appass": "hostel3333",
+        "apssid": "IoTm",
         "debugTraceMsgTlgrm": 1,
         "i2cFreq": 100000,
         "log": 0,
@@ -11,7 +11,7 @@
         "mqttServer": "",
         "mqttUser": "rise",
         "mqttin": 0,
-        "name": "IoTmanagerVer4",
+        "name": "IoTmVer4",
         "ntp": "pool.ntp.org",
         "pinSCL": 0,
         "pinSDA": 0,
@@ -19,7 +19,7 @@
         "routerssid": "iot",
         "serverip": "http://iotmanager.org",
         "serverlocal": "http://192.168.1.2:5500",
-        "timezone": 3,
+        "timezone": 5,
         "weblogin": "admin",
         "webpass": "admin",
         "wg": "group1",
@@ -33,7 +33,7 @@
     "modules": {
         "executive_devices": [
             {
-                "active": true,
+                "active": false,
                 "path": "src/modules/exec/AnalogBtn"
             },
             {
@@ -41,11 +41,11 @@
                 "path": "src/modules/exec/BrokerMQTT"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/exec/ButtonIn"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/exec/ButtonOut"
             },
             {
@@ -447,7 +447,7 @@
                 "path": "src/modules/virtual/Ping"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/virtual/Timer"
             },
             {
@@ -455,11 +455,11 @@
                 "path": "src/modules/virtual/UpdateServer"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/virtual/Variable"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/virtual/VButton"
             },
             {
