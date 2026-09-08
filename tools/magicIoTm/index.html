@@ -2201,7 +2201,7 @@ function renderContent(about){
     <div class="content-section">
       <div class="section-header">
         <h2>⚙️ Настройки устройства</h2>
-        <button class="btn-sm" title="Скопировать все значения (кроме name и apssid) из другого проекта" onclick="showCopyValuesModal('','Настройки')">⧉ Из другого проекта</button>
+        <button class="btn-sm" title="Скопировать все значения (кроме name и apssid) из другого проекта" onclick="showCopyValuesModal('','Настройки')">⤵ Из другого проекта</button>
       </div>
       <div id="settingsContainer"></div>
     </div>
@@ -2210,7 +2210,7 @@ function renderContent(about){
         <h2> 💠 Модули</h2>
         <div class="section-tools">
           <button class="btn-sm" title="Замер размера модулей для этой платформы" onclick="showMeasureScope()">⚖️ Замер размера</button>
-          <button class="btn-sm" title="Скопировать состав модулей из другого проекта" onclick="showCopyModules()">⧉ Из другого проекта</button>
+          <button class="btn-sm" title="Скопировать состав модулей из другого проекта" onclick="showCopyModules()">⤵ Из другого проекта</button>
         </div>
       </div>
       <div class="module-list" id="moduleList"></div>
@@ -2254,7 +2254,7 @@ function renderSettings(){
     const keys = present.map(([k])=>k);
     html += `<div class="group-separator">
       <span class="group-title">${group.title}</span>
-      <button class="btn-sm" title="Скопировать значения группы «${group.title}» из другого проекта" onclick="showCopyValuesModal('${keys.join(',')}','${group.title}')">⧉ Из другого проекта</button>
+      <button class="btn-sm" title="Скопировать значения группы «${group.title}» из другого проекта" onclick="showCopyValuesModal('${keys.join(',')}','${group.title}')">⤵ Из другого проекта</button>
     </div>`;
     html += `<div class="form-grid">`;
     for(const [key, label, type] of present){
