@@ -3046,6 +3046,12 @@ async function startOta(){
         if(c) showOtaModeModal(c);
       });
     });
+    document.querySelectorAll('#otaDeviceList .ota-device-row.incompatible').forEach(row=>{
+      row.addEventListener('click', ()=>{
+        const c = online[parseInt(row.dataset.idx,10)];
+        toast(`«${c ? esc(c.name) : ''}»: платформа ${c && c.platform ? esc(c.platform) : '?'} не совпадает с платформой проекта ${esc(d.env)} — OTA заблокирована`, 'warning');
+      });
+    });
   }catch(e){
     toast('Ошибка получения списка устройств','error');
   }
@@ -3271,9 +3277,13 @@ function closeModal(e){
     releaseScanBtn();
     return;
   }
-  // Если клик по содержимому модалки — игнорируем (bubbling от дочерних элементов)
-  if(e.target.closest('.modal')) return;
-  // Если клик по фону и установлен флаг noCloseOverlay — не закрывать
+  // Закрываем ТОЛЬКО клик по фону (сам оверлей).
+  // ВАЖНО: прежняя проверка e.target.closest('.modal') ненадёжна — если клик по
+  // содержимому модалки сам открывает другую модалку (innerHTML заменён), target
+  // оказывается отсоединённым от DOM, closest('.modal') возвращает null, и модалка
+  // закрывалась в том же клике, которым открывалась (OTA: модалка выбора режима
+  // закрывалась мгновенно и невидимо — прошивка не запускалась).
+  if(e.target !== overlay) return;
   if(noCloseOverlay) return;
   // Закрываем модалку
   overlay.classList.remove('active');

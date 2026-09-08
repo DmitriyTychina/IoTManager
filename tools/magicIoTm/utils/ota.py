@@ -201,38 +201,51 @@ def start(cfg):
 
 
 def event_stream():
-    """Генератор SSE-событий OTA: log, step, progress, done/error, finish."""
+    """Генератор SSE-событий OTA: log, step, progress, done/error, finish.
+
+    События собираются под блокировкой, а отдаются (yield) уже вне её:
+    yield при удержанной блокировке подвешивает воркер OTA, если SSE-клиент
+    медленно читает поток.
+    """
     idx = 0
     emitted_step = {}
     done_sent = False
     last_progress = None
     while True:
+        events = []
+        finished = False
         with _state["cond"]:
             while idx < len(_state["lines"]):
-                yield _sse("log", {"text": _state["lines"][idx]})
+                events.append(_sse("log", {"text": _state["lines"][idx]}))
                 idx += 1
             for s in _state["steps"]:
                 status = s["status"]
                 if status != "pending" and emitted_step.get(s["id"]) != status:
                     emitted_step[s["id"]] = status
-                    yield _sse("step", {"id": s["id"], "label": s["label"], "status": status})
+                    events.append(_sse("step", {"id": s["id"], "label": s["label"], "status": status}))
             pr = _state["progress"]
             pkey = (pr["file"], pr["done"], pr["total"])
             if pkey != last_progress:
                 last_progress = pkey
-                yield _sse("progress", {"file": pr["file"], "done": pr["done"], "total": pr["total"]})
+                events.append(_sse("progress", {"file": pr["file"], "done": pr["done"], "total": pr["total"]}))
             finished = not _state["running"]
             if finished and not done_sent:
                 done_sent = True
                 if _state["success"]:
-                    yield _sse("done", {})
+                    events.append(_sse("done", {}))
                 else:
-                    yield _sse("error", {"step": _state["error_step"],
-                                         "error": _state["error"],
-                                         "label": _state["mode"]})
-                yield _sse("finish", {})
-            if finished:
-                break
+                    # success=None значит, что OTA не запускалась (например,
+                    # авто-reconnect старой вкладки) — не отдаём "неизвестную ошибку"
+                    err = _state["error"] or "OTA не запущена (поток открыт без запуска прошивки)"
+                    events.append(_sse("error", {"step": _state["error_step"],
+                                                 "error": err,
+                                                 "label": _state["mode"]}))
+                events.append(_sse("finish", {}))
+        for ev in events:
+            yield ev
+        if finished:
+            break
+        with _state["cond"]:
             _state["cond"].wait(timeout=1.0)
 
 

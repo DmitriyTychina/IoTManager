@@ -2878,7 +2878,9 @@ def api_ota_start():
         "pc_ip": _local_ip_for_device(ip),
         "timeout": 180,
     }
-    ota.start(ota_cfg)
+    if not ota.start(ota_cfg):
+        return jsonify({"success": False,
+                        "error": "Не удалось запустить OTA (вероятно, уже выполняется)"}), 409
     logger.info(f"OTA запущена: env={cfg.get('env')}, mode={mode}, fs_method={fs_method}, ip={ip}")
     return jsonify({"success": True})
 
