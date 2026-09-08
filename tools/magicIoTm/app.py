@@ -685,12 +685,18 @@ def ensure_device_folder(ip, name, dev_id=""):
 def get_device_folder(key):
     """Возвращает запись папки устройства по ключу (базовому имени) или None."""
     with _device_folders_lock:
+        # Сначала точное совпадение
         e = _device_folders.get(key)
         if e:
             return e
         # fallback: поиск по IP (для совместимости со старыми вызовами)
-        for e in _device_folders.values():
+        for ek, e in _device_folders.items():
             if e.get("ip") == key:
+                return e
+        # fallback: поиск по частичному совпадению ключа (пробелы vs _)
+        key_normalized = key.replace(' ', '_')
+        for ek, e in _device_folders.items():
+            if ek == key_normalized or ek.replace(' ', '_') == key_normalized:
                 return e
     return None
 
@@ -1502,6 +1508,22 @@ def api_devices():
     return jsonify(_build_devices_payload())
 
 
+@app.route('/api/devices/list-all', methods=['GET'])
+def api_devices_list_all():
+    """Возвращает список ВСЕХ папок устройств с наличием RAM/FS."""
+    devices = []
+    if not os.path.isdir(DEVICE_DIR_ROOT):
+        return jsonify({"success": True, "devices": []})
+    for folder_name in sorted(os.listdir(DEVICE_DIR_ROOT)):
+        folder = os.path.join(DEVICE_DIR_ROOT, folder_name)
+        if not os.path.isdir(folder):
+            continue
+        has_ram = os.path.isdir(os.path.join(folder, 'RAM'))
+        has_fs = os.path.isdir(os.path.join(folder, 'FS'))
+        devices.append({"key": folder_name, "has_ram": has_ram, "has_fs": has_fs})
+    return jsonify({"success": True, "devices": devices})
+
+
 @app.route('/api/devices/stream')
 def api_devices_stream():
     """SSE-поток изменений списка устройств (online/offline, новые/обновлённые)."""
@@ -1749,6 +1771,31 @@ def api_toggle_module():
                 if m.get("path") == path:
                     m["active"] = active
                     break
+        projects.save_project_config(current_project["category"], current_project["name"], current_config)
+    fp, fu, ft, rp, ru, rt = calc_size()
+    sp, su, st = get_fs_usage()
+    return jsonify({"success": True, "flash_pct": fp, "flash_used": fu, "flash_total": ft,
+                     "ram_pct": rp, "ram_used": ru, "ram_total": rt,
+                     "fs_pct": sp, "fs_used": su, "fs_total": st})
+
+
+@app.route('/api/modules/sync', methods=['POST'])
+def api_sync_modules():
+    """Пакетное обновление активных модулей.
+
+    body: {modules: {section: {path: active}}}
+    """
+    global current_config
+    if not current_project:
+        return jsonify({"success": False, "error": "Проект не открыт"}), 400
+    data = request.json
+    sync_map = data.get('modules', {})
+    with _lock:
+        for section, paths in sync_map.items():
+            if section in current_config.get("modules", {}):
+                for m in current_config["modules"][section]:
+                    if m.get("path") in paths:
+                        m["active"] = bool(paths[m.get("path")])
         projects.save_project_config(current_project["category"], current_project["name"], current_config)
     fp, fu, ft, rp, ru, rt = calc_size()
     sp, su, st = get_fs_usage()
@@ -2842,6 +2889,63 @@ def api_ota_stream():
             yield chunk
     return Response(gen(), mimetype="text/event-stream",
                     headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@app.route('/api/device/settings', methods=['GET'])
+def api_device_settings():
+    """Возвращает settings.json из RAM или FS устройства (локально на диске).
+
+    Параметры: key (ключ устройства), section (ram/fs).
+    """
+    key = request.args.get('key', '')
+    section = (request.args.get('section') or '').lower()
+    if section not in ('ram', 'fs'):
+        return jsonify({"success": False, "error": "Неизвестный раздел"}), 400
+
+    entry = get_device_folder(key)
+    if not entry:
+        return jsonify({"success": False, "error": "Устройство не найдено"}), 404
+    root = entry[f"{section}_dir"]
+    settings_path = os.path.join(root, 'settings.json')
+    if not os.path.isfile(settings_path):
+        return jsonify({"success": False, "error": "settings.json не найден"}), 404
+    try:
+        with open(settings_path, 'r', encoding='utf-8', errors='replace') as f:
+            settings = json.load(f)
+        return jsonify({"success": True, "settings": settings, "source": section})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/device/profile', methods=['GET'])
+def api_device_profile():
+    """Возвращает модули и платформу из profile.json (RAM) или flashProfile.json (FS).
+
+    Параметры: key (ключ устройства), section (ram/fs, по умолчанию ram).
+    """
+    key = request.args.get('key', '')
+    section = (request.args.get('section') or 'ram').lower()
+    if section not in ('ram', 'fs'):
+        return jsonify({"success": False, "error": "Неизвестный раздел"}), 400
+
+    entry = get_device_folder(key)
+    if not entry:
+        logger.warning(f"Устройство не найдено: key={key}")
+        return jsonify({"success": False, "error": "Устройство не найдено"}), 404
+    root = entry[f"{section}_dir"]
+    # RAM → profile.json, FS → flashProfile.json
+    fname = 'profile.json' if section == 'ram' else 'flashProfile.json'
+    profile_path = os.path.join(root, fname)
+    if not os.path.isfile(profile_path):
+        return jsonify({"success": False, "error": f"{fname} не найден"}), 404
+    try:
+        with open(profile_path, 'r', encoding='utf-8', errors='replace') as f:
+            profile = json.load(f)
+        modules = profile.get('modules', {})
+        default_envs = profile.get('default_envs', None)
+        return jsonify({"success": True, "modules": modules, "default_envs": default_envs})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 # ==================== Инициализация ====================

@@ -117,7 +117,7 @@ body.dark .gauge-track{background:#2a2a4a}
 .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
 .section-header h2{font-size:15px;margin:0;padding:0;border:none}
 .section-header button{font-size:12px;white-space:nowrap}
-.section-tools{display:flex;gap:8px;margin-left:auto}
+.section-tools{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap;align-items:center}
 
 /* Modules */
 .module-list{max-height:500px;overflow-y:auto}
@@ -478,6 +478,7 @@ let noCloseOverlay = false;
 
 // ==================== Devices (multicast) ====================
 let deviceStream = null;
+let deviceListCache = null;
 
 function renderDevices(devices){
   const el = document.getElementById('deviceTree');
@@ -560,6 +561,8 @@ function connectDevicesStream(){
     try{
       const d = JSON.parse(e.data);
       if(d.success) renderDevices(d.devices);
+      // Сбрасываем кеш при обновлении списка устройств
+      deviceListCache = null;
     }catch(_){}
   };
   deviceStream.onerror = () => {
@@ -2011,6 +2014,8 @@ document.addEventListener('DOMContentLoaded', () => {
   checkEsptoolUpdate();
   // По умолчанию открываем проект PlatformIO
   openProject('__virtual__', 'PlatformIO');
+  // Инициализация кнопок копирования из устройства
+  updateCopyFromDeviceButton();
 });
 
 // ==================== Theme ====================
@@ -2129,6 +2134,8 @@ async function openProject(cat, name){
   updateGauge();
   refreshUploadButtons(); // включаем/затеняем 🚀 в зависимости от наличия прошивки
   loadProjects(); // обновить дерево (active)
+  // Обновляем состояние кнопок копирования из устройства
+  updateCopyFromDeviceButton();
 }
 
 // ==================== Platforms ====================
@@ -2201,7 +2208,10 @@ function renderContent(about){
     <div class="content-section">
       <div class="section-header">
         <h2>⚙️ Настройки устройства</h2>
-        <button class="btn-sm" title="Скопировать все значения (кроме name и apssid) из другого проекта" onclick="showCopyValuesModal('','Настройки')">⤵ Из другого проекта</button>
+        <div class="section-tools">
+          <button class="btn-sm" title="Скопировать все значения из устройства" id="btnCopyFromDevice" onclick="showCopyFromDeviceModal('','Настройки')" disabled>⤵ Из устройства</button>
+          <button class="btn-sm" title="Скопировать все значения (кроме name и apssid) из другого проекта" onclick="showCopyValuesModal('','Настройки')">⤵ Из другого проекта</button>
+        </div>
       </div>
       <div id="settingsContainer"></div>
     </div>
@@ -2210,6 +2220,7 @@ function renderContent(about){
         <h2> 💠 Модули</h2>
         <div class="section-tools">
           <button class="btn-sm" title="Замер размера модулей для этой платформы" onclick="showMeasureScope()">⚖️ Замер размера</button>
+          <button class="btn-sm" title="Скопировать состав модулей из устройства" id="btnCopyModulesFromDevice" onclick="showCopyModulesFromDevice()" disabled>⤵ Из устройства</button>
           <button class="btn-sm" title="Скопировать состав модулей из другого проекта" onclick="showCopyModules()">⤵ Из другого проекта</button>
         </div>
       </div>
@@ -2218,6 +2229,8 @@ function renderContent(about){
   ` + aboutSection;
   renderSettings();
   renderModules();
+  // Обновляем состояние кнопок копирования из устройства (появились в DOM)
+  updateCopyFromDeviceButton();
 }
 
 // ==================== Settings ====================
@@ -2247,7 +2260,7 @@ function renderSettings(){
     // Показываем только поля, которые есть в конфиге (name — всегда)
     let fields = group.fields;
     if(group.title === 'Прочее' && remaining.length){
-      fields = group.fields.concat(remaining.map(k => [k, k, typeof s[k] === 'number' ? 'number' : 'text']));
+      fields = group.fields.concat(remaining.map(k => { const v = s[k]; return [k, k, typeof v === 'number' || typeof v === 'boolean' ? 'number' : 'text']; }));
     }
     const present = fields.filter(([key])=> s.hasOwnProperty(key) || key === 'name');
     if(present.length === 0) continue;
@@ -2259,6 +2272,8 @@ function renderSettings(){
     html += `<div class="form-grid">`;
     for(const [key, label, type] of present){
       const val = s[key] !== undefined ? s[key] : '';
+      // Boolean → числовое представление для input type="number"
+      const displayVal = (type === 'number' && typeof val === 'boolean') ? (val ? 1 : 0) : val;
       html += `<div class="form-row">
         <label>${label} <small style="color:var(--muted)">(${key})</small></label>`;
       if(type === 'password'){
@@ -2267,7 +2282,7 @@ function renderSettings(){
           <button type="button" class="pw-toggle" id="btn_set_${key}" title="Показать/скрыть пароль" onclick="togglePass('set_${key}')">🔓</button>
         </div>`;
       } else {
-        html += `<input type="${type}" id="set_${key}" value="${esc(String(val))}" onchange="saveSetting('${key}', this.value)" oninput="validateField('${key}', this)">`;
+        html += `<input type="${type}" id="set_${key}" value="${esc(String(displayVal))}" onchange="saveSetting('${key}', this.value)" oninput="validateField('${key}', this)">`;
       }
       html += `<div class="form-hint" id="hint_${key}"></div></div>`;
     }
@@ -3543,6 +3558,124 @@ document.addEventListener('keydown', e => {
     }
   }
 });
+
+// ==================== Копирование из устройства ====================
+async function loadDeviceListForCopy(){
+  try {
+    const r = await fetch('/api/devices/list-all');
+    const d = await r.json();
+    if(!d.success) return [];
+    return d.devices || [];
+  } catch(e) {
+    return [];
+  }
+}
+
+function updateCopyFromDeviceButton(){
+  loadDeviceListForCopy().then(devices => {
+    const btn = document.getElementById('btnCopyFromDevice');
+    if(!btn) return;
+    // Кнопка доступна если есть хотя бы одна папка устройства с RAM или FS
+    const hasDevices = devices && devices.some(d => d.has_ram || d.has_fs);
+    btn.disabled = !hasDevices;
+    btn.title = hasDevices ? 'Скопировать все значения (кроме name и apssid) из устройства' : 'Нет доступных устройств';
+    // Кнопка модулей из устройства
+    const btnMod = document.getElementById('btnCopyModulesFromDevice');
+    if(!btnMod) return;
+    btnMod.disabled = !hasDevices;
+    btnMod.title = hasDevices ? 'Скопировать состав модулей из устройства' : 'Нет доступных устройств';
+  });
+}
+
+async function showCopyFromDeviceModal(fieldsStr, groupTitle){
+  const devices = await loadDeviceListForCopy();
+  if(!devices || devices.length === 0) { toast('Нет доступных устройств','info'); return; }
+  const filtered = devices.filter(d => d.has_ram || d.has_fs);
+  if(filtered.length === 0) { toast('У устройств нет папок RAM/FS','info'); return; }
+  const opts = filtered.map((d, i) => {
+    const val = d.key || d.ip || d.name || ('dev' + i);
+    const label = d.name || d.key || d.ip || ('Устройство ' + i);
+    return `<option value="${val}">${label}</option>`;
+  }).join('');
+  showModal(`<h3>Копировать значения</h3>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:10px">${groupTitle ? 'Группа: ' + esc(groupTitle) : 'Все поля, кроме name и apssid'}</p>
+    <div class="form-row"><label>Из устройства:</label><select id="copyDevSrc">${opts}</select></div>
+    <div class="form-row"><label>Откуда:</label>
+      <select id="copyDevSection">
+        <option value="ram">RAM</option>
+        <option value="fs">FS</option>
+      </select>
+    </div>
+    <div class="modal-actions"><button title="Закрыть без сохранения" onclick="closeModal()">Отмена</button><button class="btn-primary" title="Скопировать значения из выбранного устройства" onclick="doCopyFromDevice('${esc(fieldsStr)}')">Копировать</button></div>`);
+}
+
+async function doCopyFromDevice(fieldsStr){
+  const sel = document.getElementById('copyDevSrc');
+  const section = document.getElementById('copyDevSection').value;
+  const deviceKey = sel.value;
+  if(!deviceKey) { toast('Выберите устройство','warning'); return; }
+  const r = await fetch(`/api/device/settings?key=${encodeURIComponent(deviceKey)}&section=${section}`);
+  const d = await r.json();
+  if(!d.success){ toast(d.error||'Ошибка','error'); return; }
+  const src = d.settings || {};
+  // Поля для копирования: если fieldsStr задан — только указанные, иначе все поля
+  // Исключаем служебные поля устройства
+  const skipKeys = new Set(['id', 'ip', 'root']);
+  let fields = fieldsStr ? fieldsStr.split(',').filter(k=>k) : Object.keys(src).filter(k => !skipKeys.has(k));
+  const updates = {};
+  for(const f of fields){ if(src.hasOwnProperty(f)) updates[f] = src[f]; }
+  if(Object.keys(updates).length === 0){ closeModal(); toast('Нечего копировать','info'); return; }
+  const sr = await fetch('/api/config/settings', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(updates)});
+  const sd = await sr.json();
+  if(sd.success){
+    if(configData.iotmSettings) Object.assign(configData.iotmSettings, updates); else configData.iotmSettings = {...updates};
+    closeModal();
+    renderSettings();
+    toast('Значения скопированы', 'success');
+  } else toast(sd.error||'Ошибка','error');
+}
+
+async function showCopyModulesFromDevice(){
+  const devices = await loadDeviceListForCopy();
+  if(!devices || devices.length === 0) { toast('Нет доступных устройств','info'); return; }
+  const filtered = devices.filter(d => d.has_ram || d.has_fs);
+  if(filtered.length === 0) { toast('У устройств нет папок RAM/FS','info'); return; }
+  const opts = filtered.map(d =>
+    `<option value="${d.key}">${d.name || d.key || d.ip}</option>`
+  ).join('');
+  showModal(`<h3>Копировать модули</h3>
+    <div class="form-row"><label>Из устройства:</label><select id="copyModDevSrc">${opts}</select></div>
+    <div class="form-row"><label>Откуда:</label>
+      <select id="copyModDevSection">
+        <option value="ram">RAM</option>
+        <option value="fs">FS</option>
+      </select>
+    </div>
+    <div class="modal-actions"><button title="Закрыть без сохранения" onclick="closeModal()">Отмена</button><button class="btn-primary" title="Копировать модули из выбранного устройства" onclick="doCopyModulesFromDevice()">Копировать</button></div>`);
+}
+
+async function doCopyModulesFromDevice(){
+  const sel = document.getElementById('copyModDevSrc');
+  const section = document.getElementById('copyModDevSection').value;
+  const deviceKey = sel.value;
+  if(!deviceKey) { toast('Выберите устройство','warning'); return; }
+  const r = await fetch(`/api/device/profile?key=${encodeURIComponent(deviceKey)}&section=${section}`);
+  const d = await r.json();
+  if(!d.success){ toast(d.error||'Ошибка','error'); return; }
+  const modules = d.modules || {};
+  const sr = await fetch('/api/modules/sync', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({modules})});
+  const sd = await sr.json();
+  if(sd.success){
+    closeModal();
+    configData.modules = modules;
+    await loadCompatibility();
+    renderModules();
+    updateGauge();
+    toast('Модули скопированы', 'success');
+  } else toast(sd.error||'Ошибка','error');
+}
+
+
 </script>
 </body>
 </html>
