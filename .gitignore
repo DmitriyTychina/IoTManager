@@ -20,6 +20,7 @@ __pycache__/
 # Build output
 data_full — копия/
 iotm/
+lt_littlefs.bin
 
 # Project-specific
 data_svelte/settings.json
