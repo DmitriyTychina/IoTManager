@@ -175,6 +175,5 @@ wqtt.ru). Мобильное приложение (iOS/Android) подключа
 
 Для BK7231N используется кастомная ветка `libretiny` и `LT_WebSockets`;
 имя прошивки — `iotm_tiny`. Flask-панель: `flask>=3.0`, `flask-cors>=4.0`.
-с платформой определяется по `usedLibs`.
 
 Подробнее о форматах — [reference/data-formats.md](reference/data-formats.md).
