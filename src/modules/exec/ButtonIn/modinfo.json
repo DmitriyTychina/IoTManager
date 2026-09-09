@@ -50,7 +50,7 @@
             "moduleVersion": "1.0",
             "usedFLASH": {
                 "bk7231n": 1272,
-                "esp8266_1mb": 1292,
+                "esp8266_1mb": 1492,
                 "esp8266_1mb_ota": 1292,
                 "esp32_4mb": 2184,
                 "esp8266_4mb": 1308,
@@ -70,7 +70,7 @@
             },
             "usedRAM": {
                 "bk7231n": 0,
-                "esp8266_1mb": 0,
+                "esp8266_1mb": 32,
                 "esp8266_1mb_ota": 0,
                 "esp32_4mb": 0,
                 "esp8266_4mb": 0,
