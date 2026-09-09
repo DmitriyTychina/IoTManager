@@ -320,10 +320,10 @@ body.dark .tok-bracket{background:#f9a825;color:#1a1a1a}
       <button class="btn-sm" onclick="toggleTheme()" title="Тема">🌙</button>
     </div>
     <div class="platformio-sep">
-      <div class="tree-project" id="platformioEntry" title="Проект PlatformIO" onclick="openProject('__virtual__','PlatformIO')">
+      <div class="tree-project" id="platformioEntry" title="Проект PlatformIO" onclick="openProject('_main__','PlatformIO')">
         🛠️ PlatformIO
         <div class="proj-actions">
-          <button class="btn-sm" title="Копировать в другой проект" onclick="event.stopPropagation();showCopy('__virtual__','PlatformIO')"><span>⧉</span></button>
+          <button class="btn-sm" title="Копировать в другой проект" onclick="event.stopPropagation();showCopy('_main_','PlatformIO')"><span>⧉</span></button>
         </div>
       </div>
     </div>
@@ -2013,7 +2013,7 @@ document.addEventListener('DOMContentLoaded', () => {
   connectDevicesStream();
   checkEsptoolUpdate();
   // По умолчанию открываем проект PlatformIO
-  openProject('__virtual__', 'PlatformIO');
+  openProject('_main_', 'PlatformIO');
   // Инициализация кнопок копирования из устройства
   updateCopyFromDeviceButton();
 });
@@ -3585,44 +3585,43 @@ function updateCopyFromDeviceButton(){
   loadDeviceListForCopy().then(devices => {
     const btn = document.getElementById('btnCopyFromDevice');
     if(!btn) return;
-    // Кнопка доступна если есть хотя бы одна папка устройства с RAM или FS
-    const hasDevices = devices && devices.some(d => d.has_ram || d.has_fs);
-    btn.disabled = !hasDevices;
-    btn.title = hasDevices ? 'Скопировать все значения из устройства' : 'Нет доступных устройств';
-    // Кнопка модулей из устройства
+    // Кнопка настроек: есть хотя бы один settings.json в RAM/FS
+    const hasSettings = devices && devices.some(d => d.ram_settings || d.fs_settings);
+    btn.disabled = !hasSettings;
+    btn.title = hasSettings ? 'Скопировать все значения из устройства' : 'Нет устройств с settings.json';
+    // Кнопка модулей: есть хотя бы один profile.json (RAM) или flashProfile.json (FS)
     const btnMod = document.getElementById('btnCopyModulesFromDevice');
     if(!btnMod) return;
-    btnMod.disabled = !hasDevices;
-    btnMod.title = hasDevices ? 'Скопировать состав модулей из устройства' : 'Нет доступных устройств';
+    const hasProfile = devices && devices.some(d => d.ram_profile || d.fs_profile);
+    btnMod.disabled = !hasProfile;
+    btnMod.title = hasProfile ? 'Скопировать состав модулей из устройства' : 'Нет устройств с profile.json/flashProfile.json';
   });
+}
+
+// Пункты вида "имя (ip) / RAM|FS" только для устройств с нужным файлом
+function deviceSourceOptions(devices, fileFlag){
+  const opts = [];
+  for(const d of devices || []){
+    const label = d.ip ? `${d.name} (${d.ip})` : d.name;
+    if(d[fileFlag('ram')]) opts.push({key: d.key, section: 'ram', label: `${label} / RAM`});
+    if(d[fileFlag('fs')]) opts.push({key: d.key, section: 'fs', label: `${label} / FS`});
+  }
+  return opts;
 }
 
 async function showCopyFromDeviceModal(fieldsStr, groupTitle){
   const devices = await loadDeviceListForCopy();
-  if(!devices || devices.length === 0) { toast('Нет доступных устройств','info'); return; }
-  const filtered = devices.filter(d => d.has_ram || d.has_fs);
-  if(filtered.length === 0) { toast('У устройств нет папок RAM/FS','info'); return; }
-  const opts = filtered.map((d, i) => {
-    const val = d.key || d.ip || d.name || ('dev' + i);
-    const label = d.name || d.key || d.ip || ('Устройство ' + i);
-    return `<option value="${val}">${label}</option>`;
-  }).join('');
+  const opts = deviceSourceOptions(devices, sec => sec + '_settings');
+  if(opts.length === 0){ toast('Нет устройств с settings.json в RAM/FS','info'); return; }
+  const options = opts.map(o => `<option value="${esc(o.key)}|${o.section}">${esc(o.label)}</option>`).join('');
   showModal(`<h3>Копировать значения</h3>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:10px">${groupTitle ? 'Группа: ' + esc(groupTitle) : 'Все поля, кроме name и apssid'}</p>
-    <div class="form-row"><label>Из устройства:</label><select id="copyDevSrc">${opts}</select></div>
-    <div class="form-row"><label>Откуда:</label>
-      <select id="copyDevSection">
-        <option value="ram">RAM</option>
-        <option value="fs">FS</option>
-      </select>
-    </div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:10px">${groupTitle ? 'Группа: ' + esc(groupTitle) : 'Все поля, кроме id, ip и root'}</p>
+    <div class="form-row"><label>Из устройства:</label><select id="copyDevSrc">${options}</select></div>
     <div class="modal-actions"><button title="Закрыть без сохранения" onclick="closeModal()">Отмена</button><button class="btn-primary" title="Скопировать значения из выбранного устройства" onclick="doCopyFromDevice('${esc(fieldsStr)}')">Копировать</button></div>`);
 }
 
 async function doCopyFromDevice(fieldsStr){
-  const sel = document.getElementById('copyDevSrc');
-  const section = document.getElementById('copyDevSection').value;
-  const deviceKey = sel.value;
+  const [deviceKey, section] = document.getElementById('copyDevSrc').value.split('|');
   if(!deviceKey) { toast('Выберите устройство','warning'); return; }
   const r = await fetch(`/api/device/settings?key=${encodeURIComponent(deviceKey)}&section=${section}`);
   const d = await r.json();
@@ -3647,41 +3646,48 @@ async function doCopyFromDevice(fieldsStr){
 
 async function showCopyModulesFromDevice(){
   const devices = await loadDeviceListForCopy();
-  if(!devices || devices.length === 0) { toast('Нет доступных устройств','info'); return; }
-  const filtered = devices.filter(d => d.has_ram || d.has_fs);
-  if(filtered.length === 0) { toast('У устройств нет папок RAM/FS','info'); return; }
-  const opts = filtered.map(d =>
-    `<option value="${d.key}">${d.name || d.key || d.ip}</option>`
-  ).join('');
+  const opts = deviceSourceOptions(devices, sec => sec + '_profile');
+  if(opts.length === 0){ toast('Нет устройств с profile.json/flashProfile.json в RAM/FS','info'); return; }
+  const options = opts.map(o => `<option value="${esc(o.key)}|${o.section}">${esc(o.label)}</option>`).join('');
   showModal(`<h3>Копировать модули</h3>
-    <div class="form-row"><label>Из устройства:</label><select id="copyModDevSrc">${opts}</select></div>
-    <div class="form-row"><label>Откуда:</label>
-      <select id="copyModDevSection">
-        <option value="ram">RAM</option>
-        <option value="fs">FS</option>
-      </select>
-    </div>
+    <div class="form-row"><label>Из устройства:</label><select id="copyModDevSrc">${options}</select></div>
     <div class="modal-actions"><button title="Закрыть без сохранения" onclick="closeModal()">Отмена</button><button class="btn-primary" title="Копировать модули из выбранного устройства" onclick="doCopyModulesFromDevice()">Копировать</button></div>`);
 }
 
 async function doCopyModulesFromDevice(){
-  const sel = document.getElementById('copyModDevSrc');
-  const section = document.getElementById('copyModDevSection').value;
-  const deviceKey = sel.value;
+  const [deviceKey, section] = document.getElementById('copyModDevSrc').value.split('|');
   if(!deviceKey) { toast('Выберите устройство','warning'); return; }
   const r = await fetch(`/api/device/profile?key=${encodeURIComponent(deviceKey)}&section=${section}`);
   const d = await r.json();
   if(!d.success){ toast(d.error||'Ошибка','error'); return; }
-  const modules = d.modules || {};
-  const sr = await fetch('/api/modules/sync', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({modules})});
+  // 1) Платформа из default_envs (если указана) — включает/отключает несовместимые модули
+  if(d.default_envs){
+    const pr = await fetch('/api/platform/change', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({platform:d.default_envs})});
+    const pd = await pr.json();
+    if(!pd.success){ toast(pd.error||'Ошибка смены платформы','error'); return; }
+  }
+  // 2) Активные модули с устройства.
+  // Профиль устройства хранит {section: [{path, active}]}, а /api/modules/sync
+  // ждёт {section: {path: bool}} — конвертируем.
+  const syncMap = {};
+  for(const [sec, arr] of Object.entries(d.modules || {})){
+    if(Array.isArray(arr)){
+      syncMap[sec] = {};
+      for(const m of arr) syncMap[sec][m.path] = !!m.active;
+    } else syncMap[sec] = arr;
+  }
+  const sr = await fetch('/api/modules/sync', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({modules: syncMap})});
   const sd = await sr.json();
   if(sd.success){
     closeModal();
-    configData.modules = modules;
+    // Перечитываем конфиг — бэкенд обновил платформу и модули
+    configData = await (await fetch('/api/config')).json();
     await loadCompatibility();
     renderModules();
     updateGauge();
-    toast('Модули скопированы', 'success');
+    const sel = document.getElementById('platformSelect');
+    if(sel) sel.value = configData?.projectProp?.platformio?.default_envs || sel.value;
+    toast('Модули скопированы' + (d.default_envs ? ` (платформа: ${d.default_envs})` : ''), 'success');
   } else toast(sd.error||'Ошибка','error');
 }
 

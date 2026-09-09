@@ -23,7 +23,7 @@
                 "path": "src/modules/exec/ButtonOut"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/exec/Buzzer"
             },
             {
@@ -67,7 +67,7 @@
                 "path": "src/modules/exec/Mp3"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/exec/Multitouch"
             },
             {
@@ -161,7 +161,7 @@
                 "path": "src/modules/display/Smi2_m"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/display/TM16XX"
             },
             {
@@ -175,7 +175,7 @@
                 "path": "src/modules/sensors/Pcf8591"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/sensors/A02Distance"
             },
             {
@@ -187,11 +187,11 @@
                 "path": "src/modules/sensors/Ads1115"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/sensors/AhtXX"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/sensors/AnalogAdc"
             },
             {
@@ -219,19 +219,19 @@
                 "path": "src/modules/sensors/Ble_part2"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/sensors/Bme280"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/sensors/Bmp280"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/sensors/Dht1122"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/sensors/Ds18b20"
             },
             {
@@ -327,7 +327,7 @@
                 "path": "src/modules/sensors/Pzem004t_v2"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/sensors/RCswitch"
             },
             {
@@ -359,7 +359,7 @@
                 "path": "src/modules/sensors/Sht30"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/sensors/Sonar"
             },
             {
@@ -369,11 +369,11 @@
         ],
         "virtual_elments": [
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/virtual/Benchmark"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/virtual/Cron"
             },
             {
@@ -389,7 +389,7 @@
                 "path": "src/modules/virtual/GoogleSheet"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/virtual/Loging"
             },
             {
@@ -401,15 +401,15 @@
                 "path": "src/modules/virtual/Loging3"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/virtual/LogingDaily"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/virtual/LogingHourly"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/virtual/Math"
             },
             {
@@ -417,7 +417,7 @@
                 "path": "src/modules/virtual/owmWeather"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/virtual/Ping"
             },
             {
@@ -425,7 +425,7 @@
                 "path": "src/modules/virtual/Timer"
             },
             {
-                "active": false,
+                "active": true,
                 "path": "src/modules/virtual/UpdateServer"
             },
             {

@@ -166,7 +166,7 @@ def create_project(category, name, description=""):
     data = {"name": name, "category": category, "created": datetime.now().isoformat()}
 
     with open(os.path.join(proj_path, CONFIG_FILENAME), 'w', encoding='utf-8') as f:
-        json.dump(config, f, ensure_ascii=False, indent=2)
+        json.dump(config, f, ensure_ascii=False, indent=2, sort_keys=False)
     with open(os.path.join(proj_path, 'data.json'), 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
     with open(os.path.join(proj_path, 'about.txt'), 'w', encoding='utf-8') as f:

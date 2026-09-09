@@ -75,12 +75,9 @@ def updateModulesInProfile(profJson):
             if fname == "modinfo.json":
                 with open(os.path.join(root, fname), "r", encoding='utf-8') as read_file:
                     modinfoJson = json.load(read_file)
-                    # проверяем есть ли уже узловой элемент и если нет, то создаем
-                    if not modinfoJson['menuSection'] in profJson["modules"]:
-                        listFromFirstElement = {modinfoJson['menuSection']: []}
-                        listFromFirstElement.update(profJson["modules"])
-                        profJson["modules"] = listFromFirstElement
                     # добавляем информацию о модуле в узловой элемент
+                    if modinfoJson['menuSection'] not in profJson["modules"]:
+                        profJson["modules"][modinfoJson['menuSection']] = []
                     profJson["modules"][modinfoJson['menuSection']].append({
                         'path': os.path.normpath(root).replace("\\", "/"),
                         'active': modinfoJson['defActive']
@@ -253,13 +250,13 @@ if not os.path.isfile(settings_path):
     # восстанавливаем его из настроек профиля, чтобы сборка не падала.
     os.makedirs(DATA_DIR, exist_ok=True)
     with open(settings_path, "w", encoding='utf-8') as wf:
-        json.dump(dict(profJson.get('iotmSettings', {})), wf, ensure_ascii=False, indent=4, sort_keys=False)
+        json.dump(dict(profJson.get('iotmSettings', {})), wf, ensure_ascii=False, indent=4)
 with open(settings_path, "r", encoding='utf-8') as read_file:
     iotmJson = json.load(read_file)
 for key, value in profJson['iotmSettings'].items():
     iotmJson[key] = value
 with open(os.path.join(DATA_DIR, "settings.json"), "w", encoding='utf-8') as write_file:
-    json.dump(iotmJson, write_file, ensure_ascii=False, indent=4, sort_keys=False)
+    json.dump(iotmJson, write_file, ensure_ascii=False, indent=4)
 
 
         
@@ -310,7 +307,7 @@ for section, modules in profJson['modules'].items():
                             configItemsJson['moduleName'] = moduleJson['about']['moduleName']     
 
 with open(os.path.join(DATA_DIR, "items.json"), "w", encoding='utf-8') as write_file:
-    json.dump(itemsJson, write_file, ensure_ascii=False, indent=4, sort_keys=False)
+    json.dump(itemsJson, write_file, ensure_ascii=False, indent=4)
 
 
 # учитываем вызовы модулей в API.cpp
@@ -386,7 +383,7 @@ shortProfJson['projectProp'] = {
     }
 shortProfJson['modules'] = profJson['modules']
 with open(os.path.join(DATA_DIR, "flashProfile.json"), "w", encoding='utf-8') as write_file:
-    json.dump(shortProfJson, write_file, ensure_ascii=False, indent=4, sort_keys=False)
+    json.dump(shortProfJson, write_file, ensure_ascii=False, indent=4)
     
     
 # import ctypes  # An included library with Python install.   
