@@ -106,7 +106,7 @@
         {
             "moduleVersion": "1.0",
             "usedFLASH": {
-                "esp8266_1mb": 5552,
+                "esp8266_1mb": 5756,
                 "esp8266_1mb_ota": 5552,
                 "esp32_4mb": 15120,
                 "esp8266_4mb": 5568,
@@ -125,7 +125,7 @@
                 "esp32_16mb": 15124
             },
             "usedRAM": {
-                "esp8266_1mb": 468,
+                "esp8266_1mb": 496,
                 "esp8266_1mb_ota": 476,
                 "esp32_4mb": 144,
                 "esp8266_4mb": 468,

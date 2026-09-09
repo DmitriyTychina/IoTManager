@@ -119,10 +119,12 @@
         {
             "moduleVersion": "1.1",
             "usedFLASH": {
-                "esp32_16mb": 27724
+                "esp32_16mb": 27724,
+                "esp32s2_4mb": 36960
             },
             "usedRAM": {
-                "esp32_16mb": 212
+                "esp32_16mb": 212,
+                "esp32s2_4mb": 212
             }
         }
     ]
