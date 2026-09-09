@@ -141,6 +141,10 @@ body.dark .gauge-track{background:#2a2a4a}
 .module-item.disabled{opacity:0.4}
 .module-item .size-tag{font-size:11px;color:var(--muted)}
 .module-item button{background:none;border:none;cursor:pointer;font-size:14px;color:var(--accent)}
+/* Подсветка статуса размера модуля: красный — ошибка компиляции, жёлтый — размер не замерялся */
+.module-item.size-error{background:rgba(217,74,74,0.12);border-left:3px solid var(--danger)}
+.module-item.size-warn{background:rgba(217,164,74,0.16);border-left:3px solid var(--warn)}
+.module-item.size-error:hover,.module-item.size-warn:hover{background:var(--panel)}
 
 /* Buttons */
 button{padding:6px 12px;border:1px solid var(--border);border-radius:4px;background:var(--panel);color:var(--text);cursor:pointer;font-size:13px;transition:0.15s}
@@ -2365,12 +2369,26 @@ function renderModules(){
       <div class="module-items ${collapsed?'collapsed':''}" id="moditems_${esc(section)}">`;
     for(const m of mods){
       const name = (m.path||'').split('/').pop();
-      const comp = moduleCompat[m.path] || {compatible:true, size:0};
+      const comp = moduleCompat[m.path] || {compatible:true, size:0, sizeState:'ok'};
       const disabled = comp.compatible ? '' : 'disabled';
       const checked = m.active ? 'checked' : '';
-      const sizeStr = comp.size > 0 ? `<span class="size-tag">${formatBytes(comp.size)}</span>` : `<span class="size-tag">- КБ</span>`;
+      // Статус размера модуля: подсветка строки и всплывающая подсказка
+      const sizeState = comp.sizeState || 'ok';
+      let rowCls = '', rowTip = '', sizeStr;
+      if(sizeState === 'error_platform'){
+        rowCls = ' size-error'; rowTip = 'Ошибка компиляции для этой платформы';
+        sizeStr = `<span class="size-tag" style="color:var(--danger)">✗ - КБ</span>`;
+      } else if(sizeState === 'error_all'){
+        rowCls = ' size-error'; rowTip = 'Не компилируется для всех платформ';
+        sizeStr = `<span class="size-tag" style="color:var(--danger)">✗ - КБ</span>`;
+      } else if(sizeState === 'missing'){
+        rowCls = ' size-warn'; rowTip = 'Размер не замерялся';
+        sizeStr = `<span class="size-tag" style="color:var(--warn)">- КБ</span>`;
+      } else {
+        sizeStr = comp.size > 0 ? `<span class="size-tag">${formatBytes(comp.size)}</span>` : `<span class="size-tag">- КБ</span>`;
+      }
       const compatTag = comp.compatible ? '' : ' <span class="size-tag" style="color:var(--danger)">не совместим</span>';
-      html += `<div class="module-item ${disabled}">
+      html += `<div class="module-item ${disabled}${rowCls}"${rowTip ? ` title="${rowTip}"` : ''}>
         <input type="checkbox" id="mod_${name}" ${checked} ${comp.compatible?'':'disabled'} onchange="toggleModule('${esc(section)}','${esc(m.path||'')}',this.checked)">
         <label for="mod_${name}">${esc(name)}${compatTag}</label> ${sizeStr}
         <button onclick="showModuleInfo('${esc(m.path||'')}')" title="Подробная информация о модуле">ℹ️</button>

@@ -181,6 +181,45 @@ def _lookup_platform_value(data, platform):
     return int(v) if isinstance(v, (int, float, str)) else 0
 
 
+def _is_numeric_size(v):
+    """True, если значение размера — число (0 — тоже измеренный размер)."""
+    if isinstance(v, (int, float)):
+        return True
+    if isinstance(v, str):
+        try:
+            float(v)
+            return True
+        except (TypeError, ValueError):
+            return False
+    return False
+
+
+def _module_size_state(used_flash, platform):
+    """Статус размера модуля для платформы (по sizeInfo.usedFLASH).
+
+    Возвращает:
+      'ok'             — числовой размер для платформы есть;
+      'error_platform' — значение "-" для текущей платформы, но для других
+                         платформ есть размеры (ошибка компиляции именно
+                         для этой платформы);
+      'error_all'      — значение "-" для всех платформ (модуль не компилируется
+                         ни для одной из замерявшихся платформ);
+      'missing'        — нет записи для текущей платформы (размер не замерялся).
+    """
+    if not used_flash or not isinstance(used_flash, dict):
+        return 'missing'
+    val = used_flash.get(platform)
+    if val is not None and _is_numeric_size(val):
+        return 'ok'
+    if val == "-":
+        # Есть ли числовые размеры для других платформ
+        for p, v in used_flash.items():
+            if p != platform and _is_numeric_size(v):
+                return 'error_platform'
+        return 'error_all'
+    return 'missing'
+
+
 def get_module_flash(name, platform):
     """Размер FLASH модуля для платформы"""
     info = globals_.modinfo_cache.get(name, {})
@@ -306,5 +345,7 @@ def get_compat_map():
                 "compatible": is_compatible(globals_.current_platform, info.get("usedLibs", {})),
                 "size": get_module_flash(name, globals_.current_platform),
                 "ram": get_module_ram(name, globals_.current_platform),
+                # Статус размера: ok / error_platform / error_all / missing
+                "sizeState": _module_size_state(info.get("usedFLASH", {}), globals_.current_platform),
             }
     return result

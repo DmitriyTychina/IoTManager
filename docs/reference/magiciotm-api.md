@@ -40,7 +40,7 @@
 | GET | `/size` | Размеры FLASH/RAM/FS (проценты и байты) |
 | POST | `/modules/toggle` | Включить/выключить модуль |
 | POST | `/modules/sync` | Пакетное обновление активных модулей |
-| GET | `/modules/compatibility` | Карта совместимости модулей для текущей платформы |
+| GET | `/modules/compatibility` | Карта совместимости и статусов размеров модулей для текущей платформы (`sizeState`: `ok` / `error_platform` / `error_all` / `missing`) |
 | GET | `/modules/reload` | Перезагрузить кэш modinfo |
 | POST | `/modules/info` | Информация о модуле (about, usedLibs, usedFLASH, usedRAM) |
 
