@@ -1,15 +1,78 @@
 # IoTManager
 
-This is a smart home based on esp8266 and esp32 microcontrollers. These microcontrollers gained their popularity due to their low cost. Each such microcontroller is able to connect to your home wifi router. They can be purchased at any robotics store or on aliexpress, there are also ready-made devices based on them. This microcontroller has a certain number of pins on which digital signals are generated. Various peripheral devices can be connected to it: sensors, relays, stepper motors, servo drives, etc.
+Система «умного дома» на микроконтроллерах **ESP8266 / ESP32** (поддерживаются
+ESP8285, ESP32-S2/S3/C3/C6/CAM и чип **BK7231N**).
 
-Our firmware allows you to receive data from all these devices and manage them. The iot manager app available for ios and android is used to display the data. In order to connect devices and the application, a special mqtt server is needed, in other words, an mqtt broker. All devices are first connected to a wifi router, and then to this mqtt broker, the application is also connected to it. As a result, through the application you can manage devices from anywhere in the world, monitor sensor readings, build graphs and much more. Broker mqtt can be used in the cloud, such as wqtt.ru, or your own, raised, for example, on a single-board computer raspberry pi. There is also a second way to manage devices, it works even when you do not have the Internet - control through a web browser. All your devices will be available on one page. Both methods, through the application or through the web, work simultaneously with full mutual synchronization.
+Прошивка подключается к домашнему Wi-Fi и управляет периферией: сенсоры, реле,
+шаговые двигатели, сервоприводы и др. Управление — двумя синхронизированными способами:
 
-To achieve your goal, you only need three things:
+1. **Мобильное приложение** (iOS/Android) — через MQTT-брокер можно управлять устройствами из любой точки мира;
+2. **Веб-браузер** — все устройства на одной странице; работает локально, даже без интернета.
 
-1. Buy an esp microcontroller
-2. Download the app
-3. Get a cloud broker
+Логика каждого устройства настраивается **сценариями**: на любое действие можно
+назначить любую реакцию. Температура поднялась — выключить нагреватель; влажность
+упала, а уровень в баке больше 10% — включить полив, иначе — уведомление в Telegram.
 
-If remote control and the application are not needed, then the last step can be omitted.
+Для старта достаточно трёх вещей:
 
-The logic of each device is configured using scripts. They are needed in order to teach the device to carry out your invented algorithms. You can assign any reaction to any action. The temperature has risen - the device will turn off the heater. Humidity has fallen and the level in the tank is more than 10% - the device will start watering, if not, it will send you a telegram notification that there is not enough water. These are just a few examples. Scenarios are created by you, and their flexibility will allow you to fulfill your every desire.
+1. купить ESP-микроконтроллер;
+2. установить приложение IoTManager;
+3. получить облачный MQTT-брокер (например, wqtt.ru) — шаг необязателен, если удалённое управление не нужно.
+
+## Возможности
+
+- Прошивка для широкого списка платформ (см. [`docs/reference/platforms.md`](docs/reference/platforms.md)).
+- Модульная система: `exec`, `sensors`, `display`, `virtual` — модули подключаются без пересборки ядра.
+- MQTT, локальный веб-интерфейс, WebSocket, OTA-обновление, FTP-доступ к файловой системе.
+- Обнаружение устройств по multicast-UDP.
+- Сценарии `scenario.txt` с проверкой синтаксиса.
+- **magicIoTm** — веб-конфигуратор: проекты, сборка прошивок, замер размеров, прошивка по USB и OTA, менеджер устройств.
+
+## Быстрый старт
+
+### Сборка прошивки
+
+```bash
+pio pkg install                # установить зависимости
+pio run                        # сборка по умолчанию (esp32s2_4mb)
+pio run -e esp32_4mb           # конкретная плата
+pio run -e esp32_4mb --target upload  # загрузка на устройство
+pio device monitor             # монитор порта
+```
+
+Подробнее: [`docs/guides/build-firmware.md`](docs/guides/build-firmware.md).
+
+### Запуск веб-конфигуратора magicIoTm
+
+```bash
+cd tools/magicIoTm
+run.bat                        # Windows; сервер: http://127.0.0.1:5005
+```
+
+Вручную: `pip install -r tools/magicIoTm/requirements.txt && python tools/magicIoTm/app.py`.
+
+## Карта репозитория
+
+| Путь | Назначение |
+|---|---|
+| `src/` | Прошивка (C++): ядро, классы `IoT*`, утилиты, модули |
+| `data_svelte/` | Данные устройства (LittleFS) — веб-интерфейс и JSON-конфиги |
+| `lib/` | Внешние библиотеки |
+| `tools/magicIoTm/` | Веб-конфигуратор прошивок (Python Flask) |
+| `tools/measure_size/` | Замер размера прошивки по модулям |
+| `docs/` | Документация |
+| `platformio.ini` | Окружения сборки PlatformIO |
+| `myProfile.json` | Эталонная конфигурация (шаблон проектов) |
+
+## Документация
+
+- [`docs/README.md`](docs/README.md) — индекс документации и Roadmap
+- [`docs/architecture.md`](docs/architecture.md) — как устроена система
+- [`docs/guides/`](docs/guides/) — инструкции: сборка, работа с панелью
+- [`docs/reference/`](docs/reference/) — справочники: API, платформы, форматы данных
+- [`AGENTS.md`](AGENTS.md) — контракт для AI-ассистентов и разработчиков
+- [`CHANGELOG.md`](CHANGELOG.md) — история изменений
+
+## Лицензия
+
+Проект распространяется по лицензии **MIT** (см. [`LICENSE`](LICENSE)).
