@@ -325,6 +325,77 @@ def api_device_save_file(device_key, section):
     return jsonify({"success": True, "path": rel})
 
 
+@devices_bp.route("/device/<device_key>/write/ram", methods=["POST"])
+def api_device_write_ram(device_key):
+    """Writes a file back to the device RAM via reverse WebSocket command.
+
+    Body: {path: <relative path>, content: <text>}
+    Only files supported by the firmware (ws_client.WRITE_HEADERS) can be written.
+    On success the local RAM copy is updated as well.
+    """
+    entry = get_device_folder(device_key)
+    if not entry:
+        return jsonify({"success": False, "error": "Device folder not yet created"}), 404
+    dev_ip = entry.get("ip")
+    if not dev_ip:
+        return jsonify({"success": False, "error": "Device IP not specified"}), 400
+
+    data = request.json or {}
+    rel = data.get("path", "")
+    content = data.get("content")
+    if content is None:
+        content = ""
+
+    ram_dir = entry.get("ram_dir")
+    abs_path = _safe_path(ram_dir, rel)
+    if not abs_path:
+        return jsonify({"success": False, "error": "Invalid path"}), 400
+
+    filename = os.path.basename(abs_path)
+    if filename not in ws_client.WRITE_HEADERS:
+        return jsonify({
+            "success": False,
+            "error": (f"Файл '{filename}' не поддерживается прошивкой для записи обратно "
+                      f"на устройство. Доступны: {', '.join(sorted(ws_client.WRITE_HEADERS))}.")
+        }), 400
+
+    try:
+        ws_client.write_file(dev_ip, filename, content)
+    except Exception as e:
+        logger.error(f"Write to device {dev_ip} ({filename}): {e}", exc_info=True)
+        return jsonify({"success": False, "error": str(e)}), 500
+
+    # Обновляем локальную копию, чтобы не было рассинхрона с устройством
+    try:
+        os.makedirs(os.path.dirname(abs_path), exist_ok=True)
+        with open(abs_path, "w", encoding="utf-8") as f:
+            f.write(content)
+    except Exception as e:
+        logger.warning(f"Could not update local copy {abs_path}: {e}")
+
+    return jsonify({"success": True, "path": rel})
+
+
+@devices_bp.route("/device/<device_key>/reboot", methods=["POST"])
+def api_device_reboot(device_key):
+    """Sends reboot command to the device via WebSocket (/reboot|)."""
+    entry = get_device_folder(device_key)
+    if not entry:
+        return jsonify({"success": False, "error": "Device folder not yet created"}), 404
+    dev_ip = entry.get("ip")
+    if not dev_ip:
+        return jsonify({"success": False, "error": "Device IP not specified"}), 400
+    try:
+        ok = ws_client.reboot(dev_ip)
+    except Exception as e:
+        logger.error(f"Reboot {dev_ip}: {e}", exc_info=True)
+        return jsonify({"success": False, "error": str(e)}), 500
+    if not ok:
+        return jsonify({"success": False, "error": f"Не удалось отправить команду перезагрузки на {dev_ip}"}), 502
+    logger.info(f"Reboot command sent to {dev_ip} ({device_key})")
+    return jsonify({"success": True})
+
+
 # ==================== Device Settings Routes ====================
 
 
