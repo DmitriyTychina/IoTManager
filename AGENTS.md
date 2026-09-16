@@ -92,6 +92,22 @@ measure_size/venv/Scripts/python measure_size/measure.py --env esp32_4mb
 - **Python**: PEP8, комментарии на русском.
 - **HTML/CSS**: CSS-переменные (`--panel`, `--accent`, `--danger`), минимальная структура.
 - **Git**: `tools/magicIoTm/projects/`, `devices/`, `__pycache__/`, `*.log`, `.venv*/`, `.pio/`, `iotm/` — gitignored. Runtime-артефакты не коммитить.
+- **Генерируемые артефакты в git не хранятся**: `src/modules/API.cpp`,
+  `data_svelte/index.html`, `data_svelte/favicon.ico`, `data_svelte/items.json`,
+  `data_svelte/flashProfile.json`, `data_svelte/build/*.gz` — в `.gitignore`
+  (`PrepareProject.py` пересобирает их при применении профиля).
+  Обязаны оставаться отслеживаемыми: `data_full/`, `data_lite/` — исходные наборы
+  веб-данных (собранных Svelte-исходников в репозитории нет), а также корневой
+  `platformio.ini` и `myProfile.json` — без них CI и сборка свежего клона падают
+  (`PrepareProject.py -b <board>` → `KeyError 'envs'`).
+- **`skip-worktree` (локально)**: `git update-index --skip-worktree` может стоять
+  у файлов, которые перезаписываются на машине разработчика и не должны уезжать в
+  коммиты: `myProfile.json` и корневой `platformio.ini` (их перезаписывает
+  `PrepareProject.py`), а также собранные бандлы веб-интерфейса
+  `data_full/build/*.gz`, `data_lite/build/*.gz`. Их локальные правки не видны в
+  `git status` и не коммитятся, но сами файлы остаются в репозитории — клон и CI
+  видят сохранённую версию. Проверить: `git ls-files -v <файл>` (префикс `S`),
+  снять пометку: `git update-index --no-skip-worktree <файл>`.
 - **Не коммитить `src/modules/API.cpp`** — он генерируется `tools/magicIoTm/utils/PrepareProject.py`
   (блок «учёт вызовов модулей») при каждом применении профиля. Любые изменения этого
   файла в рабочем дереве — следствие генерации; править модули нужно в их папках
