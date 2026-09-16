@@ -1,5 +1,5 @@
 """
-??????? вЂ” ???????? Flask ??? ?????????? ?????????.
+Проекты — маршруты Flask для управления проектами.
 """
 
 import json
@@ -17,10 +17,10 @@ logger = logging.getLogger(__name__)
 bp = Blueprint('projects', __name__)
 
 
-# ==================== ??????????????? ??????? ====================
+# ==================== Вспомогательные функции ====================
 
 def _dir_size(path):
-    """????????? ?????? ?????? ? ???????? (?????)."""
+    """Суммарный размер файлов в каталоге (байты)."""
     if not path or not os.path.isdir(path):
         return 0
     total = 0
@@ -33,7 +33,7 @@ def _dir_size(path):
     return total
 
 
-# ==================== ????????: ??????? ====================
+# ==================== Маршруты: проекты ====================
 
 @bp.route('/projects', methods=['GET'])
 def api_list_projects():
@@ -46,9 +46,9 @@ def api_list_projects():
 
 @bp.route('/projects/data-svelte', methods=['GET'])
 def api_projects_with_data_svelte():
-    """???????, ? ??????? ???? ????? data_svelte (????? PlatformIO).
+    """Проекты, у которых есть папка data_svelte (кроме PlatformIO).
 
-    ???????????? ??? ???????? ???????? ? ????????? ????????? ? ??????????? ??????.
+    Используется для привязки прошивки к менеджеру устройства и копирования файлов.
     """
     result = []
     tree = projects.list_projects()
@@ -67,7 +67,7 @@ def api_projects_with_data_svelte():
 def api_create_category():
     name = request.json.get('name', '').strip()
     if not name:
-        return jsonify({"success": False, "error": "??? ?? ???????"}), 400
+        return jsonify({"success": False, "error": "Имя не указано"}), 400
     ok, msg = projects.create_category(name)
     return jsonify({"success": ok, "error": msg if not ok else None})
 
@@ -82,7 +82,7 @@ def api_delete_category(name):
 def api_rename_category(name):
     new_name = request.json.get('name', '').strip()
     if not new_name:
-        return jsonify({"success": False, "error": "????? ??? ?? ???????"}), 400
+        return jsonify({"success": False, "error": "Новое имя не указано"}), 400
     ok, msg = projects.rename_category(name, new_name)
     return jsonify({"success": ok, "error": msg if not ok else None})
 
@@ -94,7 +94,7 @@ def api_create_project():
     name = data.get('name', '').strip()
     desc = data.get('description', '')
     if not cat or not name:
-        return jsonify({"success": False, "error": "????????? ? ??? ???????????"}), 400
+        return jsonify({"success": False, "error": "Категория и имя обязательны"}), 400
     ok, msg = projects.create_project(cat, name, desc)
     return jsonify({"success": ok, "error": msg if not ok else None})
 
@@ -102,7 +102,7 @@ def api_create_project():
 @bp.route('/projects/<category>/<name>', methods=['DELETE'])
 def api_delete_project(category, name):
     if projects.is_platformio(name):
-        return jsonify({"success": False, "error": "?????? PlatformIO ?????? ???????"}), 400
+        return jsonify({"success": False, "error": "Проект PlatformIO нельзя удалить"}), 400
     ok, msg = projects.delete_project(category, name)
     return jsonify({"success": ok, "error": msg if not ok else None})
 
@@ -110,10 +110,10 @@ def api_delete_project(category, name):
 @bp.route('/projects/<category>/<name>/rename', methods=['POST'])
 def api_rename_project(category, name):
     if projects.is_platformio(name):
-        return jsonify({"success": False, "error": "?????? PlatformIO ?????? ?????????????"}), 400
+        return jsonify({"success": False, "error": "Проект PlatformIO нельзя переименовать"}), 400
     new_name = request.json.get('name', '').strip()
     if not new_name:
-        return jsonify({"success": False, "error": "????? ??? ?? ???????"}), 400
+        return jsonify({"success": False, "error": "Новое имя не указано"}), 400
     ok, msg = projects.rename_project(category, name, new_name)
     return jsonify({"success": ok, "error": msg if not ok else None})
 
@@ -126,17 +126,23 @@ def api_copy_project():
     dst_cat = data.get('dst_cat', '')
     dst_name = data.get('dst_name', '')
     if projects.is_platformio(src_name):
+        # Сохраняем исходное имя устройства проекта PlatformIO,
+        # чтобы не изменять его в копии.
         src_dev_name = None
         if os.path.exists(ROOT_CONFIG_FILE):
             with open(ROOT_CONFIG_FILE, 'r', encoding='utf-8') as f:
                 src_dev_name = json.load(f).get("iotmSettings", {}).get("name")
+        # Копирование проекта PlatformIO:
+        # создаём обычный проект из корневого myProfile.json как шаблона
         ok, msg = projects.create_project(dst_cat, dst_name, "")
         if ok:
+            # Восстанавливаем исходное имя устройства (create_project перезаписывает его именем проекта)
             if src_dev_name:
                 cfg = projects.load_project_config(dst_cat, dst_name)
                 if cfg is not None:
                     cfg.setdefault("iotmSettings", {})["name"] = src_dev_name
                     projects.save_project_config(dst_cat, dst_name, cfg)
+            # Копируем и platformio.ini из корня в новый проект
             dst_dir = os.path.join(projects.PROJECTS_DIR, dst_cat, dst_name)
             if os.path.exists(PLATFORMIO_INI_FILE):
                 shutil.copy(PLATFORMIO_INI_FILE, os.path.join(dst_dir, 'platformio.ini'))
@@ -149,7 +155,7 @@ def api_copy_project():
 def api_move_project():
     data = request.json
     if projects.is_platformio(data.get('src_name', '')):
-        return jsonify({"success": False, "error": "?????? PlatformIO ?????? ?????????"}), 400
+        return jsonify({"success": False, "error": "Проект PlatformIO нельзя перенести"}), 400
     ok, msg = projects.move_project(
         data.get('src_cat', ''), data.get('src_name', ''),
         data.get('dst_cat', ''), data.get('dst_name', '')
@@ -161,35 +167,37 @@ def api_move_project():
 def api_open_project(category, name):
     config = projects.load_project_config(category, name)
     if config is None:
-        return jsonify({"success": False, "error": "?????? ?? ??????"}), 404
+        return jsonify({"success": False, "error": "Проект не найден"}), 404
     globals_.current_project = {"category": category, "name": name}
     globals_.current_config = config
     projects.save_history(category, name)
     about = projects.load_project_about(category, name)
+    # Определяем платформу из конфига
     de = config.get("projectProp", {}).get("platformio", {}).get("default_envs", "")
     if de:
         globals_.current_platform = de
-    logger.info(f"?????? ??????: {category}/{name}")
+    logger.info(f"Открыт проект: {category}/{name}")
     return jsonify({"success": True, "config": config, "about": about, "platform": globals_.current_platform})
 
 
 @bp.route('/platformio/open', methods=['POST'])
 def api_open_platformio():
-    """???????? ??????? PlatformIO.
+    """Открытие проекта PlatformIO.
 
-    ?????? ??????? ???????? ?? ????????? myProfile.json,
-    ?????? ???????? вЂ” ?? platformio.ini.
+    Данные берутся напрямую из корневого myProfile.json,
+    список платформ — из platformio.ini.
     """
     if not os.path.exists(ROOT_CONFIG_FILE):
-        return jsonify({"success": False, "error": "myProfile.json ?? ??????"}), 404
+        return jsonify({"success": False, "error": "myProfile.json не найден"}), 404
     with open(ROOT_CONFIG_FILE, 'r', encoding='utf-8') as f:
         config = json.load(f)
     globals_.current_project = {"category": projects.PLATFORMIO_PROJECT, "name": projects.PLATFORMIO_PROJECT}
     globals_.current_config = config
+    # Платформа по умолчанию из конфига
     de = config.get("projectProp", {}).get("platformio", {}).get("default_envs", "")
     if de:
         globals_.current_platform = de
-    logger.info(f"?????? ??????: {projects.PLATFORMIO_PROJECT}")
+    logger.info(f"Открыт проект: {projects.PLATFORMIO_PROJECT}")
     return jsonify({
         "success": True,
         "config": config,
@@ -204,6 +212,7 @@ def api_last_project():
     hist = projects.load_history()
     if not hist:
         return jsonify({"success": True, "project": None})
+    # Проверяем, существует ли ещё
     path = os.path.join(projects.PROJECTS_DIR, hist.get("category", ""), hist.get("name", ""))
     if not os.path.exists(os.path.join(path, projects.CONFIG_FILENAME)):
         return jsonify({"success": True, "project": None})
@@ -212,7 +221,7 @@ def api_last_project():
 
 @bp.route('/projects/list-all', methods=['GET'])
 def api_list_all():
-    """?????? ???? ???????? ??? ??????????? ????????"""
+    """Список всех проектов для копирования настроек"""
     tree = projects.list_projects()
     flat = []
     for cat, projs in tree.items():
@@ -223,24 +232,25 @@ def api_list_all():
 
 @bp.route('/projects/<category>/<name>/settings', methods=['GET'])
 def api_get_project_settings(category, name):
-    """????????? ????? iotmSettings ??????? (??? ??????????? ????????? ?????)"""
+    """Получение сырых iotmSettings проекта (для копирования отдельных групп)"""
     config = projects.load_project_config(category, name)
     if config is None:
-        return jsonify({"success": False, "error": "?????? ?? ??????"}), 404
+        return jsonify({"success": False, "error": "Проект не найден"}), 404
     return jsonify({"success": True, "settings": config.get("iotmSettings", {})})
 
 
 @bp.route('/projects/copy-settings', methods=['POST'])
 def api_copy_settings():
-    """??????????? iotmSettings ?? ??????? ???????"""
+    """Копирование iotmSettings из другого проекта"""
     if not globals_.current_project:
-        return jsonify({"success": False, "error": "?????? ?? ??????"}), 400
+        return jsonify({"success": False, "error": "Проект не открыт"}), 400
     data = request.json
     src_cat = data.get('src_cat', '')
     src_name = data.get('src_name', '')
     src_config = projects.load_project_config(src_cat, src_name)
     if not src_config:
-        return jsonify({"success": False, "error": "???????? ?????? ?? ??????"}), 404
+        return jsonify({"success": False, "error": "Исходный проект не найден"}), 404
+    # Копируем iotmSettings, но НЕ трогаем name и apssid текущего устройства
     src_settings = dict(src_config.get("iotmSettings", {}))
     src_settings.pop("name", None)
     src_settings.pop("apssid", None)
@@ -252,15 +262,15 @@ def api_copy_settings():
 
 @bp.route('/projects/copy-modules', methods=['POST'])
 def api_copy_modules():
-    """??????????? modules ?? ??????? ???????"""
+    """Копирование modules из другого проекта"""
     if not globals_.current_project:
-        return jsonify({"success": False, "error": "?????? ?? ??????"}), 400
+        return jsonify({"success": False, "error": "Проект не открыт"}), 400
     data = request.json
     src_cat = data.get('src_cat', '')
     src_name = data.get('src_name', '')
     src_config = projects.load_project_config(src_cat, src_name)
     if not src_config:
-        return jsonify({"success": False, "error": "???????? ?????? ?? ??????"}), 404
+        return jsonify({"success": False, "error": "Исходный проект не найден"}), 404
     with globals_._lock:
         globals_.current_config["modules"] = src_config.get("modules", {})
         projects.save_project_config(globals_.current_project["category"], globals_.current_project["name"], globals_.current_config)
@@ -269,19 +279,20 @@ def api_copy_modules():
 
 @bp.route('/config/import-root', methods=['POST'])
 def api_import_root():
-    """?????? myProfile.json ?? ????? ??????? ??? ??????? ??? ?????? ???????"""
+    """Импорт myProfile.json из корня проекта как шаблона для нового проекта"""
     if not globals_.current_project:
-        return jsonify({"success": False, "error": "?????? ?? ??????"}), 400
+        return jsonify({"success": False, "error": "Проект не открыт"}), 400
     if not os.path.exists(ROOT_CONFIG_FILE):
-        return jsonify({"success": False, "error": "myProfile.json ?? ??????"}), 404
+        return jsonify({"success": False, "error": "myProfile.json не найден"}), 404
     with open(ROOT_CONFIG_FILE, 'r', encoding='utf-8') as f:
         base = json.load(f)
+    # Сохраняем имя устройства из текущего проекта
     dev_name = globals_.current_config.get("iotmSettings", {}).get("name", globals_.current_project["name"])
     base["iotmSettings"]["name"] = dev_name
     with globals_._lock:
         globals_.current_config = base
         projects.save_project_config(globals_.current_project["category"], globals_.current_project["name"], base)
-    logger.info(f"???????????? ??????? ?????? ? {globals_.current_project['category']}/{globals_.current_project['name']}")
+    logger.info(f"Импортирован базовый конфиг в {globals_.current_project['category']}/{globals_.current_project['name']}")
     return jsonify({"success": True, "config": base})
 
 
