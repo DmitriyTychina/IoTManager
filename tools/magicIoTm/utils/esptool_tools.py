@@ -255,57 +255,138 @@ def flash_label_to_bytes(label):
     return n * (1024 * 1024 if unit == "MB" else 1024)
 
 
-def detect_device(port):
-    """Определяет модель ESP-чипа и реальный объём флеш-памяти через esptool.
+def _port_identity(comp):
+    """Стабильная «топология» USB‑устройства для отслеживания re‑enumeration.
 
-    Используется команда `flash_id`, которая при подключении выводит и тип чипа
-    ("Chip is ..."/"Detecting chip type..."), и обнаруженный объём флеш-памяти
-    ("Detected flash size: ...").
+    ESP32‑S2 с нативным USB переключается между режимом приложения (например
+    COM6, PID 80C2) и режимом загрузки (COM7, PID 0002): меняются именно
+    имя порта и PID, а VID, серийный номер и location остаются теми же.
+    Именно по ним сопоставляем «старый» и «новый» порт одного устройства.
+    """
+    return (
+        getattr(comp, "vid", None),
+        getattr(comp, "serial_number", "") or "",
+        getattr(comp, "location", "") or "",
+    )
 
-    Args:
-        port (str): имя COM-порта, например 'COM3'.
 
-    Returns:
-        dict | None: {"port", "model", "family", "flash_bytes", "flash_label"}
-                     или None, если это не ESP-чип или порт недоступен.
+def _same_usb_device(a, b):
+    """True, если это одно и то же USB‑устройство (игнорируем переключение PID)."""
+    if a is None or b is None:
+        return a is b
+    if a is b:
+        return True
+    return _port_identity(a) == _port_identity(b)
+
+
+def _flash_id_output(port):
+    """Запускает `esptool --port <port> flash_id`, возвращает (stdout+stderr, rc).
+
+    Оборачивает subprocess.run в try/except, чтобы таймаут/исключения esptool
+    не падали наружу.
     """
     cmd = [sys.executable, "-m", "esptool", "--port", port, "flash_id"]
     try:
         p = subprocess.run(cmd, capture_output=True, text=True, timeout=40,
                            encoding="utf-8", errors="replace")
         out = (p.stdout or "") + (p.stderr or "")
-
-        model = None
-        m = re.search(r"Chip is\s+([^\r\n]+)", out, re.IGNORECASE)
-        if m:
-            model = m.group(1).strip()
-        else:
-            m2 = re.search(r"Detecting chip type\.\.\.\s*([A-Za-z0-9\-]+)", out, re.IGNORECASE)
-            if m2:
-                model = m2.group(1).strip()
-
-        if not model:
-            logger.debug(f"detect_device({port}): чип не опознан. Вывод:\n{out[-1500:]}")
-            return None
-
-        family = family_of_model(model)
-        if family is None:
-            logger.debug(f"detect_device({port}): неизвестное семейство для модели '{model}'")
-            return None
-
-        # Реальный объём флеш-памяти
-        flash_label = None
-        flash_bytes = None
-        fm = re.search(r"Detected flash size:\s*([^\r\n]+)", out, re.IGNORECASE)
-        if fm:
-            flash_label = fm.group(1).strip()
-            flash_bytes = flash_label_to_bytes(flash_label)
-
-        return {"port": port, "model": model, "family": family,
-                "flash_bytes": flash_bytes, "flash_label": flash_label}
+        return out, p.returncode
     except Exception as e:
-        logger.debug(f"detect_device({port}) ошибка: {e}")
+        logger.debug(f"_flash_id_output({port}) ошибка: {e}")
+        return "", -1
+
+
+def _parse_flash_id(out):
+    """Определяет модель/family/flash из вывода esptool `flash_id`.
+
+    Returns:
+        dict | None: {"model", "family", "flash_bytes", "flash_label"} или None.
+    """
+    model = None
+    m = re.search(r"Chip is\s+([^\r\n]+)", out, re.IGNORECASE)
+    if m:
+        model = m.group(1).strip()
+    else:
+        m2 = re.search(r"Detecting chip type\.\.\.\s*([A-Za-z0-9\-]+)", out, re.IGNORECASE)
+        if m2:
+            model = m2.group(1).strip()
+
+    if not model:
         return None
+
+    family = family_of_model(model)
+    if family is None:
+        return None
+
+    # Реальный объём флеш-памяти
+    flash_label = None
+    flash_bytes = None
+    fm = re.search(r"Detected flash size:\s*([^\r\n]+)", out, re.IGNORECASE)
+    if fm:
+        flash_label = fm.group(1).strip()
+        flash_bytes = flash_label_to_bytes(flash_label)
+
+    return {"model": model, "family": family,
+            "flash_bytes": flash_bytes, "flash_label": flash_label}
+
+
+def detect_device(port):
+    """Определяет модель ESP-чипа и реальный объём флеш-памяти через esptool.
+
+    Устраняет flaky detection для ESP32‑S2 с нативным USB: в режиме приложения
+    `esptool --port COM6 flash_id` сбрасывает чип (1200 baud) → порт переименовывается
+    в COM7 (режим загрузки) → старый дескриптор становится недействительным, и esptool
+    падает с OSError(22 'Invalid argument')/'A serial exception error occurred'.
+    Поэтому после неудачи перечитываем COM‑порты и повторяем flash_id на порте того же
+    USB‑устройства (COM6 → COM7), пока не получим ответ чипа.
+
+    Returns:
+        dict | None: {"port", "model", "family", "flash_bytes", "flash_label"}.
+    """
+    # Запоминаем «топологию» устройства ДО сброса: esptool flash_id на портe
+    # приложения (COM6) сбрасывает ESP32‑S2 в режим загрузки — порт переименовывается
+    # (COM6 -> COM7), и старый дескриптор становится недействительным.
+    base = next((c for c in _comports() if c.device == port), None)
+
+    # 1) прямой вызов на указанном порте
+    out, _rc = _flash_id_output(port)
+    info = _parse_flash_id(out)
+    if info:
+        info["port"] = port
+        return info
+
+    # 2) порт исчез / переименовался — ищем переименованный порт того же устройства
+    if base is None:
+        # вызывали с уже переименованного порта — берём любой доступный
+        base = next(iter(_comports()), None)
+    if base is None:
+        return None
+
+    last = port
+    for _ in range(5):
+        time.sleep(0.7)
+        for comp in _comports():
+            if not _same_usb_device(comp, base):
+                continue
+            p = comp.device
+            if p == last:
+                continue
+            out, _rc = _flash_id_output(p)
+            info = _parse_flash_id(out)
+            if info:
+                # Возвращаем ИСХОДНЫЙ порт приложения (COM6), а не загрузчика (COM7):
+                # PlatformIO ожидает порт в режиме приложения и сам делает 1200bps‑сброс
+                # для перехода в загрузчик. Отдавать порт загрузчика нельзя — тогда
+                # PlatformIO сбросит чип ОБРАТНО в приложение (COM6) и не сможет
+                # отследить переименование COM7→COM6 на Windows.
+                info["port"] = port
+                logger.debug(f"detect_device: чип найден, порт приложения {port} (загрузчик на {p})")
+                return info
+            last = p
+
+    logger.debug(f"detect_device({port}): чип не опознан после переименования порта. "
+                 f"Последний вывод:\\n{out[-1500:]}")
+    return None
 
 
 def detect_chip(port):
@@ -327,7 +408,12 @@ def list_esp_ports():
         list[dict]: [{"port", "model", "family", "flash_bytes", "flash_label"}, ...]
     """
     found = []
-    for comp in _comports():
+    ports = _comports()
+    if not ports:
+        # Порт может быть в момент переименования (native USB ESP32: COM6 -> COM7).
+        time.sleep(0.5)
+        ports = _comports()
+    for comp in ports:
         port = comp.device
         info = detect_device(port)
         if info:
@@ -357,7 +443,12 @@ def list_raw_ports():
         list[dict]: [{"port", "description"}, ...]
     """
     result = []
-    for comp in _comports():
+    ports = _comports()
+    if not ports:
+        # Порт может быть в момент переименования (native USB ESP32: COM6 -> COM7).
+        time.sleep(0.5)
+        ports = _comports()
+    for comp in ports:
         result.append({"port": comp.device, "description": comp.description or ""})
     return result
 

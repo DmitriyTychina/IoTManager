@@ -2891,10 +2891,14 @@ async function startUpload(){
       showManualPortModal(d.raw_ports);
       return;
     }
-    const nd = 'ESP-устройство не обнаружено. Проверьте USB-подключение и драйвер USB-UART.';
-    toast(nd,'error');
+    const nd = 'ESP-устройство не обнаружено (COM-порт не создается в системе).';
+    const hint = 'Проверьте кабель с линиями данных, драйвер USB-UART и отсутствие открытого Serial Monitor '
+      + '(Arduino IDE / PlatformIO Monitor / PuTTY). Для ESP32-S2/C3/S3 с нативным USB esptool сбрасывает '
+      + 'чип в режим загрузки: если порт пропадает — удержите кнопку BOOT и кратко нажмите RST, затем повторите.';
+    toast(nd + ' ' + hint, 'error');
     showModal(`<h3 style="color:var(--danger)">⚠️ Устройство не обнаружено</h3>
-      <p style="font-size:13px;color:var(--text);margin:8px 0 16px">${nd}</p>
+      <p style="font-size:13px;color:var(--text);margin:8px 0 16px">${esc(nd)}</p>
+      <p style="font-size:12px;color:var(--muted);margin:0 0 16px">${esc(hint)}</p>
       <div class="modal-actions"><button onclick="closeModal()">OK</button></div>`);
   } finally {
     setUploadButtons(true);
