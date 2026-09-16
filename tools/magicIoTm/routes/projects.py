@@ -283,3 +283,37 @@ def api_import_root():
         projects.save_project_config(globals_.current_project["category"], globals_.current_project["name"], base)
     logger.info(f"???????????? ??????? ?????? ? {globals_.current_project['category']}/{globals_.current_project['name']}")
     return jsonify({"success": True, "config": base})
+
+
+# ==================== Починка platformio.ini ====================
+
+@bp.route('/projects/repair-data-dir', methods=['POST'])
+def api_repair_data_dir():
+    """Перезаписывает [platformio] data_dir проекта на <проект>/data_svelte.
+
+    Нужно, когда путь к каталогу данных ФС устарел (проект перенесли в другую
+    категорию, категорию/проект переименовали) — тогда `pio run -t uploadfs`
+    падает на сборке образа littlefs с кодом 1. Меняется только строка data_dir:
+    остальной platformio.ini (комментарии, секции env) не трогается.
+
+    body: {category: 'Платы', name: 'esp32s2mini'}
+    """
+    data = request.json or {}
+    category = (data.get('category') or '').strip()
+    name = (data.get('name') or '').strip()
+    if not category or not name:
+        return jsonify({"success": False, "error": "Не указан проект"}), 400
+
+    if projects.is_platformio(name):
+        proj_dir = PROJECT_ROOT
+    else:
+        proj_dir = os.path.join(projects.PROJECTS_DIR, category, name)
+    if not os.path.isdir(proj_dir):
+        return jsonify({"success": False, "error": f"Каталог проекта не найден: {proj_dir}"}), 404
+
+    ok, value = projects.fix_data_dir(proj_dir)
+    if not ok:
+        logger.warning(f"Не удалось исправить data_dir для {category}/{name}: {value}")
+        return jsonify({"success": False, "error": value}), 400
+    logger.info(f"Исправлен data_dir для {category}/{name}: {value}")
+    return jsonify({"success": True, "data_dir": value})

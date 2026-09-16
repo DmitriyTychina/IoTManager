@@ -23,6 +23,8 @@ import subprocess
 import sys
 import threading
 
+from utils import build, projects
+
 # Режимы прошивки: id -> (label, порядок pio-шагов)
 # Каждый шаг: {"target": pio-target для запуска, "label": человекочитаемая метка}
 MODES = {
@@ -194,6 +196,21 @@ def _worker(cfg):
         _append_line(f"Режим: {MODES[mode]['label']} | Порт: {cfg.get('upload_port', '')}")
         _append_line("")
 
+        # ---- Предпроверка каталога данных ФС ----
+        # pio -t uploadfs собирает образ littlefs из [platformio] data_dir
+        # (mklittlefs -c $PROJECT_DATA_DIR). Если путь устарел (проект перенесли,
+        # категорию переименовали, ini правили руками) — PIO падает с
+        # неинформативным «can't read source directory … littlefs.bin Error 1».
+        if mode in ("fs", "full"):
+            report = projects.data_dir_report(
+                cfg.get("ini", ""), cfg.get("data_dir", ""), cfg.get("cwd", ""))
+            if not report["ok"]:
+                _append_line("[flash] " + projects.data_dir_error_text(report))
+                _set_step_running(1)
+                _set_step_error(1)
+                _fail(1, projects.data_dir_error_text(report))
+                return
+
         for idx, step in enumerate(MODES[mode]["steps"], start=1):
             step_id = idx
             target = step["target"]
@@ -210,6 +227,14 @@ def _worker(cfg):
                 _fail(step_id, f"Ошибка шага '{label}' (код {rc})")
                 return
             _set_step_done(step_id)
+
+        # Обновляем готовые артефакты в iotm/<платформа>/400/ проекта: pio при
+        # uploadfs/upload пересобирает .pio/build/<платформа>/firmware.bin и
+        # littlefs.bin, поэтому копия в папке проекта должна быть свежей.
+        try:
+            build.copy_firmware(cfg)
+        except Exception as e:  # noqa: BLE001
+            _append_line(f"[copy] Не удалось обновить iotm/: {e}")
 
         _append_line("")
         _append_line("=== Успех! Прошивка записана ===")

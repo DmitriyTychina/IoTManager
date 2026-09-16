@@ -12,6 +12,7 @@ from flask import Blueprint, request, jsonify, Response
 
 from core.flasher import (
     MODES,
+    start as flash_start,
     is_running as flash_is_running,
     ensure_installed,
     list_esp_ports,
@@ -20,7 +21,7 @@ from core.flasher import (
     detect_device,
     list_raw_ports,
 )
-from core.builder import resolve_build_config, is_running as build_is_running
+from core.builder import resolve_build_config, is_running as build_is_running, data_dir_report, data_dir_error_text
 from core.config import PROJECT_ROOT, ROOT_CONFIG_FILE, PLATFORMIO_INI_FILE, BASE_DIR
 
 logger = logging.getLogger(__name__)
@@ -107,6 +108,26 @@ def api_upload_start():
         return jsonify({"success": False, "error": "Проект не открыт"}), 400
     if not _has_built_firmware(cfg):
         return jsonify({"success": False, "error": "Прошивка не собрана. Сначала выполните сборку (??)."}), 400
+
+    # Предпроверка каталога данных ФС: pio -t uploadfs собирает образ littlefs
+    # из [platformio] data_dir (mklittlefs -c $PROJECT_DATA_DIR) и при устаревшем
+    # пути падает с неинформативным «can't read source directory … Error 1».
+    # UI по code='data_dir' предлагает исправить platformio.ini и повторить.
+    if mode in ("fs", "full"):
+        report = data_dir_report(cfg)
+        if not report["ok"]:
+            proj = globals_.current_project or {}
+            reason = data_dir_error_text(report)
+            logger.warning(f"Прошивка остановлена: {reason}")
+            return jsonify({
+                "success": False,
+                "code": "data_dir",
+                "error": reason,
+                "ini_value": report["ini_value"],
+                "resolved": report["resolved"],
+                "expected": report["expected"],
+                "project": {"category": proj.get("category", ""), "name": proj.get("name", "")},
+            }), 409
 
     ensure_installed()
 

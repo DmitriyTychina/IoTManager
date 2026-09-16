@@ -25,6 +25,7 @@
 | POST | `/projects/copy-settings` | Копировать iotmSettings |
 | POST | `/projects/copy-modules` | Копировать modules |
 | POST | `/config/import-root` | Импорт из корневого `myProfile.json` в текущий проект |
+| POST | `/projects/repair-data-dir` | Перезаписать `[platformio] data_dir` проекта на `<проект>/data_svelte` (`{category, name}`) |
 | GET | `/config` | Текущая конфигурация |
 | POST | `/config/save` | Сохранить конфигурацию |
 | POST | `/config/settings` | Сохранить настройки |
@@ -77,6 +78,15 @@
 | GET | `/ota/candidates` | Список онлайн-устройств для OTA (совместимость платформ) |
 | POST | `/ota/start` | Запустить OTA (`mode`: fs/firmware/full, `fs_method`: flash/copy) |
 | GET | `/ota/stream` | SSE-поток OTA |
+
+Особенности `POST /upload/start`:
+
+- `mode`: `fs` | `firmware` | `full`; при `fs`/`full` образ LittleFS собирается из
+  `[platformio] data_dir` проекта (`mklittlefs -c $PROJECT_DATA_DIR`).
+- Если в `platformio.ini` указан устаревший/несуществующий `data_dir` (например, проект
+  перенесли в другую категорию), ответ — `409` с `code: "data_dir"`, полями `ini_value`,
+  `resolved`, `expected` и `project`. UI показывает модалку «Исправить и прошить» и
+  вызывает `POST /projects/repair-data-dir`.
 
 ## Устройства
 

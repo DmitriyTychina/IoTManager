@@ -2774,7 +2774,11 @@ function pickUploadMode(mode, port){
     body:JSON.stringify({mode:mode, port:port})})
     .then(r=>r.json())
     .then(d=>{
-      if(!d.success){ toast(d.error||'Ошибка запуска прошивки','error'); return; }
+      if(!d.success){
+        // Устаревший data_dir в platformio.ini — предлагаем починить и повторить
+        if(d.code === 'data_dir'){ showDataDirFixModal(d, mode, port); return; }
+        toast(d.error||'Ошибка запуска прошивки','error'); return;
+      }
       const label = currentProject && currentProject.name === 'PlatformIO'
         ? 'PlatformIO' : `${currentProject.category} / ${currentProject.name}`;
       openUploadModal(mode, port);
@@ -2782,6 +2786,39 @@ function pickUploadMode(mode, port){
       startUploadStream();
     })
     .catch(()=>toast('Ошибка запуска прошивки','error'));
+}
+
+// Предпроверка прошивки FS: путь к data_svelte в platformio.ini устарел.
+// Показываем, что записано сейчас и что будет записано, предлагаем починить и повторить.
+function showDataDirFixModal(d, mode, port){
+  const proj = d.project || (currentProject ? {category:currentProject.category, name:currentProject.name} : {});
+  const oldPath = d.ini_value || '— не задан —';
+  const newPath = d.expected || '—';
+  showModal(`<h3>⚠️ Путь к данным ФС в platformio.ini устарел</h3>
+    <p style="font-size:13px;color:var(--text);margin:8px 0">Прошивка файловой системы остановлена: каталог данных не найден, поэтому pio не может собрать образ littlefs.</p>
+    <p style="font-size:12px;color:var(--muted);margin:4px 0">Сейчас в platformio.ini:<br><code>${esc(oldPath)}</code></p>
+    <p style="font-size:12px;color:var(--muted);margin:4px 0">Будет записано:<br><code>${esc(newPath)}</code></p>
+    <div class="modal-actions">
+      <button onclick="closeModal()">Отмена</button>
+      <button id="dataDirFixBtn" title="Перезаписать data_dir и повторить прошивку">Исправить и прошить</button>
+    </div>`);
+  const btn = document.getElementById('dataDirFixBtn');
+  if(btn) btn.addEventListener('click', () => repairDataDirAndFlash(proj.category, proj.name, mode, port));
+}
+
+// Починка [platformio] data_dir через API и повторный запуск прошивки
+function repairDataDirAndFlash(category, name, mode, port){
+  if(!category || !name){ toast('Проект не открыт','error'); return; }
+  fetch('/api/projects/repair-data-dir', {method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({category:category, name:name})})
+    .then(r=>r.json())
+    .then(d=>{
+      if(!d.success){ toast(d.error||'Не удалось исправить platformio.ini','error'); return; }
+      toast('platformio.ini исправлен: ' + (d.data_dir||''), 'success');
+      closeModal();
+      pickUploadMode(mode, port);
+    })
+    .catch(()=>toast('Не удалось исправить platformio.ini','error'));
 }
 
 function showUploadModeModal(port, envLabel){
