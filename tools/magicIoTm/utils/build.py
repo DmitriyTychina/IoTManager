@@ -336,6 +336,16 @@ FIRMWARE_FILES = ["firmware.bin", "littlefs.bin", "partitions.bin"]
 FIRMWARE_DEST_SUBDIR = "400"
 
 
+def copy_firmware(cfg):
+    """Публичный вызов копирования артефактов сборки в iotm/<платформа>/400/.
+
+    Используется как сборкой (после шага 3), так и прошивкой по USB
+    (utils/flash.py), чтобы готовые firmware.bin/littlefs.bin лежали в папке
+    проекта и после прошивки.
+    """
+    _copy_firmware(cfg)
+
+
 def _copy_firmware(cfg):
     """Копирует собранные файлы прошивки в iotm/<платформа>/400/ проекта.
 

@@ -13,6 +13,23 @@
   всех платформ»), жёлтая — «Размер не замерялся». Статус считается по
   `sizeInfo.usedFLASH` в `modinfo.json` и отдаётся в `/api/modules/compatibility`
   полем `sizeState` (`ok` / `error_platform` / `error_all` / `missing`).
+- Исправлен `NameError: name 'flash_start' is not defined` в
+  `routes/upload.py`: функция запуска прошивки называется `start` (из
+  `core.flasher`) и не была импортирована — добавлен импорт `start as flash_start`.
+- Исправлен сбой прошивки файловой системы (`pio run -t uploadfs`) с
+  `warning: can't read source directory` и `*** [.pio\build\<env>\littlefs.bin] Error 1`:
+  причина — устаревший путь `[platformio] data_dir` в `platformio.ini` проекта после
+  переименования категории (`Test` → `Платы`) или переноса проекта; PlatformIO берёт
+  этот путь как `$PROJECT_DATA_DIR` и передаёт его `mklittlefs -c`. Теперь:
+  - `utils/projects.py` умеет читать/перезаписывать `data_dir` (только строку в секции
+    `[platformio]`, остальной ini и комментарии не трогаются) и автоматически
+    синхронизирует его при переименовании категории/проекта, переносе и копировании;
+  - перед USB-прошивкой в режимах `fs`/`full` каталог данных сверяется с проектом:
+    `POST /upload/start` возвращает `409` с `code: "data_dir"`, а UI показывает модалку
+    «Исправить и прошить» (`POST /projects/repair-data-dir`) с повторным запуском;
+  - `utils/flash.py` дополнительно проверяет каталог в воркере (понятная ошибка вместо
+    «код 1») и после успешной прошивки обновляет `firmware.bin`/`littlefs.bin`
+    в `iotm/<платформа>/400/` проекта.
 
 ### Документация (реструктуризация)
 

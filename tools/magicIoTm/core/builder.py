@@ -77,6 +77,24 @@ def resolve_build_config(proj, config):
     }
 
 
+def data_dir_report(cfg):
+    """Отчёт о состоянии каталога данных ФС текущего проекта.
+
+    Тонкая обёртка над projects.data_dir_report(): берёт ini/profile/cwd из cfg
+    (см. resolve_build_config) и ожидаемый каталог — <проект>/data_svelte.
+
+    Returns:
+        dict: ok, reason, ini, ini_value, resolved, expected
+    """
+    ini = cfg.get("ini", "") or ""
+    profile = cfg.get("profile", "") or ""
+    expected = cfg.get("data_dir") or os.path.join(os.path.dirname(profile), projects.DATA_DIR_NAME)
+    return projects.data_dir_report(ini, expected, cfg.get("cwd") or PROJECT_ROOT)
+
+
+data_dir_error_text = projects.data_dir_error_text
+
+
 # Re-export from utils.build
 start = build.start
 is_running = build.is_running
