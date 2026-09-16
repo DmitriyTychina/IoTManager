@@ -30,6 +30,13 @@
   - `utils/flash.py` дополнительно проверяет каталог в воркере (понятная ошибка вместо
     «код 1») и после успешной прошивки обновляет `firmware.bin`/`littlefs.bin`
     в `iotm/<платформа>/400/` проекта.
+- Добавлены тесты панели `tools/magicIoTm/tests/test_data_dir.py`
+  (`cd tools/magicIoTm && python -m unittest discover -s tests -v`; pytest тоже
+  подходит): проверяются чтение/запись `data_dir`, предпроверка перед прошивкой и
+  API починки `platformio.ini`. Сеть, PlatformIO и устройство не нужны. Заодно
+  `compile_commands.json` добавлен в `.gitignore`, а `fix_data_dir` больше не падает
+  `ValueError`, если проект и корень репозитория лежат на разных дисках (пишется
+  абсолютный путь).
 
 ### Документация (реструктуризация)
 

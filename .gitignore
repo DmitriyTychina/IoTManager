@@ -21,6 +21,8 @@ __pycache__/
 data_full — копия/
 iotm/
 lt_littlefs.bin
+# база компиляции для IDE (генерируется `pio run -t compiledb`)
+compile_commands.json
 
 # Project-specific
 data_svelte/settings.json
