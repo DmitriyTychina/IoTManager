@@ -1,8 +1,6 @@
 # AGENTS.md — Контракт репозитория IoTManager
 
 > Правила для AI-ассистентов и разработчиков. Читается в начале каждой задачи.
-> Заменяет старые `rules.md` и «Project Knowledge Base.md». Пользовательская документация — в `docs/`.
-> `KODA.md` — указатель на этот файл.
 
 ## Коротко о проекте
 
@@ -24,6 +22,7 @@
 | `data_full/`, `data_lite/` | Альтернативные комплекты веб-данных |
 | `iotm/` | Собранные прошивки (результат сборки) |
 | `tools/magicIoTm/` | Веб-конфигуратор (Flask), SPA в `static/index.html` |
+| `tools/magicIoTm/tests/` | Тесты панели (`unittest`, запускаются и через pytest) |
 | `tools/measure_size/` | Замер размера прошивки по модулям |
 | `docs/` | Пользовательская документация (Diátaxis) |
 | `AGENTS.md` | Этот контракт |
@@ -56,6 +55,17 @@ restart.bat / stop.bat
 ```
 
 Сервер: http://127.0.0.1:5005
+
+### Тесты magicIoTm
+
+```bash
+cd tools/magicIoTm
+python -m unittest discover -s tests -v   # или: python -m pytest tests -v
+```
+
+Тесты не требуют сети, PlatformIO и подключённого устройства: файловые проверки
+идут во временных каталогах, API-тесты используют Flask test-client, запуск
+прошивки подменяется заглушкой.
 
 ### Замер размеров
 
@@ -109,4 +119,3 @@ measure_size/venv/Scripts/python measure_size/measure.py --env esp32_4mb
 
 - `docs/README.md` — индекс и Roadmap; `docs/architecture.md` — архитектура; `docs/guides/` — инструкции; `docs/reference/` — справочники; `docs/decisions/` — ADR.
 - Правило: меняя поведение/API — обновляйте соответствующие страницы `docs/` и `CHANGELOG.md`. Архитектурные решения фиксируйте как ADR в `docs/decisions/`.
-- Старые «Project Knowledge Base.md» и «Technical Description…» удалены; ценное перенесено сюда и в `docs/`.

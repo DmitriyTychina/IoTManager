@@ -149,7 +149,13 @@ def fix_data_dir(proj_dir, cwd=None):
     if not os.path.isdir(data_dir):
         return False, f"Каталог данных не найден: {data_dir}"
     base = os.path.abspath(cwd) if cwd else REPO_ROOT
-    value = os.path.relpath(os.path.abspath(data_dir), base).replace(os.sep, '/')
+    abs_data_dir = os.path.abspath(data_dir)
+    try:
+        # relpath бросает ValueError, если проект и корень репозитория на разных дисках
+        value = os.path.relpath(abs_data_dir, base)
+    except ValueError:
+        value = abs_data_dir
+    value = value.replace(os.sep, '/')
     ok, msg = set_ini_data_dir(os.path.join(proj_dir, PLATFORMIO_INI_FILENAME), value)
     return ok, (value if ok else msg)
 
