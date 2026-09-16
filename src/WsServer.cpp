@@ -466,9 +466,9 @@ void sendFileToWsByFrames(const String& filename, const String& header, const St
 
     auto path = filepath(filename);
     auto file = FileFS.open(path, "r");
-    //SerialPrint("I", "sendFileToWsByFrames", ("reed file: ")+ path);
+    // SerialPrint("I", "sendFileToWsByFrames", ("reed file: ") + path);
     if (!file) {
-        SerialPrint("E", "FS", F("reed file error"));
+        SerialPrint("E", "FS", "reed file error " + path);
         return;
     }
 

@@ -16,6 +16,7 @@
 | Путь | Назначение |
 |---|---|
 | `src/` | Прошивка: `src/*.cpp` (ядро), `src/classes/` (классы `IoT*`), `src/utils/`, `src/modules/<тип>/` (модули) |
+| `src/modules/API.cpp` | ⚠️ ГЕНЕРИРУЕМЫЙ файл (`PrepareProject.py`) — **не коммитить** и не править руками |
 | `include/` | Заголовки прошивки |
 | `lib/` | Внешние библиотеки (не редактировать) |
 | `data_svelte/` | Данные LittleFS: веб-интерфейс + JSON-конфиги устройства |
@@ -91,6 +92,10 @@ measure_size/venv/Scripts/python measure_size/measure.py --env esp32_4mb
 - **Python**: PEP8, комментарии на русском.
 - **HTML/CSS**: CSS-переменные (`--panel`, `--accent`, `--danger`), минимальная структура.
 - **Git**: `tools/magicIoTm/projects/`, `devices/`, `__pycache__/`, `*.log`, `.venv*/`, `.pio/`, `iotm/` — gitignored. Runtime-артефакты не коммитить.
+- **Не коммитить `src/modules/API.cpp`** — он генерируется `tools/magicIoTm/utils/PrepareProject.py`
+  (блок «учёт вызовов модулей») при каждом применении профиля. Любые изменения этого
+  файла в рабочем дереве — следствие генерации; править модули нужно в их папках
+  (`src/modules/<тип>/<Модуль>/`), а не в `API.cpp`.
 
 ## Модули прошивки
 
