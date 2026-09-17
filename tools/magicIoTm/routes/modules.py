@@ -7,7 +7,7 @@ import logging
 import state.globals as globals_
 from flask import Blueprint, request, jsonify
 from utils import projects
-from core.config import scan_modinfo, get_compat_map, calc_size, get_module_flash, get_module_ram, is_compatible, get_fs_usage
+from core.config import scan_modinfo, load_platforms, get_compat_map, calc_size, get_module_flash, get_module_ram, is_compatible, get_fs_usage
 
 logger = logging.getLogger(__name__)
 
@@ -67,8 +67,14 @@ def api_compat():
 
 @bp.route('/modules/reload', methods=['POST'])
 def api_modules_reload():
-    """Перезагрузка кэша modinfo с диска (после замера размеров)."""
+    """Перезагрузка кэшей modinfo и platforms с диска (после замера размеров).
+
+    Платформы перечитываем здесь, а не только в SSE-потоке замера: клиент
+    закрывает поток сразу после события done, и генератор может не дойти
+    до перезагрузки кэшей. Вызывается клиентом до updateGauge().
+    """
     scan_modinfo()
+    load_platforms()
     return jsonify({"success": True})
 
 

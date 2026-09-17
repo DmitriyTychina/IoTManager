@@ -30,14 +30,21 @@ MEASURE_SCRIPT = os.path.abspath(os.path.join(BASE_DIR, '..', '..', 'measure_siz
 
 
 def load_platforms():
-    """Загрузка platforms.json с baseline/total значениями"""
-    globals_.platforms_cache.clear()
+    """Загрузка platforms.json с baseline/total значениями.
+
+    Кэш подменяется новым словарём только после успешного чтения файла:
+    параллельные запросы (/api/size и т.п.) видят либо старые, либо новые
+    данные, но не промежуточное пустое состояние — иначе верхние gauge
+    FLASH/RAM/FS после замера сбрасываются в 0 (total_flash = 0 → pct = 0).
+    """
     try:
         with open(PLATFORMS_FILE, 'r', encoding='utf-8') as f:
-            globals_.platforms_cache.update(json.load(f))
-        logger.info(f"Загружено платформ: {len(globals_.platforms_cache)}")
+            data = json.load(f)
     except Exception as e:
         logger.error(f"platforms.json: {e}")
+        return  # при ошибке чтения оставляем предыдущий кэш без изменений
+    globals_.platforms_cache = data
+    logger.info(f"Загружено платформ: {len(data)}")
 
 
 def save_platform_fs_total(env, fs_total):
@@ -115,8 +122,13 @@ def get_platformio_platforms():
 
 
 def scan_modinfo():
-    """Сканирование всех modinfo.json"""
-    globals_.modinfo_cache.clear()
+    """Сканирование всех modinfo.json.
+
+    Заполняется локальный словарь, затем кэш подменяется целиком: запросы,
+    пришедшие во время сканирования (оно может идти сотни миллисекунд),
+    видят либо старый, либо новый кэш, но не пустой.
+    """
+    new_cache = {}
     pattern = os.path.join(MODULES_SRC_DIR, '**', 'modinfo.json')
     files = glob.glob(pattern, recursive=True)
     for fp in files:
@@ -133,7 +145,7 @@ def scan_modinfo():
                 si = size_info_list[0]
                 used_flash = si.get("usedFLASH", {})
                 used_ram = si.get("usedRAM", {})
-            globals_.modinfo_cache[name] = {
+            new_cache[name] = {
                 "usedFLASH": used_flash,
                 "usedRAM": used_ram,
                 "usedLibs": info.get("usedLibs", {}),
@@ -141,7 +153,8 @@ def scan_modinfo():
             }
         except Exception as e:
             logger.error(f"modinfo {fp}: {e}")
-    logger.info(f"Кэш modinfo: {len(globals_.modinfo_cache)} модулей")
+    globals_.modinfo_cache = new_cache
+    logger.info(f"Кэш modinfo: {len(new_cache)} модулей")
 
 
 def is_compatible(platform, used_libs):
