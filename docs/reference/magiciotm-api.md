@@ -114,6 +114,7 @@
 | POST | `/device/<device_key>/file/<ram\|fs>` | Сохранить файл локально |
 | POST | `/device/<device_key>/write/ram` | Записать файл обратно на устройство (обратные WS-команды; только поддерживаемые прошивкой файлы) |
 | POST | `/device/<device_key>/fetch/<ram\|fs>/file` | Скачать один файл с устройства в папку устройства (`{path}`; RAM — по WS, FS — по HTTP) |
+| POST | `/device/<device_key>/ping` | Ручной пинг устройства: `{success, online}` по ICMP (для устройств «не в сети» перед получением файлов); FSM-статус не меняет |
 | GET | `/device/settings?key=&section=` | settings.json устройства (RAM/FS) |
 | GET | `/device/profile?key=&section=` | Профиль устройства: modules + default_envs (RAM: profile.json, FS: flashProfile.json) |
 | POST | `/device/<device_key>/reboot` | Перезагрузить устройство (WS `/reboot\|`) |
