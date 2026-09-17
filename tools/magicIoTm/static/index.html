@@ -1066,7 +1066,7 @@ function renderDeviceManager(){
               </div>
               <div class="devmgr-check" id="ramCheck">
                 <div class="devmgr-check-head">
-                  <span class="devmgr-check-title">🔍 Проверка</span>
+                  <span class="devmgr-check-title">Результаты проверки</span>
                   <button class="devmgr-check-close" title="Закрыть" onclick="closeCheck('ram')">✕</button>
                 </div>
                 <div class="devmgr-check-body" id="ramCheckBody"></div>
@@ -1100,7 +1100,7 @@ function renderDeviceManager(){
               </div>
               <div class="devmgr-check" id="fsCheck">
                 <div class="devmgr-check-head">
-                  <span class="devmgr-check-title">🔍 Проверка</span>
+                  <span class="devmgr-check-title">Результаты проверки</span>
                   <button class="devmgr-check-close" title="Закрыть" onclick="closeCheck('fs')">✕</button>
                 </div>
                 <div class="devmgr-check-body" id="fsCheckBody"></div>
@@ -1252,7 +1252,7 @@ async function selectFile(section, path){
     updateHighlight(section);
     // Запоминаем выбор файла FS (в рамках сессии) — для авто-восстановления при возврате
     if(section === 'fs') rememberFsFile(fsRememberKey(), path);
-    // Панель «🔍 Проверка» для scenario.txt отображается всегда (пока не закрыли ✕)
+    // Панель «Результаты проверки» для scenario.txt отображается всегда (пока не закрыли ✕)
     maybeAutoShowCheck(section, path);
   }catch(e){
     toast('Ошибка чтения файла', 'error');
@@ -1299,6 +1299,9 @@ function updateHighlight(section){
   const ta = document.getElementById(section + 'Editor');
   const hl = document.getElementById(section + 'Hl');
   if(!ta || !hl) return;
+  // Слой подсветки должен следить за изменением размера редактора (панель
+  // результатов, окно браузера) — см. комментарий у ensureHlResizeSync
+  ensureHlResizeSync(section);
   const ed = deviceEditors[section];
   const path = (ed && ed.path) || '';
   const isJson = /\.json$/i.test(path);
@@ -2211,6 +2214,31 @@ function onEditorScroll(section){
   syncLineNumbers(section);
 }
 
+// ==================== Синхронизация подсветки при изменении размера ====================
+// Размер редактора меняется и без ввода/прокрутки: панель «Результаты проверки»
+// делит область кода пополам, окно браузера растягивают и т.д. В эти моменты
+// событие scroll не возникает, а слой подсветки держит размер в px, снятый
+// раньше: при открытии панели длинные строки «вылезают» поверх результатов
+// (pre позиционирован и рисуется выше статичной панели), после закрытия —
+// обрезаются по старой узкой ширине до первой прокрутки. ResizeObserver на
+// textarea пересинхронизирует слой при любом изменении размера редактора.
+const editorResizeSync = new Map();
+
+function ensureHlResizeSync(section){
+  const ta = document.getElementById(section + 'Editor');
+  if(!ta || typeof ResizeObserver === 'undefined') return;
+  const prev = editorResizeSync.get(section);
+  if(prev){
+    if(prev.ta === ta) return;
+    prev.ro.disconnect();
+  }
+  // Синхронизация та же, что при прокрутке: размеры клиентской области
+  // textarea плюс перенос scrollTop/scrollLeft в слой подсветки.
+  const ro = new ResizeObserver(() => onEditorScroll(section));
+  ro.observe(ta);
+  editorResizeSync.set(section, {ta, ro});
+}
+
 // ==================== Номера строк сценария (полоса слева) ====================
 function renderLineNumbers(section){
   const gutter = document.getElementById(section + 'Lines');
@@ -2687,7 +2715,7 @@ function renderContent(about){
   ` + aboutSection + `
     <div class="content-section" id="projectFsSection">
       <h2>🗂️ Файловая система FS</h2>
-      <!-- Высота фиксирована (не min-height): длинные результаты «🔍 Проверка»
+      <!-- Высота фиксирована (не min-height): длинные результаты «Результаты проверки»
            не должны увеличивать секцию по вертикали — тело проверки скроллится -->
       <div class="devmgr-panel" style="height:420px">
         <div class="devmgr-panel-head">
@@ -2714,7 +2742,7 @@ function renderContent(about){
               </div>
               <div class="devmgr-check" id="pfsCheck">
                 <div class="devmgr-check-head">
-                  <span class="devmgr-check-title">🔍 Проверка</span>
+                  <span class="devmgr-check-title">Результаты проверки</span>
                   <button class="devmgr-check-close" title="Закрыть" onclick="closeCheck('pfs')">✕</button>
                 </div>
                 <div class="devmgr-check-body" id="pfsCheckBody"></div>
@@ -2905,7 +2933,7 @@ async function selectProjectFile(path){
     updateHighlight('pfs');
     // Запоминаем выбор файла FS проекта (в рамках сессии) — для авто-восстановления при возврате
     rememberFsFile(fsRememberKey(), path);
-    // Панель «🔍 Проверка» для scenario.txt отображается всегда (пока не закрыли ✕)
+    // Панель «Результаты проверки» для scenario.txt отображается всегда (пока не закрыли ✕)
     maybeAutoShowCheck('pfs', path);
   }catch(e){
     toast('Ошибка чтения файла', 'error');
