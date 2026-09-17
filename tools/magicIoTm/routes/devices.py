@@ -286,6 +286,14 @@ def api_device_read_file(device_key, section):
     abs_path = _safe_path(root, rel)
     if not abs_path or not os.path.isfile(abs_path):
         return jsonify({"success": False, "error": "File not found"}), 404
+    # Только метаданные (имя/размер) — редактор запрашивает их для бинарных файлов
+    if request.args.get("meta") == "1":
+        return jsonify({
+            "success": True,
+            "path": rel,
+            "name": os.path.basename(rel),
+            "size": os.path.getsize(abs_path),
+        })
     try:
         with open(abs_path, "r", encoding="utf-8", errors="replace") as f:
             content = f.read()

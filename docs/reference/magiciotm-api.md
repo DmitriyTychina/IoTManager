@@ -26,6 +26,9 @@
 | POST | `/projects/copy-modules` | Копировать modules |
 | POST | `/config/import-root` | Импорт из корневого `myProfile.json` в текущий проект |
 | POST | `/projects/repair-data-dir` | Перезаписать `[platformio] data_dir` проекта на `<проект>/data_svelte` (`{category, name}`) |
+| GET | `/projects/<cat>/<name>/tree/fs` | Дерево файлов FS проекта (`data_svelte`) |
+| GET | `/projects/<cat>/<name>/file/fs?path=` | Содержимое файла из `data_svelte` проекта (`?meta=1` — только имя/размер, в т.ч. для бинарных `*.gz`/`favicon.ico`) |
+| POST | `/projects/<cat>/<name>/file/fs` | Сохранить файл в `data_svelte` проекта (`{path, content}`; бинарные `*.gz`/`favicon.ico` не записываются) |
 | GET | `/config` | Текущая конфигурация |
 | POST | `/config/save` | Сохранить конфигурацию |
 | POST | `/config/settings` | Сохранить настройки |
@@ -104,7 +107,7 @@
 | POST | `/device/<device_key>/fetch/<ram\|fs>` | Скачать раздел RAM/FS в фоне |
 | GET | `/device/<device_key>/fetch/<section>/status` | Статус/прогресс скачивания |
 | GET | `/device/<device_key>/tree/<ram\|fs>` | Дерево файлов раздела |
-| GET | `/device/<device_key>/file/<ram\|fs>?path=` | Содержимое файла |
+| GET | `/device/<device_key>/file/<ram\|fs>?path=` | Содержимое файла (`?meta=1` — только имя/размер) |
 | POST | `/device/<device_key>/file/<ram\|fs>` | Сохранить файл локально |
 | POST | `/device/<device_key>/write/ram` | Записать файл обратно на устройство (обратные WS-команды; только поддерживаемые прошивкой файлы) |
 | GET | `/device/settings?key=&section=` | settings.json устройства (RAM/FS) |

@@ -11,6 +11,7 @@ import state.globals as globals_
 from flask import Blueprint, request, jsonify
 from utils import projects, build, measure_run
 from core.config import PROJECT_ROOT, ROOT_CONFIG_FILE, PLATFORMIO_INI_FILE, _project_dir, _find_data_svelte
+from core.devices import _safe_path, _walk_tree
 
 logger = logging.getLogger(__name__)
 
@@ -328,3 +329,90 @@ def api_repair_data_dir():
         return jsonify({"success": False, "error": value}), 400
     logger.info(f"Исправлен data_dir для {category}/{name}: {value}")
     return jsonify({"success": True, "data_dir": value})
+
+
+# ==================== Файловая система FS проекта ====================
+
+def _project_fs_dir(category, name):
+    """Каталог FS проекта (data_svelte) или None, если его нет."""
+    if projects.is_platformio(name):
+        proj_dir = PROJECT_ROOT
+    else:
+        proj_dir = os.path.join(projects.PROJECTS_DIR, category, name)
+    if not os.path.isdir(proj_dir):
+        return None
+    return _find_data_svelte(proj_dir)
+
+
+@bp.route('/projects/<category>/<name>/tree/fs', methods=['GET'])
+def api_project_fs_tree(category, name):
+    """Дерево файлов FS проекта (data_svelte)."""
+    root = _project_fs_dir(category, name)
+    if not root:
+        return jsonify({"success": False, "error": "Каталог data_svelte не найден"}), 404
+    dirs, files = _walk_tree(root)
+    # Бинарные файлы (*.gz, favicon.ico) отдаём — они видны в дереве,
+    # но их содержимое в редактор не открывается (см. file/fs)
+    return jsonify({"success": True, "root": root, "dirs": dirs, "files": files})
+
+
+@bp.route('/projects/<category>/<name>/file/fs', methods=['GET'])
+def api_project_fs_read_file(category, name):
+    """Содержимое файла из data_svelte проекта."""
+    root = _project_fs_dir(category, name)
+    if not root:
+        return jsonify({"success": False, "error": "Каталог data_svelte не найден"}), 404
+    rel = request.args.get("path", "")
+    abs_path = _safe_path(root, rel)
+    if not abs_path or not os.path.isfile(abs_path):
+        return jsonify({"success": False, "error": "File not found"}), 404
+    # Бинарные файлы (*.gz, favicon.ico): содержимое в редактор не отдаём,
+    # метаданные (имя/размер) доступны по ?meta=1
+    lower = abs_path.lower()
+    is_binary = lower.endswith('.gz') or os.path.basename(lower) == 'favicon.ico'
+    if request.args.get("meta") == "1":
+        return jsonify({
+            "success": True,
+            "path": rel,
+            "name": os.path.basename(rel),
+            "size": os.path.getsize(abs_path),
+        })
+    if is_binary:
+        return jsonify({"success": False, "error": "Бинарный файл недоступен в редакторе"}), 400
+    try:
+        with open(abs_path, "r", encoding="utf-8", errors="replace") as f:
+            content = f.read()
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+    return jsonify({
+        "success": True,
+        "path": rel,
+        "name": os.path.basename(rel),
+        "size": os.path.getsize(abs_path),
+        "content": content,
+    })
+
+
+@bp.route('/projects/<category>/<name>/file/fs', methods=['POST'])
+def api_project_fs_save_file(category, name):
+    """Сохраняет изменённый файл локально в data_svelte проекта."""
+    root = _project_fs_dir(category, name)
+    if not root:
+        return jsonify({"success": False, "error": "Каталог data_svelte не найден"}), 404
+    data = request.json or {}
+    rel = data.get("path", "")
+    content = data.get("content", "")
+    abs_path = _safe_path(root, rel)
+    if not abs_path:
+        return jsonify({"success": False, "error": "Invalid path"}), 400
+    # Бинарные файлы (*.gz, favicon.ico) через редактор не записываем
+    lower = abs_path.lower()
+    if lower.endswith('.gz') or os.path.basename(lower) == 'favicon.ico':
+        return jsonify({"success": False, "error": "Бинарный файл недоступен в редакторе"}), 400
+    try:
+        os.makedirs(os.path.dirname(abs_path), exist_ok=True)
+        with open(abs_path, "w", encoding="utf-8") as f:
+            f.write(content)
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+    return jsonify({"success": True, "path": rel})
