@@ -47,7 +47,7 @@
 | POST | `/modules/toggle` | Включить/выключить модуль |
 | POST | `/modules/sync` | Пакетное обновление активных модулей |
 | GET | `/modules/compatibility` | Карта совместимости и статусов размеров модулей для текущей платформы (`sizeState`: `ok` / `error_platform` / `error_all` / `missing`) |
-| GET | `/modules/reload` | Перезагрузить кэш modinfo |
+| POST | `/modules/reload` | Перезагрузить кэши modinfo и platforms (после замера размеров) |
 | POST | `/modules/info` | Информация о модуле (about, usedLibs, usedFLASH, usedRAM) |
 
 ## Сборка и замер
