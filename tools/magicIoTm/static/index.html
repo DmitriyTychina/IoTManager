@@ -1808,11 +1808,11 @@ async function checkScenarioLoops(section){
       html += `<p style="color:#b26a00;font-size:12px">⚠ Сохранённый <code>${esc(cfgPath)}</code> не найден рядом со scenario.txt — переменные не проверены.</p>`;
       html += '<p style="color:var(--muted);font-size:11px;margin-top:4px">Сохраните config.json в той же папке (RAM/FS устройства или data_svelte проекта), чтобы проверка заработала.</p>';
     } else {
-      const itemIds = savedCfgItems;
+      const itemIds = savedCfgItems.map(it => it && it.id != null ? String(it.id) : '').filter(s => s !== '');
       const scenarioVars = extractScenarioVars(text).filter(v => !knownFuncNames.has(v));
       const unknownVars = scenarioVars.filter(v => !itemIds.includes(v));
 
-      html += `<p style="color:var(--muted);font-size:12px">Переменных в сценарии: <b>${scenarioVars.length}</b> · найдено в config.json: <b>${itemIds.length}</b>`;
+      html += `<p style="color:var(--muted);font-size:12px">Переменных в сценарии: <b>${scenarioVars.length}</b> · ID в config.json: <b>${itemIds.length}</b>`;
 
       if(itemIds.length === 0){
         html += ' (config.json пуст)</p>';
