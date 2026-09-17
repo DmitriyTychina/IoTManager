@@ -105,6 +105,7 @@
 | GET | `/devices/scan/stream` | SSE-поток прогресса сканирования |
 | POST | `/devices/add` | Добавить устройство по IP |
 | DELETE | `/device/<device_key>` | Удалить устройство (папка + записи) |
+| POST | `/device/<device_key>/copy-to-project` | Копировать устройство в проект (существующий или создаётся из шаблона): `{dst_cat, dst_name, section: ram\|fs}`; правила кнопок «⤵ Из устройства»: settings.json → iotmSettings (кроме id/ip/root), profile.json/flashProfile.json → платформа из default_envs (несовместимые модули отключаются) и активность модулей по path |
 | GET | `/device/<device_key>/info` | Инфо устройства и путь к папке |
 | POST | `/device/<device_key>/fetch/<ram\|fs>` | Скачать раздел RAM/FS в фоне |
 | GET | `/device/<device_key>/fetch/<section>/status` | Статус/прогресс скачивания |
