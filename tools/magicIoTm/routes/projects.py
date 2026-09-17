@@ -416,3 +416,226 @@ def api_project_fs_save_file(category, name):
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
     return jsonify({"success": True, "path": rel})
+# ==================== Получение файлов из устройства ====================
+
+def _iter_device_folders():
+    """Все папки устройств (как /devices/list-all), но с путями RAM/FS.
+
+    Возвращает ключ, имя, IP и каталоги разделов каждого устройства.
+    """
+    from core.devices import DEVICE_DIR_ROOT, _load_folder_meta
+    if not os.path.isdir(DEVICE_DIR_ROOT):
+        return
+    for folder_name in sorted(os.listdir(DEVICE_DIR_ROOT)):
+        folder = os.path.join(DEVICE_DIR_ROOT, folder_name)
+        if not os.path.isdir(folder):
+            continue
+        meta = _load_folder_meta(folder) or {}
+        yield {
+            "key": folder_name,
+            "name": meta.get("name") or folder_name,
+            "ip": meta.get("ip") or "",
+            "ram_dir": os.path.join(folder, "RAM"),
+            "fs_dir": os.path.join(folder, "FS"),
+        }
+
+
+def _dir_has_files(path):
+    """Есть ли в каталоге (рекурсивно) хоть один файл."""
+    if not path or not os.path.isdir(path):
+        return False
+    for _root, _dirs, files in os.walk(path):
+        if files:
+            return True
+    return False
+
+
+@bp.route('/projects/<category>/<name>/file/sources', methods=['GET'])
+def api_project_fs_fetch_sources(category, name):
+    """Доступные источники получения файлов из устройства для проекта.
+
+    mode=file — доступность конкретного файла (path): сохранённая копия RAM
+    (по имени файла) / FS (по тому же пути); mode=all — наличие хоть каких-то
+    сохранённых файлов RAM/FS. ram_live/fs_live — устройство сейчас в сети
+    (статус зелёный) и раздел можно тянуть напрямую: RAM — только если файл
+    входит в набор RAM_FILES (прошивка отдаёт по WS лишь его; например
+    flashProfile.json в RAM отсутствует и пункта «с устройства» не получает),
+    FS — любой файл по HTTP. Пункты с недоступными источниками фронтенд в
+    модалке не показывает: нет сохранённых файлов — «сохранённые» пункты не
+    показываются, нет устройств в сети — «с устройства» пункты не показываются.
+    """
+    root = _project_fs_dir(category, name)
+    if not root:
+        return jsonify({"success": False, "error": "Каталог data_svelte не найден"}), 404
+    mode = request.args.get("mode", "file")
+    if mode not in ("file", "all"):
+        return jsonify({"success": False, "error": "Unknown mode"}), 400
+    rel = request.args.get("path", "").strip()
+    if mode == "file" and not rel:
+        return jsonify({"success": False, "error": "Не выбран файл"}), 400
+    # RAM хранится плоско — совпадение по имени файла; FS — по тому же пути
+    ram_name = os.path.basename(rel) if mode == "file" else ""
+    fs_rel = rel if mode == "file" else ""
+    # «с устройства» доступно только для устройств, которые сейчас в сети
+    online_ips = _online_device_ips()
+    # RAM по WS отдаёт только фиксированный набор файлов (RAM_FILES);
+    # для остальных имён (например flashProfile.json) пункт «RAM — с устройства»
+    # не предлагается — устройству нечего отдать
+    from utils.ws_client import RAM_FILES
+    ram_fetchable = frozenset(RAM_FILES.values())
+    sources = []
+    for dev in _iter_device_folders():
+        if mode == "all":
+            ram_saved = _dir_has_files(dev["ram_dir"])
+            fs_saved = _dir_has_files(dev["fs_dir"])
+        else:
+            ram_saved = os.path.isfile(os.path.join(dev["ram_dir"], ram_name))
+            src = _safe_path(dev["fs_dir"], fs_rel)
+            fs_saved = bool(src) and os.path.isfile(src)
+        live = bool(dev["ip"]) and dev["ip"] in online_ips
+        sources.append({
+            "key": dev["key"], "name": dev["name"], "ip": dev["ip"],
+            "ram_saved": ram_saved, "fs_saved": fs_saved,
+            "ram_live": live and (mode == "all" or ram_name in ram_fetchable),
+            "fs_live": live,
+        })
+    return jsonify({"success": True, "sources": sources})
+
+
+def _online_device_ips():
+    """Множество IP устройств, которые сейчас в сети (статус зелёный).
+
+    Только устройства с папкой и FSM-статусом STATE_GREEN считаются онлайн.
+    Orphan-устройства (без папки, только IP в _devices) по таймауту multicast
+    не дают пунктов «с устройства».
+    """
+    from core.devices import (
+        STATE_GREEN, _device_folders, _device_folders_lock,
+        _device_states, _device_states_lock,
+    )
+    with _device_folders_lock:
+        folder_ips = {e.get("ip") for e in _device_folders.values()
+                      if e.get("ip")}
+    with _device_states_lock:
+        green_keys = [k for k, st in _device_states.items()
+                      if st.get("state") == STATE_GREEN]
+    with _device_folders_lock:
+        green_ips = {
+            _device_folders[k].get("ip")
+            for k in green_keys
+            if k in _device_folders and _device_folders[k].get("ip")
+        }
+    return green_ips & folder_ips
+
+
+@bp.route('/projects/<category>/<name>/file/from-device', methods=['POST'])
+def api_project_fs_fetch_from_device(category, name):
+    """Получает файл/файлы из устройства в data_svelte проекта.
+
+    body: {device_key, section: 'ram'|'fs', live: bool, all: bool, path: <rel>}
+    live=False — из сохранённой копии в папке устройства (RAM/FS);
+    live=True — напрямую с устройства (RAM по WS, FS по HTTP);
+    all=False — один файл (path), all=True — весь раздел.
+    """
+    root = _project_fs_dir(category, name)
+    if not root:
+        return jsonify({"success": False, "error": "Каталог data_svelte не найден"}), 404
+    data = request.json or {}
+    device_key = str(data.get("device_key", "")).strip()
+    section = str(data.get("section", "")).lower()
+    live = bool(data.get("live"))
+    fetch_all = bool(data.get("all"))
+    rel = str(data.get("path", "")).strip()
+    if section not in ("ram", "fs"):
+        return jsonify({"success": False, "error": "Unknown section"}), 400
+    dev = None
+    for d in _iter_device_folders():
+        if d["key"] == device_key:
+            dev = d
+            break
+    if not dev:
+        return jsonify({"success": False, "error": "Папка устройства не найдена"}), 404
+    from core.devices import ws_client
+    saved = []
+    try:
+        if section == "ram":
+            saved = _fetch_ram(dev, root, live, fetch_all, rel)
+        else:  # fs
+            saved = _fetch_fs(dev, root, live, fetch_all, rel)
+    except Exception as e:  # noqa: BLE001 — сеть/устройство, отдаём текст ошибки
+        logger.error(f"fetch from device {section} {dev['ip'] or '?'}: {e}")
+        return jsonify({"success": False, "error": str(e)}), 502
+    return jsonify({"success": True, "section": section, "live": live,
+                    "all": fetch_all, "saved": saved})
+
+
+def _fetch_ram(dev, root, live, fetch_all, rel):
+    """Копирование/скачивание файлов раздела RAM в data_svelte проекта."""
+    from core.devices import ws_client
+    if fetch_all:
+        if live:
+            return ws_client.fetch_ram(dev["ip"], root)
+        saved = []
+        if os.path.isdir(dev["ram_dir"]):
+            for fname in sorted(os.listdir(dev["ram_dir"])):
+                src = os.path.join(dev["ram_dir"], fname)
+                if os.path.isfile(src):
+                    shutil.copy2(src, os.path.join(root, fname))
+                    saved.append(fname)
+        return saved
+    # один файл: в RAM хранится плоско, совпадение по имени
+    src_name = os.path.basename(rel)
+    if src_name not in ws_client.RAM_FILES.values():
+        raise ValueError(f"Файл {src_name} не относится к RAM устройства")
+    if live:
+        ws_client.fetch_ram_file(dev["ip"], src_name, root)
+        # устройство отдаёт файл под своим именем; если в проекте путь другой — переносим
+        if src_name != rel:
+            abs_src = _safe_path(root, src_name)
+            abs_dst = _safe_path(root, rel)
+            if abs_src and abs_dst:
+                os.makedirs(os.path.dirname(abs_dst), exist_ok=True)
+                os.replace(abs_src, abs_dst)
+    else:
+        src = os.path.join(dev["ram_dir"], src_name)
+        if not os.path.isfile(src):
+            raise FileNotFoundError(f"Сохранённый файл не найден: {src_name}")
+        abs_dst = _safe_path(root, rel)
+        if not abs_dst:
+            raise ValueError("Invalid path")
+        os.makedirs(os.path.dirname(abs_dst), exist_ok=True)
+        shutil.copy2(src, abs_dst)
+    return [rel]
+
+
+def _fetch_fs(dev, root, live, fetch_all, rel):
+    """Копирование/скачивание файлов раздела FS в data_svelte проекта."""
+    from core.devices import ws_client
+    if fetch_all:
+        if live:
+            return ws_client.fetch_fs(dev["ip"], root)
+        if not _dir_has_files(dev["fs_dir"]):
+            raise FileNotFoundError("Сохранённые файлы FS не найдены")
+        shutil.copytree(dev["fs_dir"], root, dirs_exist_ok=True)
+        saved = []
+        for r, _dirs, files in os.walk(dev["fs_dir"]):
+            for f in files:
+                full = os.path.join(r, f)
+                saved.append(os.path.relpath(full, dev["fs_dir"]).replace("\\", "/"))
+        return saved
+    # один файл
+    if not rel:
+        raise ValueError("Не выбран файл")
+    abs_dst = _safe_path(root, rel)
+    if not abs_dst:
+        raise ValueError("Invalid path")
+    if live:
+        ws_client.fetch_fs_file(dev["ip"], rel, root)
+    else:
+        src = _safe_path(dev["fs_dir"], rel)
+        if not src or not os.path.isfile(src):
+            raise FileNotFoundError(f"Сохранённый файл не найден: {rel}")
+        os.makedirs(os.path.dirname(abs_dst), exist_ok=True)
+        shutil.copy2(src, abs_dst)
+    return [rel]
+

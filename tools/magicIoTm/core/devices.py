@@ -40,6 +40,40 @@ PING_INTERVAL = 60.0
 FAILS_YELLOW = 3
 FAILS_RED = 3
 
+# Кэш доступности IP (пинг), чтобы не пинговать каждый раз в списке источников
+_host_reachable_cache = {}        # ip -> (ok: bool, ts: float)
+_HOST_REACHABLE_TTL = 3.0
+
+
+# [DEPRECATED] Реальный ICMP-пинг для проверки доступности не используется
+# (решение: доступность определяется FSM-статусом _device_states). Оставлен
+# по правилу «код не удалять»; ни один маршрут его не вызывает.
+def _host_reachable(ip, timeout=2):
+    """Пингует IP для реальной проверки доступности.
+
+    Надёлен кэшем на _HOST_REACHABLE_TTL секунд. Надёжнее кэшированного
+    статуса конечного автомата (_device_states), который удерживает «зелёный»
+    до DEVICES_TIMEOUT (90 сек) и может показывать офлайн-устройство как онлайн.
+    """
+    if not ip:
+        return False
+    now = time.time()
+    entry = _host_reachable_cache.get(ip)
+    if entry and now - entry[1] < _HOST_REACHABLE_TTL:
+        return entry[0]
+    ok = False
+    try:
+        param = "-n" if os.name == "nt" else "-c"
+        res = subprocess.run(
+            ["ping", param, "1", "-w", str(timeout * 1000)],
+            capture_output=True, timeout=timeout + 1,
+        )
+        ok = res.returncode == 0
+    except Exception:
+        ok = False
+    _host_reachable_cache[ip] = (ok, now)
+    return ok
+
 # ==================== Device States ====================
 STATE_GREEN = "green"
 STATE_YELLOW = "yellow"

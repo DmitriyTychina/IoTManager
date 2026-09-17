@@ -253,6 +253,48 @@ def api_device_fetch_status(device_key, section):
         "name": state.get("name", ""),
         "files": state.get("files", []),
     })
+# ==================== File Tree and File Routes ====================
+
+
+@devices_bp.route("/device/<device_key>/fetch/<section>/file", methods=["POST"])
+def api_device_fetch_one_file(device_key, section):
+    """Downloads a single file (RAM or FS) from device into its folder.
+
+    Body: {path: <relative path>}. For RAM the file must be one of the
+    ws_client RAM files (config.json, items.json, ...); for FS the path is
+    relative to the FS root (e.g. "index.html", "js/app.js").
+    """
+    sec = section.lower()
+    if sec not in ("ram", "fs"):
+        return jsonify({"success": False, "error": "Unknown section"}), 400
+    entry = get_device_folder(device_key)
+    if not entry:
+        return jsonify({"success": False, "error": "Device folder not yet created"}), 404
+    dev_ip = entry.get("ip")
+    if not dev_ip:
+        return jsonify({"success": False, "error": "Device IP not specified"}), 400
+    data = request.json or {}
+    rel = str(data.get("path", "")).strip()
+    if not rel:
+        return jsonify({"success": False, "error": "Path not specified"}), 400
+    out_dir = entry[f"{sec}_dir"]
+    try:
+        if sec == "ram":
+            # В RAM файлы плоские — используем только имя файла
+            name = os.path.basename(rel)
+            ws_client.fetch_ram_file(dev_ip, name, out_dir)
+            return jsonify({"success": True, "path": name})
+        # FS: путь проверяем на выход за пределы каталога устройства
+        if not _safe_path(entry["fs_dir"], rel):
+            return jsonify({"success": False, "error": "Invalid path"}), 400
+        saved = ws_client.fetch_fs_file(dev_ip, rel, entry["fs_dir"])
+        return jsonify({"success": True, "path": saved})
+    except Exception as e:  # noqa: BLE001 — сеть/устройство, отдаём текст ошибки
+        logger.error(f"fetch one {sec} {dev_ip}: {e}")
+        return jsonify({"success": False, "error": str(e)}), 502
+
+
+
 
 
 # ==================== File Tree and File Routes ====================
@@ -324,6 +366,10 @@ def api_device_save_file(device_key, section):
     abs_path = _safe_path(root, rel)
     if not abs_path:
         return jsonify({"success": False, "error": "Invalid path"}), 400
+    # Бинарные файлы (*.gz, favicon.ico) через редактор не записываем
+    lower = str(rel).lower()
+    if lower.endswith('.gz') or os.path.basename(lower) == 'favicon.ico':
+        return jsonify({"success": False, "error": "Бинарный файл недоступен в редакторе"}), 400
     try:
         os.makedirs(os.path.dirname(abs_path), exist_ok=True)
         with open(abs_path, "w", encoding="utf-8") as f:
