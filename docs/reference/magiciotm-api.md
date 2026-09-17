@@ -29,6 +29,8 @@
 | GET | `/projects/<cat>/<name>/tree/fs` | Дерево файлов FS проекта (`data_svelte`) |
 | GET | `/projects/<cat>/<name>/file/fs?path=` | Содержимое файла из `data_svelte` проекта (`?meta=1` — только имя/размер, в т.ч. для бинарных `*.gz`/`favicon.ico`) |
 | POST | `/projects/<cat>/<name>/file/fs` | Сохранить файл в `data_svelte` проекта (`{path, content}`; бинарные `*.gz`/`favicon.ico` не записываются) |
+| GET | `/projects/<cat>/<name>/file/sources?mode=file\|all&path=` | Доступные источники «получить из устройства»: по каждому устройству — есть ли сохранённые RAM/FS (`ram_saved`/`fs_saved`) и в сети ли оно (`ram_live`/`fs_live`, можно тянуть напрямую; `ram_live` — только для файлов, которые прошивка отдаёт по WS из набора RAM: `config.json`, `items.json`, `widgets.json`, `scenario.txt`, `settings.json`, `ota.json`, `profile.json`) |
+| POST | `/projects/<cat>/<name>/file/from-device` | Получить файл/файлы из устройства в `data_svelte` проекта (`{device_key, section, live, all, path}`) |
 | GET | `/config` | Текущая конфигурация |
 | POST | `/config/save` | Сохранить конфигурацию |
 | POST | `/config/settings` | Сохранить настройки |
@@ -110,6 +112,7 @@
 | GET | `/device/<device_key>/file/<ram\|fs>?path=` | Содержимое файла (`?meta=1` — только имя/размер) |
 | POST | `/device/<device_key>/file/<ram\|fs>` | Сохранить файл локально |
 | POST | `/device/<device_key>/write/ram` | Записать файл обратно на устройство (обратные WS-команды; только поддерживаемые прошивкой файлы) |
+| POST | `/device/<device_key>/fetch/<ram\|fs>/file` | Скачать один файл с устройства в папку устройства (`{path}`; RAM — по WS, FS — по HTTP) |
 | GET | `/device/settings?key=&section=` | settings.json устройства (RAM/FS) |
 | GET | `/device/profile?key=&section=` | Профиль устройства: modules + default_envs (RAM: profile.json, FS: flashProfile.json) |
 | POST | `/device/<device_key>/reboot` | Перезагрузить устройство (WS `/reboot\|`) |

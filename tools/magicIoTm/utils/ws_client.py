@@ -544,6 +544,129 @@ def fetch_fs(host, out_dir, progress=None):
         if progress:
             progress(rel, i, total)
     return saved
+    saved = []
+    for i, (url_path, rel) in enumerate(files, 1):
+        data = _http_get(host, url_path + "?download=1")
+        abs_path = os.path.join(out_dir, rel)
+        os.makedirs(os.path.dirname(abs_path), exist_ok=True)
+        with open(abs_path, "wb") as f:
+            f.write(data)
+        saved.append(rel)
+        if progress:
+            progress(rel, i, total)
+    return saved
+
+
+def fetch_fs_file(host, rel_path, out_dir, retries=3):
+    """Скачивает один файл раздела FS по HTTP (порт 80).
+
+    Аналог fetch_fs, но без обхода дерева: файл /<rel_path>?download=1
+    сохраняется в out_dir/<rel_path>. Используется кнопкой
+    «⤵ Получить этот файл» панели «Файлы из файловой системы».
+
+    Возвращает относительное имя сохранённого файла.
+    Бросает исключение при ошибке сети/недоступности файла или некорректном пути.
+    """
+    rel = rel_path.strip().lstrip("/")
+    if not rel or rel.endswith("/"):
+        raise ValueError("Некорректный путь файла FS")
+    data = _http_get(host, "/" + urllib.parse.quote(rel) + "?download=1", retries=retries)
+    abs_path = os.path.realpath(os.path.join(out_dir, *rel.split("/")))
+    root = os.path.realpath(out_dir)
+    # защита от выхода за пределы каталога устройства (path traversal)
+    if not (abs_path == root or abs_path.startswith(root + os.sep)):
+        raise ValueError("Путь вне каталога устройства")
+    os.makedirs(os.path.dirname(abs_path), exist_ok=True)
+    with open(abs_path, "wb") as f:
+        f.write(data)
+    return rel
+
+
+# Заголовок RAM-файла по имени (обратная карта RAM_FILES).
+RAM_FILE_HEADERS = {v: k for k, v in RAM_FILES.items()}
+
+
+def fetch_ram_file(host, filename, out_dir, port=PORT, timeout=DEFAULT_TIMEOUT):
+    """Скачивает один файл раздела RAM по WebSocket (порт 81).
+
+    Отправляет ту же команду чтения (/config| или /profile|), что и полная
+    выгрузка RAM (fetch_ram), но завершается, как только получен нужный файл.
+    Используется для одиночного получения файла («⤵ Получить этот файл»)
+    без скачивания всего раздела.
+
+    filename — имя RAM-файла (config.json, items.json, scenario.txt, settings.json,
+    widgets.json, ota.json, profile.json); файл сохраняется в out_dir.
+    Возвращает имя сохранённого файла. Бросает ValueError, если файл не относится
+    к разделу RAM, ConnectionError при ошибке соединения и RuntimeError,
+    если устройство не вернуло файл за отведённое время.
+    """
+    header = RAM_FILE_HEADERS.get(filename)
+    if not header:
+        raise ValueError(f"Файл {filename} не относится к разделу RAM устройства")
+    # /config| отдаёт itemsj/widget/config/scenar/settin, /profile| — otaupd/prfile
+    command = "/profile|" if header in ("otaupd", "prfile") else "/config|"
+    os.makedirs(out_dir, exist_ok=True)
+    sock = socket.create_connection((host, port), timeout=timeout)
+    sock.settimeout(timeout)
+    try:
+        buf = _handshake(sock, host, port)
+        sock.sendall(build_text_frame(command))
+
+        current_type, current_data = None, b""
+        start = time.time()
+        last_response_time = start
+        QUIET = 1.5
+        while time.time() - start < timeout:
+            # защита от зависшего (но не закрытого) соединения
+            if time.time() - last_response_time > QUIET:
+                break
+            fin, opcode, pl, rest = parse_frame(buf)
+            if pl is None:
+                try:
+                    chunk = sock.recv(4096)
+                except socket.timeout:
+                    break
+                if not chunk:
+                    break
+                buf = buf + chunk
+                continue
+            buf = rest
+
+            if opcode == 0x8:   # Close
+                break
+            if opcode in (0x9, 0xA):   # Ping/Pong
+                last_response_time = time.time()
+                continue
+            if opcode == 0x0:   # continuation
+                current_data += pl
+            elif opcode in (0x1, 0x2):
+                current_type, _size_str, current_data = _split_header(pl)
+
+            if not (fin and current_type):
+                continue
+
+            hdr, data = current_type, current_data
+            current_type, current_data = None, b""
+
+            if hdr.startswith("/"):
+                # служебный текстовый ответ (/po|, /tstr|)
+                last_response_time = time.time()
+                continue
+            last_response_time = time.time()
+
+            if hdr == header:
+                path = os.path.join(out_dir, filename)
+                with open(path, "wb") as f:
+                    f.write(data)
+                return filename
+
+        raise RuntimeError(f"Устройство не вернуло файл {filename}")
+    finally:
+        try:
+            sock.sendall(bytes([0x88, 0x00]))
+        except Exception:
+            pass
+        sock.close()
 
 
 # ======================================================================

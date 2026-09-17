@@ -255,7 +255,9 @@ textarea{resize:vertical;min-height:60px;font-family:inherit}
 .devmgr-panel{flex:1;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--border);border-radius:8px;overflow:hidden;min-height:0}
 .devmgr-panel-head{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--border)}
 .devmgr-panel-title{font-weight:700;font-size:13px;letter-spacing:.4px}
-.devmgr-panel-head button{margin-left:auto}
+/* auto-отступ только у первой кнопки: группа кнопок прижимается к правому
+   краю шапки и стоит вплотную (зазор — gap шапки), а не растягивается по ширине */
+.devmgr-panel-head button:first-of-type{margin-left:auto}
 .devmgr-panel-head button:disabled,.devmgr-editor button:disabled{opacity:.45;cursor:not-allowed;background:var(--panel);color:var(--muted);border-color:var(--border)}
 .devmgr-panel-body{flex:1;display:flex;min-height:0}
 .devmgr-tree{width:250px;min-width:200px;border-right:1px solid var(--border);overflow-y:auto;padding:6px}
@@ -935,6 +937,7 @@ function renderDeviceManager(){
       <div class="devmgr-panel">
         <div class="devmgr-panel-head">
           <span class="devmgr-panel-title">Файлы из файловой системы</span>
+          <button class="btn-sm" id="fsFetchOneBtn" onclick="fetchFsFile()" title="Получить выбранный файл с устройства">⤵ Получить этот файл</button>
           <button class="btn-sm" onclick="fetchFs()" title="Получить файлы из FS устройства">⤵ Получить файлы</button>
         </div>
         <div class="devmgr-panel-body">
@@ -1018,7 +1021,9 @@ function isBinaryFsPath(path){
 }
 
 function showBinaryFileInfo(section, path, size){
-  deviceEditors[section] = {path: null, original: ''};
+  // Путь сохраняем с флагом binary: содержимое в редактор не открывается,
+  // но файл можно получить с устройства («⤵ Получить этот файл»)
+  deviceEditors[section] = {path, original: '', binary: true};
   const checkPanel = document.getElementById(section + 'Check');
   if(checkPanel) checkPanel.classList.remove('active');
   hideLineNumbers(section);
@@ -1032,6 +1037,9 @@ function showBinaryFileInfo(section, path, size){
     ed.disabled = true;
     ed.placeholder = 'Бинарный файл — просмотр и редактирование недоступны';
   }
+  // Слой подсветки не читает textarea сам — очищаем явно, иначе в нём
+  // остаётся подсвеченный текст предыдущего (текстового) файла
+  updateHighlight(section);
   const checkBtn = document.getElementById(section + 'CheckBtn');
   if(checkBtn) checkBtn.style.display = 'none';
   const saveBtn = document.getElementById(section + 'SaveBtn');
@@ -2092,7 +2100,7 @@ async function saveFile(section){
   if(section === 'pfs') return saveProjectFile();
   if(!activeDevice) return;
   const ed = deviceEditors[section];
-  if(!ed.path) return;
+  if(!ed.path || ed.binary) return;
   const content = document.getElementById(section + 'Editor').value;
   try{
     const r = await fetch(`/api/device/${encodeURIComponent(activeDevice.key || activeDevice.ip)}/file/${section}`, {
@@ -2110,7 +2118,7 @@ async function saveFile(section){
 async function pushFile(section){
   if(section !== 'ram' || !activeDevice) return;
   const ed = deviceEditors[section];
-  if(!ed.path) return;
+  if(!ed.path || ed.binary) return;
   const content = document.getElementById(section + 'Editor').value;
   try{
     const r = await fetch(`/api/device/${encodeURIComponent(activeDevice.key || activeDevice.ip)}/write/ram`, {
@@ -2154,6 +2162,35 @@ async function fetchFs(){
   }catch(e){
     updateFetchProgress('Ошибка связи с сервером', 0);
     toast('Ошибка связи с сервером', 'error');
+  }
+}
+
+// Получить с устройства только выбранный файл FS (без обхода всего раздела).
+// Файл сохраняется в папку устройства (FS), затем дерево обновляется.
+async function fetchFsFile(){
+  if(!activeDevice) return;
+  const ed = deviceEditors.fs;
+  const path = ed && ed.path;
+  if(!path){ toast('Сначала выберите файл в дереве FS', 'warning'); return; }
+  const btn = document.getElementById('fsFetchOneBtn');
+  if(btn) btn.disabled = true;
+  try{
+    const r = await fetch(`/api/device/${encodeURIComponent(activeDevice.key || activeDevice.ip)}/fetch/fs/file`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({path})
+    });
+    const d = await r.json();
+    if(d.success){
+      toast(`Получен файл: ${d.path || path}`, 'success');
+      loadTree('fs');
+      selectFile('fs', path);
+    }
+    else toast(d.error || 'Ошибка получения файла', 'error');
+  }catch(e){
+    toast('Ошибка связи с сервером', 'error');
+  }
+  finally{
+    if(btn) btn.disabled = false;
   }
 }
 
@@ -2462,6 +2499,8 @@ function renderContent(about){
       <div class="devmgr-panel" style="height:420px">
         <div class="devmgr-panel-head">
           <span class="devmgr-panel-title">Файлы из файловой системы</span>
+          <button class="btn-sm" id="pfsFetchOneBtn" onclick="showProjectFetchModal(1)" title="Получить выбранный файл из устройства (RAM/FS)">⤵ Получить этот файл</button>
+          <button class="btn-sm" id="pfsFetchAllBtn" onclick="showProjectFetchModal(0)" title="Получить файлы из устройства (RAM/FS)">⤵ Получить файлы</button>
         </div>
         <div class="devmgr-panel-body">
           <div class="devmgr-tree" id="pfsTree" onclick="onTreeClick(event)"><div class="empty-state" style="padding:12px">Раздел FS пуст</div></div>
@@ -2595,8 +2634,8 @@ function debounceSaveAbout(){
 // Каталог FS проекта: <проект>/data_svelte. Показывается в разделе «Файловая система FS».
 function loadProjectFsTree(){
   const el = document.getElementById('pfsTree');
-  if(!el || !currentProject) return;
-  fetch(`/api/projects/${encodeURIComponent(currentProject.category)}/${encodeURIComponent(currentProject.name)}/tree/fs`)
+  if(!el || !currentProject) return Promise.resolve();
+  return fetch(`/api/projects/${encodeURIComponent(currentProject.category)}/${encodeURIComponent(currentProject.name)}/tree/fs`)
     .then(r => r.json())
     .then(d => {
       if(!d.success){
@@ -2683,7 +2722,7 @@ async function selectProjectFile(path){
 async function saveProjectFile(){
   if(!currentProject) return;
   const ed = deviceEditors.pfs;
-  if(!ed || !ed.path) return;
+  if(!ed || !ed.path || ed.binary) return;
   const content = document.getElementById('pfsEditor').value;
   try{
     const r = await fetch(`/api/projects/${encodeURIComponent(currentProject.category)}/${encodeURIComponent(currentProject.name)}/file/fs`, {
@@ -2695,6 +2734,70 @@ async function saveProjectFile(){
     else toast(d.error || 'Ошибка сохранения', 'error');
   }catch(e){
     toast('Ошибка сохранения', 'error');
+  }
+}
+
+// ==================== Получение файлов из устройства (проект) ====================
+
+// Модалка выбора источника для кнопок «⤵ Получить этот файл» / «⤵ Получить файлы»
+// панели FS проекта. single=1 — один выбранный файл, single=0 — весь раздел.
+// Пункты меню (устройство/RAM|FS — сохранённые, устройство/RAM|FS — с устройства)
+// показываются только если источник доступен: нет сохранённого файла(ов) или нет
+// устройств (никаких) — пункт не отображается; «RAM — с устройства» — только для
+// файлов, которые прошивка отдаёт по WS (ram_live), «FS — с устройства» — для любых.
+async function showProjectFetchModal(single){
+  if(!currentProject) return;
+  const selPath = single ? (deviceEditors.pfs && deviceEditors.pfs.path) : '';
+  if(single && !selPath){ toast('Сначала выберите файл в дереве FS', 'warning'); return; }
+  const qp = single
+    ? `?path=${encodeURIComponent(selPath)}&mode=file`
+    : '?mode=all';
+  let d;
+  try{
+    const r = await fetch(`/api/projects/${encodeURIComponent(currentProject.category)}/${encodeURIComponent(currentProject.name)}/file/sources${qp}`);
+    d = await r.json();
+  }catch(e){
+    toast('Ошибка связи с сервером', 'error');
+    return;
+  }
+  if(!d.success){ toast(d.error || 'Ошибка', 'error'); return; }
+  const opts = [];
+  for(const s of d.sources || []){
+    const label = s.ip ? `${s.name} (${s.ip})` : s.name;
+    if(s.ram_saved) opts.push({v: s.key + '|ram|0', l: `${label} / RAM — сохранённые`});
+    if(s.fs_saved) opts.push({v: s.key + '|fs|0', l: `${label} / FS — сохранённые`});
+    if(s.ram_live) opts.push({v: s.key + '|ram|1', l: `${label} / RAM — с устройства`});
+    if(s.fs_live) opts.push({v: s.key + '|fs|1', l: `${label} / FS — с устройства`});
+  }
+  if(!opts.length){ toast('Нет доступных источников: нет устройств или сохранённых файлов', 'info'); return; }
+  const options = opts.map(o => `<option value="${esc(o.v)}">${esc(o.l)}</option>`).join('');
+  showModal(`<h3>⤵ ${single ? 'Получить этот файл' : 'Получить файлы'}</h3>
+    ${single ? `<p style="font-size:12px;color:var(--muted);margin-bottom:10px">Файл: <b>${esc(selPath)}</b></p>` : ''}
+    <div class="form-row"><label>Источник:</label><select id="pfsFetchSrc">${options}</select></div>
+    <div class="modal-actions"><button title="Закрыть без получения" onclick="closeModal()">Отмена</button><button class="btn-primary" title="Получить из выбранного источника в проект" onclick="doProjectFetchFromDevice(${single ? 1 : 0})">Получить</button></div>`);
+}
+
+async function doProjectFetchFromDevice(single){
+  const sel = document.getElementById('pfsFetchSrc');
+  if(!sel) return;
+  const [deviceKey, section, live] = sel.value.split('|');
+  if(!deviceKey){ toast('Выберите источник', 'warning'); return; }
+  const path = single ? (deviceEditors.pfs && deviceEditors.pfs.path) : '';
+  if(single && !path){ toast('Сначала выберите файл в дереве FS', 'warning'); return; }
+  try{
+    const r = await fetch(`/api/projects/${encodeURIComponent(currentProject.category)}/${encodeURIComponent(currentProject.name)}/file/from-device`, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({device_key: deviceKey, section, live: live === '1', all: !single, path})
+    });
+    const d = await r.json();
+    if(!d.success){ toast(d.error || 'Ошибка получения', 'error'); return; }
+    closeModal();
+    const n = (d.saved || []).length;
+    toast(n ? `Получено в проект файлов: ${n}` : 'Получено в проект', 'success');
+    await loadProjectFsTree();
+    if(single && path) selectProjectFile(path);
+  }catch(e){
+    toast('Ошибка связи с сервером', 'error');
   }
 }
 
