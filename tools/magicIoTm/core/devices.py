@@ -199,6 +199,61 @@ def _device_busy_fetching(ip):
     )
 
 
+# Кэш локальных подсетей панели: панель могут перевести в другую сеть на ходу,
+# поэтому кэш короткий; psutil-опрос интерфейсов на каждый цикл пинга не нужен
+_subnets_cache = {"ts": 0.0, "nets": None}
+_SUBNETS_TTL = 30.0
+
+# Узел вне локальных подсетей (панель переехала в другую сеть) проверяется
+# пингом редко: устройство может быть доступно маршрутом (VPN, несколько
+# интерфейсов), поэтому полностью пинг не отключаем
+CROSS_SUBNET_RETRY = 600.0
+_cross_subnet_retry = {}  # ip -> time.time() следующей полной проверки
+
+
+def _local_subnets():
+    """Список подсетей (ipaddress.ip_network) интерфейсов панели или None.
+
+    None — определить не удалось (psutil недоступен/нет IPv4-адресов):
+    оптимизация отключается, пинг ведётся как раньше.
+    """
+    now = time.time()
+    if now - _subnets_cache["ts"] < _SUBNETS_TTL:
+        return _subnets_cache["nets"]
+    nets = None
+    try:
+        import psutil
+        nets = []
+        for addr_list in psutil.net_if_addrs().values():
+            for addr in addr_list:
+                if addr.family == socket.AF_INET and addr.netmask:
+                    try:
+                        nets.append(ipaddress.ip_network(
+                            f"{addr.address}/{addr.netmask}", strict=False))
+                    except ValueError:
+                        continue
+    except Exception:  # noqa: BLE001 — нет psutil или доступа к интерфейсам
+        nets = None
+    _subnets_cache["ts"] = now
+    _subnets_cache["nets"] = nets
+    return nets
+
+
+def _ip_in_local_subnet(ip):
+    """True, если IP принадлежит одной из локальных подсетей панели.
+
+    Подсети неизвестны (None) — возвращает True: пингуем как раньше.
+    """
+    nets = _local_subnets()
+    if nets is None:
+        return True
+    try:
+        addr = ipaddress.ip_address(ip)
+    except ValueError:
+        return True
+    return any(addr in net for net in nets)
+
+
 def _ping_cycle():
     """One cycle of background device checks (ping + identity confirmation)."""
     now = time.time()
@@ -228,8 +283,23 @@ def _ping_cycle():
             else:
                 pending.append(key)
         if pending and not mc_no_ping:
-            if _host_pingable(ip):
+            in_subnet = _ip_in_local_subnet(ip)
+            if not in_subnet and now < _cross_subnet_retry.get(ip, 0.0):
+                # Узел из чужой подсети (панель в другой сети): не пингуем
+                # каждую минуту — считаем недоступным для FSM, полная
+                # проверка пингом по расписанию (CROSS_SUBNET_RETRY)
+                logger.info(f"Ping skipped for {ip}: foreign subnet, "
+                            f"full retry in {_cross_subnet_retry[ip] - now:.0f}s")
+                for key in pending:
+                    with _device_states_lock:
+                        st = _device_states.setdefault(
+                            key, {"state": STATE_GREY, "fails": 0, "last_confirm": 0.0})
+                        st["state"], st["fails"] = _next_state(
+                            st["state"], st["fails"], False, False)
+                    logger.info(f"Foreign-subnet fail: {ip} ({key}), fails: {st['fails']}")
+            elif _host_pingable(ip):
                 logger.info(f"Ping OK: {ip}")
+                _cross_subnet_retry.pop(ip, None)
                 sj = _fetch_settings_identity(ip)
                 sj_name, sj_id = (sj[0], sj[1]) if sj else ("", "")
                 sj_keys = set(_folder_key_candidates(sj[0], sj[1], ip)) if sj else set()
@@ -247,6 +317,12 @@ def _ping_cycle():
                         logger.info(f"Ping OK, no identity confirmation: {ip} ({key})")
             else:
                 logger.info(f"Ping fail (no response): {ip}")
+                # Чужая подсеть — следующий полный пинг только через паузу;
+                # своя — обычный порядок (пинг на каждом цикле)
+                if not in_subnet:
+                    _cross_subnet_retry[ip] = now + CROSS_SUBNET_RETRY
+                else:
+                    _cross_subnet_retry.pop(ip, None)
                 for key in pending:
                     with _device_states_lock:
                         st = _device_states.setdefault(
