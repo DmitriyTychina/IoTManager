@@ -1843,6 +1843,20 @@ function extractScenarioVars(text){
   return Array.from(vars);
 }
 
+// Карта «имя переменной → номера строк сценария, где она встречается».
+// Повторы на одной строке схлопываются, порядок строк — по сценарию.
+// Нужно проверке переменных config.json для подсказки, где используется переменная.
+function extractScenarioVarLines(text){
+  const map = {};
+  const toks = tokenizeScenario(text);
+  for(const t of toks){
+    if(t.type !== 'word' || SCEN_KW_COND.has(t.value)) continue;
+    if(!map[t.value]) map[t.value] = [];
+    if(map[t.value][map[t.value].length - 1] !== t.line) map[t.value].push(t.line);
+  }
+  return map;
+}
+
 // ==================== Загрузка сохранённого config.json ====================
 // config.json берётся из сохранённой папки — той же, где лежит проверяемый
 // scenario.txt (RAM/FS устройства на диске панели или data_svelte проекта),
@@ -2028,6 +2042,7 @@ async function checkScenarioLoops(section){
       html += '<p style="color:var(--muted);font-size:11px;margin-top:4px">Сохраните config.json в той же папке (RAM/FS устройства или data_svelte проекта), чтобы проверка заработала.</p>';
     } else {
       const itemIds = savedCfgItems.map(it => it && it.id != null ? String(it.id) : '').filter(s => s !== '');
+      const varLines = extractScenarioVarLines(text);
       const scenarioVars = extractScenarioVars(text).filter(v => !knownFuncNames.has(v));
       const unknownVars = scenarioVars.filter(v => !itemIds.includes(v));
 
@@ -2041,7 +2056,9 @@ async function checkScenarioLoops(section){
         html += ` · неизвестных: <b style="color:#c62828">${unknownVars.length}</b></p>`;
         html += '<p style="color:#c62828;font-size:11px;margin-top:4px">⚠ Эти переменные не найдены в config.json по полю "id":</p>';
         for(const v of unknownVars.slice(0, 30)){
-          html += `<p style="color:#c62828;font-size:11px;margin:2px 0">• <code>${esc(v)}</code></p>`;
+          const vlines = (varLines[v] || []).join(', ');
+          html += `<p style="color:#c62828;font-size:11px;margin:2px 0">• <code>${esc(v)}</code>` +
+            (vlines ? ` — используется на стр. ${esc(vlines)}` : '') + '</p>';
         }
         if(unknownVars.length > 30) html += `<p style="color:var(--muted);font-size:11px">…и ещё ${unknownVars.length - 30} переменных.</p>`;
         html += '<p style="color:var(--muted);font-size:11px;margin-top:4px">Совет: проверьте, что ID элементов в config.json совпадают с именами переменных в сценарии.</p>';
