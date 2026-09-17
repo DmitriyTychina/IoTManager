@@ -271,14 +271,21 @@ textarea{resize:vertical;min-height:60px;font-family:inherit}
 .devmgr-editor-head .file-name{font-family:Consolas,monospace;color:var(--text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .devmgr-editor-head .file-size{font-family:Consolas,monospace;color:var(--muted);white-space:nowrap}
 .devmgr-textarea{position:absolute;inset:0;width:100%;height:100%;box-sizing:border-box;border:none;resize:none;font-family:Consolas,'Courier New',monospace;font-size:12px;line-height:1.45;padding:10px;background:transparent;color:var(--text);min-height:0;white-space:pre;overflow:auto}
-/* Подсветка JSON: textarea поверх <pre> с раскрашенным содержимым */
+/* Подсветка JSON/scenario: textarea поверх <pre> с раскрашенным содержимым */
 .devmgr-code{flex:1;display:flex;position:relative;min-height:0;overflow:hidden}
 .devmgr-code-editor{flex:1;position:relative;min-width:0;min-height:0}
 .devmgr-hl{position:absolute;inset:0;margin:0;box-sizing:border-box;padding:10px;font-family:Consolas,'Courier New',monospace;font-size:12px;line-height:1.45;white-space:pre;overflow:hidden;color:var(--text);pointer-events:none;user-select:none}
-/* Полоса номеров строк сценария (видна при открытой «Проверке») */
-.devmgr-gutter{width:46px;min-width:46px;flex:0 0 auto;display:none;overflow:hidden;background:rgba(74,144,217,0.06);border-right:1px solid var(--border);user-select:none;-ms-user-select:none}
-.devmgr-gutter.active{display:block}
-.devmgr-gutter pre{margin:0;padding:10px 8px 10px 0;font-family:Consolas,'Courier New',monospace;font-size:12px;line-height:1.45;text-align:right;color:var(--muted);will-change:transform}
+/* Номера строк сценария: слой поверх textarea (вместо полосы-колонки).
+   Вертикальную обрезку выполняет родитель .devmgr-code (overflow:hidden):
+   сам слой сдвигается translateY вместе с прокруткой, поэтому overflow:hidden
+   на нём нельзя — «окно» обрезки уехало бы вверх и нижние номера пропадали. */
+.devmgr-lines{position:absolute;left:0;top:0;width:44px;height:100%;box-sizing:border-box;padding:10px 8px 10px 0;direction:rtl;text-align:right;color:rgba(74,144,217,0.85);background:rgba(74,144,217,0.06);border-right:1px solid var(--border);user-select:none;-ms-user-select:none;pointer-events:none;font-family:Consolas,'Courier New',monospace;font-size:12px;line-height:1.45;z-index:2;white-space:nowrap;display:none}
+.devmgr-lines .ln{display:block}
+/* Отступ текста под слой номеров: одинаковый у textarea и слоя подсветки,
+   иначе колонки текста разъедутся */
+.devmgr-code.lines-on .devmgr-textarea,
+.devmgr-code.lines-on .devmgr-hl{padding-left:54px}
+.devmgr-textarea.transparent{color:transparent;caret-color:var(--text);-webkit-text-fill-color:transparent;background:transparent}
 /* Панель результата «Проверки» в правой половине редактора */
 .devmgr-check{width:50%;min-width:280px;border-left:1px solid var(--border);display:none;flex-direction:column;min-height:0;background:var(--panel)}
 .devmgr-check.active{display:flex}
@@ -288,7 +295,6 @@ textarea{resize:vertical;min-height:60px;font-family:inherit}
 .devmgr-check-close:hover{background:rgba(217,74,74,0.12);border-color:var(--danger);color:var(--danger)}
 .devmgr-check-body{flex:1;overflow-y:auto;padding:10px;font-size:13px;line-height:1.5;min-height:0}
 .devmgr-check-body code{font-family:Consolas,'Courier New',monospace;font-size:12px;background:rgba(74,144,217,0.1);padding:1px 4px;border-radius:3px}
-.devmgr-textarea.transparent{color:transparent;caret-color:var(--text);-webkit-text-fill-color:transparent;background:transparent}
 .tok-str{color:#2e7d32}
 .tok-num{color:#c2185b}
 .tok-lit{color:#b26a00}
@@ -817,6 +823,26 @@ let deviceEditors = {
   fs:  {path:null, original:''},
 };
 
+// Запоминание выбранного файла в «🗂️ Файловая система FS» (в рамках сессии):
+// при переходе на другое устройство/проект выбор сохраняется, при возврате файл
+// выбирается автоматически. Ключ — устройство (ключ/ip) или проект (категория/имя).
+const rememberedFsFile = new Map();
+
+function fsRememberKey(){
+  if(activeDevice) return 'device:' + (activeDevice.key || activeDevice.ip);
+  if(currentProject) return 'project:' + currentProject.category + '/' + currentProject.name;
+  return null;
+}
+
+function rememberFsFile(key, path){
+  if(!key || !path) return;
+  rememberedFsFile.set(key, path);
+}
+
+function forgetFsFile(key){
+  if(key) rememberedFsFile.delete(key);
+}
+
 function selectDevice(key, ip, name, online, net){
   activeDevice = {key, ip, name, online, net: net || (online ? 'green' : 'grey')};
   deviceEditors = {ram:{path:null,original:''}, fs:{path:null,original:''}};
@@ -890,7 +916,7 @@ function renderDeviceManager(){
               <button class="btn-sm" id="ramPushBtn" onclick="pushFile('ram')" disabled title="">💾 Сохранить</button>
             </div>
             <div class="devmgr-code">
-              <div class="devmgr-gutter" id="ramGutter"><pre></pre></div>
+              <div class="devmgr-lines" id="ramLines"></div>
               <div class="devmgr-code-editor" id="ramCodeEditor">
                 <pre class="devmgr-hl" id="ramHl"></pre>
                 <textarea id="ramEditor" class="devmgr-textarea" spellcheck="false" wrap="off" oninput="onEditorInput('ram')" onscroll="onEditorScroll('ram')" onclick="onEditorCaret('ram')" onkeyup="onEditorCaret('ram')" onselect="onEditorCaret('ram')" placeholder="Выберите файл"></textarea>
@@ -923,7 +949,7 @@ function renderDeviceManager(){
               <button class="btn-sm" id="fsSaveBtn" onclick="saveFile('fs')" disabled title="Сохранить файл локально">💾 Сохранить</button>
             </div>
             <div class="devmgr-code">
-              <div class="devmgr-gutter" id="fsGutter"><pre></pre></div>
+              <div class="devmgr-lines" id="fsLines"></div>
               <div class="devmgr-code-editor" id="fsCodeEditor">
                 <pre class="devmgr-hl" id="fsHl"></pre>
                 <textarea id="fsEditor" class="devmgr-textarea" spellcheck="false" wrap="off" oninput="onEditorInput('fs')" onscroll="onEditorScroll('fs')" onclick="onEditorCaret('fs')" onkeyup="onEditorCaret('fs')" onselect="onEditorCaret('fs')" placeholder="Выберите файл"></textarea>
@@ -964,6 +990,15 @@ async function loadTree(section){
          <span class="devmgr-tree-name">${esc(f)}</span>
        </div>`
     ).join('');
+    // Восстанавливаем выбор файла FS (в рамках сессии) при возврате на устройство
+    if(section === 'fs'){
+      const key = fsRememberKey();
+      const remembered = key ? rememberedFsFile.get(key) : null;
+      if(remembered && d.files.includes(remembered)){
+        const item = Array.from(el.querySelectorAll('.devmgr-tree-item')).find(i => i.dataset.path === remembered);
+        if(item){ item.classList.add('active'); selectFile(section, remembered); }
+      }
+    }
   }catch(e){
     el.innerHTML = '<div class="empty-state" style="padding:12px">Ошибка загрузки</div>';
   }
@@ -1035,8 +1070,12 @@ async function selectFile(section, path){
     }
     deviceEditors[section] = {path, original: d.content, deviceKey: activeDevice.key || activeDevice.ip};
     const checkPanel = document.getElementById(section + 'Check');
-    if(checkPanel) checkPanel.classList.remove('active');
-    hideLineNumbers(section);
+    if(checkPanel){
+      // Панель «Проверка» закрывается при переходе на другой файл; для scenario.txt
+      // ниже она будет автоматически открыта заново (maybeAutoShowCheck).
+      checkPanel.classList.remove('active');
+      hideLineNumbers(section);
+    }
     document.getElementById(section + 'FileName').textContent = path;
     const sizeEl = document.getElementById(section + 'FileSize');
     if(sizeEl) sizeEl.textContent = (typeof d.size === 'number') ? d.size + ' байт' : '';
@@ -1060,6 +1099,10 @@ async function selectFile(section, path){
       if(saveBtn) saveBtn.disabled = false;
     }
     updateHighlight(section);
+    // Запоминаем выбор файла FS (в рамках сессии) — для авто-восстановления при возврате
+    if(section === 'fs') rememberFsFile(fsRememberKey(), path);
+    // Панель «🔍 Проверка» для scenario.txt отображается всегда (пока не закрыли ✕)
+    maybeAutoShowCheck(section, path);
   }catch(e){
     toast('Ошибка чтения файла', 'error');
   }
@@ -1109,14 +1152,22 @@ function updateHighlight(section){
   const path = (ed && ed.path) || '';
   const isJson = /\.json$/i.test(path);
   const isScen = /scenario\.txt$/i.test(path);
+  // Textarea рисует завершающий '\n' файла как реальную пустую строку (на ней
+  // стоит курсор, она входит в scrollHeight), а <pre> — нет: перенос в самом
+  // конце блока не создаёт строку. Без компенсации слой подсветки на одну
+  // строку ниже textarea: у низа файла цветной текст уезжает на строку вверх
+  // относительно выделения и номеров строк. Добавляем в слой один '\n' ровно
+  // тогда, когда он есть в тексте, — тогда все три слоя (textarea, подсветка,
+  // номера строк) имеют одинаковую высоту контента.
+  const tail = ta.value.endsWith('\n') ? '\n' : '';
   if(isJson){
-    hl.innerHTML = highlightJson(ta.value) + '\n';
+    hl.innerHTML = highlightJson(ta.value) + tail;
     applyHl(ta, hl);
   } else if(isScen){
     const text = ta.value;
     const mask = buildCodeMask(text);
     const pair = findBracketPairAtCursor(ta, text, mask);
-    hl.innerHTML = highlightScenario(text, pair, mask) + '\n';
+    hl.innerHTML = highlightScenario(text, pair, mask) + tail;
     applyHl(ta, hl);
   } else {
     hl.innerHTML = '';
@@ -1127,6 +1178,18 @@ function updateHighlight(section){
 
 function applyHl(ta, hl){
   hl.style.display = 'block';
+  // Слой подсветки должен совпадать с textarea по клиентской области (без
+  // полос прокрутки), а не по рамке. У textarea с горизонтальной полосой
+  // clientHeight меньше offsetHeight на высоту полосы: если слой взять по
+  // offsetHeight, его максимум прокрутки окажется меньше, слой «упрётся» в
+  // свой предел раньше textarea, и у самого низа текст уедет на высоту полосы
+  // — выделение перестанет совпадать со строками. clientWidth/clientHeight
+  // дают textarea и слою одинаковую видимую область и одинаковые максимумы
+  // прокрутки, поэтому scrollTop переносится без обрезки вплоть до низа.
+  hl.style.left = ta.offsetLeft + 'px';
+  hl.style.top = ta.offsetTop + 'px';
+  hl.style.width = ta.clientWidth + 'px';
+  hl.style.height = ta.clientHeight + 'px';
   hl.scrollTop = ta.scrollTop;
   hl.scrollLeft = ta.scrollLeft;
   ta.classList.add('transparent');
@@ -1134,8 +1197,8 @@ function applyHl(ta, hl){
 
 function onEditorInput(section){
   updateHighlight(section);
-  const gutter = document.getElementById(section + 'Gutter');
-  if(gutter && gutter.classList.contains('active')) renderLineNumbers(section);
+  const lines = document.getElementById(section + 'Lines');
+  if(lines && lines.style.display !== 'none') renderLineNumbers(section);
 }
 
 function onEditorCaret(section){
@@ -1702,6 +1765,11 @@ async function checkScenarioLoops(section){
   const ed = deviceEditors[section];
   const path = (ed && ed.path) || '';
   if(!/scenario\.txt$/i.test(path)){ toast('Откройте файл scenario.txt для проверки', 'info'); return; }
+
+  // Кнопка «🔍 Проверка» всегда запускает проверку заново по текущему содержимому
+  // редактора. Кэш используется только для автопоказа при возврате к файлу
+  // (maybeAutoShowCheck) — сам запуск он не подменяет.
+
   const ta = document.getElementById(section + 'Editor');
   const text = ta ? ta.value : '';
   // config.json ищем в той же папке, что и scenario.txt
@@ -1725,7 +1793,7 @@ async function checkScenarioLoops(section){
   
   let html = '<p><b>🔍 Расширенная проверка сценария</b></p>';
   html += `<p style="color:var(--muted);margin:0 0 8px">Файл: <code>${esc(path)}</code></p>`;
-  
+
   // ===== 1. Проверка скобок =====
   html += '<div style="margin-top:12px"><h4 style="font-size:13px;margin-bottom:6px">📌 Проверка скобок</h4>';
   const braceErrors = checkBraces(text);
@@ -1755,7 +1823,7 @@ async function checkScenarioLoops(section){
   html += '</div>';
   
   // ===== 3. Проверка зацикливания =====
-  html += '<div style="margin-top:12px"><h4 style="font-size:13px;margin-bottom:6px">📌 Проверка на зацикливание (event-driven)</h4>';
+  html += '<div style="margin-top:12px"><h4 style="font-size:13px;margin-bottom:6px">📌 Проверка зацикливания</h4>';
   const rules = parseScenarioRules(text);
   const edgeMap = {};
   for(const r of rules){
@@ -1885,53 +1953,138 @@ async function checkScenarioLoops(section){
     body.innerHTML = html;
     panel.classList.add('active');
     showLineNumbers(section);
+    persistCheck(section, path, html);
   }
 }
+// Кэш результатов проверки scenario.txt (в пределах сессии). Ключ — секция +
+// идентификатор устройства/проекта + путь, поэтому у каждого scenario.txt каждого
+// устройства/проекта своя проверка. Проверка запускается только кнопкой
+// «🔍 Проверка»; при возврате к файлу панель показывается автоматически лишь если
+// в кэше есть результат. Закрытие панели ✕ очищает кэш этого файла (dismissed
+// запоминает, что автопоказ для него больше не нужен до новой проверки).
+const persistedScenarioCheck = new Map();
+const persistedScenarioCheckDismissed = new Set();
+
+function checkOwnerKey(section){
+  if(section === 'pfs'){
+    return currentProject ? (currentProject.category + '/' + currentProject.name) : '';
+  }
+  const ed = deviceEditors[section] || {};
+  return ed.deviceKey || (activeDevice ? (activeDevice.key || activeDevice.ip) : '');
+}
+
+function checkKey(section, path){
+  return section + '::' + checkOwnerKey(section) + '::' + String(path || '').replace(/\\/g, '/');
+}
+
+function persistCheck(section, path, html){
+  if(!html) return;
+  const key = checkKey(section, path);
+  persistedScenarioCheck.set(key, html);
+  // Новая проверка по кнопке снова включает автопоказ для этого файла
+  persistedScenarioCheckDismissed.delete(key);
+}
+
+function getPersistedCheck(section, path){
+  return persistedScenarioCheck.get(checkKey(section, path)) || null;
+}
+
+function isCheckDismissed(section, path){
+  return persistedScenarioCheckDismissed.has(checkKey(section, path));
+}
+
+// Закрытие панели «Проверка» ✕ очищает кэш проверки этого сценария
+// (этого проекта/устройства) и отключает автопоказ до новой проверки.
 function closeCheck(section){
   const panel = document.getElementById(section + 'Check');
   if(panel) panel.classList.remove('active');
   hideLineNumbers(section);
+  const ed = (section === 'pfs') ? (deviceEditors.pfs || {}) : (deviceEditors[section] || {});
+  const path = (ed && ed.path) || '';
+  if(path){
+    const key = checkKey(section, path);
+    persistedScenarioCheckDismissed.add(key);
+    persistedScenarioCheck.delete(key);
+  }
+}
+
+// Автопоказ панели «Проверка» при открытии scenario.txt: панель показывается
+// только если в кэше сессии есть сохранённый результат для этого файла
+// (этого устройства/проекта). Сама проверка автоматически не запускается.
+function maybeAutoShowCheck(section, path){
+  if(!/scenario\.txt$/i.test(path || '')) return;
+  if(isCheckDismissed(section, path)) return;
+  const cached = getPersistedCheck(section, path);
+  if(!cached) return;
+  const panel = document.getElementById(section + 'Check');
+  const body = document.getElementById(section + 'CheckBody');
+  if(panel && body){
+    body.innerHTML = cached;
+    panel.classList.add('active');
+    showLineNumbers(section);
+  }
 }
 
 function onEditorScroll(section){
   const hl = document.getElementById(section + 'Hl');
   const ta = document.getElementById(section + 'Editor');
   if(!hl || !ta) return;
+  // Прокрутка бывает и без пересоздания подсветки: перетаскивание выделения,
+  // Ctrl+End, появление/исчезновение полосы. Поэтому сначала обновляем размер
+  // клиентской области слоя (полоса меняет clientHeight/clientWidth textarea),
+  // иначе слой снова «упрётся» в свой максимум раньше textarea.
+  hl.style.width = ta.clientWidth + 'px';
+  hl.style.height = ta.clientHeight + 'px';
+  // Затем переносим прокрутку: после выравнивания размеров максимумы у
+  // textarea и слоя одинаковы, scrollTop/scrollLeft переносятся без обрезки
+  // вплоть до самого низа. Transform нельзя: он двигает pre вместе с обрезкой.
   hl.scrollTop = ta.scrollTop;
   hl.scrollLeft = ta.scrollLeft;
-  syncGutterScroll(section);
+  syncLineNumbers(section);
 }
 
 // ==================== Номера строк сценария (полоса слева) ====================
 function renderLineNumbers(section){
-  const gutter = document.getElementById(section + 'Gutter');
+  const gutter = document.getElementById(section + 'Lines');
   const ta = document.getElementById(section + 'Editor');
   if(!gutter || !ta) return;
+  // Правило счёта совпадает с textarea: завершающий '\n' файла даёт реальную
+  // пустую строку (на ней стоит курсор), поэтому split('\n').length — верное
+  // число строк; номер этой пустой строки валиден. Слой подсветки получает
+  // компенсирующий '\n' в updateHighlight — высоты всех слоёв совпадают.
   const count = ta.value.split('\n').length;
   const nums = [];
   for(let i = 1; i <= count; i++) nums.push(i);
-  gutter.querySelector('pre').textContent = nums.join('\n');
-  syncGutterScroll(section);
+  gutter.innerHTML = nums.map(n => '<span class="ln">' + n + '</span>').join('');
+  syncLineNumbers(section);
 }
 
-function syncGutterScroll(section){
-  const gutter = document.getElementById(section + 'Gutter');
+function syncLineNumbers(section){
+  const gutter = document.getElementById(section + 'Lines');
   const ta = document.getElementById(section + 'Editor');
   if(!gutter || !ta) return;
-  const pre = gutter.querySelector('pre');
-  if(pre) pre.style.transform = 'translateY(' + (-(ta.scrollTop || 0)) + 'px)';
+  // Слой номеров сдвигается вместе с прокруткой textarea (translateY).
+  // Вертикальную обрезку выполняет родитель .devmgr-code (overflow:hidden),
+  // поэтому «окно» номеров не уезжает вместе со слоем и внизу всё сходится.
+  gutter.style.transform = 'translateY(' + (-(ta.scrollTop || 0)) + 'px)';
 }
 
 function showLineNumbers(section){
-  const gutter = document.getElementById(section + 'Gutter');
+  const gutter = document.getElementById(section + 'Lines');
   if(!gutter) return;
   renderLineNumbers(section);
-  gutter.classList.add('active');
+  gutter.style.display = 'block';
+  // Сдвигаем текст редактора вправо, чтобы номера не перекрывали код
+  const wrap = gutter.closest('.devmgr-code');
+  if(wrap) wrap.classList.add('lines-on');
 }
 
 function hideLineNumbers(section){
-  const gutter = document.getElementById(section + 'Gutter');
-  if(gutter) gutter.classList.remove('active');
+  const gutter = document.getElementById(section + 'Lines');
+  if(!gutter) return;
+  gutter.style.display = 'none';
+  const wrap = gutter.closest('.devmgr-code');
+  if(wrap) wrap.classList.remove('lines-on');
 }
 
 async function saveFile(section){
@@ -2304,7 +2457,9 @@ function renderContent(about){
   ` + aboutSection + `
     <div class="content-section" id="projectFsSection">
       <h2>🗂️ Файловая система FS</h2>
-      <div class="devmgr-panel" style="min-height:420px">
+      <!-- Высота фиксирована (не min-height): длинные результаты «🔍 Проверка»
+           не должны увеличивать секцию по вертикали — тело проверки скроллится -->
+      <div class="devmgr-panel" style="height:420px">
         <div class="devmgr-panel-head">
           <span class="devmgr-panel-title">Файлы из файловой системы</span>
         </div>
@@ -2320,7 +2475,7 @@ function renderContent(about){
               <button class="btn-sm" id="pfsSaveBtn" onclick="saveFile('pfs')" disabled title="Сохранить файл локально в проект">💾 Сохранить</button>
             </div>
             <div class="devmgr-code">
-              <div class="devmgr-gutter" id="pfsGutter"><pre></pre></div>
+              <div class="devmgr-lines" id="pfsLines"></div>
               <div class="devmgr-code-editor" id="pfsCodeEditor">
                 <pre class="devmgr-hl" id="pfsHl"></pre>
                 <textarea id="pfsEditor" class="devmgr-textarea" spellcheck="false" wrap="off" oninput="onEditorInput('pfs')" onscroll="onEditorScroll('pfs')" onclick="onEditorCaret('pfs')" onkeyup="onEditorCaret('pfs')" onselect="onEditorCaret('pfs')" placeholder="Выберите файл"></textarea>
@@ -2459,6 +2614,13 @@ function loadProjectFsTree(){
            <span class="devmgr-tree-name">${esc(f)}</span>
          </div>`
       ).join('');
+      // Восстанавливаем выбор файла FS (в рамках сессии) при возврате на проект
+      const key = fsRememberKey();
+      const remembered = key ? rememberedFsFile.get(key) : null;
+      if(remembered && files.includes(remembered)){
+        const item = Array.from(el.querySelectorAll('.devmgr-tree-item')).find(i => i.dataset.path === remembered);
+        if(item){ item.classList.add('active'); selectProjectFile(remembered); }
+      }
     })
     .catch(() => {
       el.innerHTML = '<div class="empty-state" style="padding:12px">Ошибка загрузки</div>';
@@ -2492,8 +2654,12 @@ async function selectProjectFile(path){
     if(!deviceEditors.pfs) deviceEditors.pfs = {path:null, original:''};
     deviceEditors.pfs = {path, original: d.content};
     const checkPanel = document.getElementById('pfsCheck');
-    if(checkPanel) checkPanel.classList.remove('active');
-    hideLineNumbers('pfs');
+    if(checkPanel){
+      // Панель «Проверка» закрывается при переходе на другой файл; для scenario.txt
+      // ниже она будет автоматически открыта заново (maybeAutoShowCheck).
+      checkPanel.classList.remove('active');
+      hideLineNumbers('pfs');
+    }
     document.getElementById('pfsFileName').textContent = path;
     const sizeEl = document.getElementById('pfsFileSize');
     if(sizeEl) sizeEl.textContent = (typeof d.size === 'number') ? d.size + ' байт' : '';
@@ -2505,6 +2671,10 @@ async function selectProjectFile(path){
     const saveBtn = document.getElementById('pfsSaveBtn');
     if(saveBtn) saveBtn.disabled = false;
     updateHighlight('pfs');
+    // Запоминаем выбор файла FS проекта (в рамках сессии) — для авто-восстановления при возврате
+    rememberFsFile(fsRememberKey(), path);
+    // Панель «🔍 Проверка» для scenario.txt отображается всегда (пока не закрыли ✕)
+    maybeAutoShowCheck('pfs', path);
   }catch(e){
     toast('Ошибка чтения файла', 'error');
   }
@@ -3257,16 +3427,16 @@ function pickOtaMode(mode, fsMethod, deviceKey, deviceName){
 
 function showOtaModeModal(device){
   const actions = [
-    {id:'firmware', fs:'', label:'② Только прошивка', desc:'Записать только firmware.bin'},
-    {id:'fs', fs:'flash', label:'① ФС: записать образ', desc:'Записать littlefs.bin целиком'},
-    {id:'fs', fs:'copy', label:'① ФС: скопировать файлы', desc:'Загрузить файлы data_svelte пофайлово (/edit)'},
-    {id:'full', fs:'flash', label:'③ Полная (образ ФС + прошивка)', desc:'Сначала littlefs.bin, затем firmware.bin'},
-    {id:'full', fs:'copy', label:'③ Полная (копия ФС + прошивка)', desc:'Скопировать файлы ФС, затем прошивка'}
+    {id:'firmware', fs:'', label:'Только прошивка', desc:'Записать только firmware.bin'},
+    {id:'fs', fs:'flash', label:'ФС: записать образ', desc:'Записать littlefs.bin, файлы config.json, settings.json, layout.json, scenario.txt не перезаписываются'},
+    {id:'fs', fs:'copy', label:'ФС: скопировать файлы', desc:'Загрузить файлы data_svelte пофайлово (/edit)'},
+    {id:'full', fs:'flash', label:'Полная (образ ФС + прошивка)', desc:'Сначала littlefs.bin, затем firmware.bin, settings.json, layout.json, scenario.txt не перезаписываются'},
+    {id:'full', fs:'copy', label:'Полная (копия ФС + прошивка)', desc:'Скопировать файлы ФС, затем прошивка'}
   ];
   const platHtml = device.platform
     ? `платформа: <b>${esc(device.platform)}</b>`
     : '<span style="color:var(--warn)">платформа неизвестна — возможна несовместимость</span>';
-  showModal(`<h3>📡 OTA · режим</h3>
+  showModal(`<h3>📡 OTA · Прошивка "по воздуху"</h3>
     <p style="color:var(--muted);font-size:12px;margin-bottom:12px">Устройство: <b>${esc(device.name)}</b> · ${esc(device.ip)} · ${platHtml}</p>
     <div class="measure-scope-list">
       ${actions.map(a=>`<button class="btn-sm" onclick="pickOtaMode('${a.id}','${a.fs}','${esc(device.key)}','${esc(device.name)}')">${a.label}<span class="ms-desc">${a.desc}</span></button>`).join('')}
