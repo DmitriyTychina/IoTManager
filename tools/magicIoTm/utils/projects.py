@@ -37,6 +37,20 @@ def is_platformio(name):
     return name == PLATFORMIO_PROJECT
 
 
+def _same_entry(path_a, path_b):
+    """True, если оба пути указывают на одну запись файловой системы.
+
+    На Windows ФС нечувствительна к регистру: 'MyProject' и 'myproject' —
+    один и тот же каталог, поэтому os.path.exists(new) даёт ложное
+    «уже существует» при переименовании сменой регистра.
+    """
+    try:
+        return (os.path.exists(path_a) and os.path.exists(path_b)
+                and os.path.samefile(path_a, path_b))
+    except OSError:
+        return False
+
+
 # ==================== platformio.ini: ключ data_dir ====================
 # data_dir — каталог, из которого PlatformIO собирает образ файловой системы
 # (mklittlefs -c $PROJECT_DATA_DIR). Путь относительный — от корня репозитория
@@ -295,7 +309,7 @@ def rename_category(old_name, new_name):
     new_path = os.path.join(PROJECTS_DIR, new_name)
     if not os.path.exists(old_path):
         return False, "Категория не найдена"
-    if os.path.exists(new_path):
+    if os.path.exists(new_path) and not _same_entry(old_path, new_path):
         return False, "Категория с таким именем уже существует"
     os.rename(old_path, new_path)
     # Обновляем поле category в data.json каждого проекта
@@ -408,7 +422,7 @@ def rename_project(category, old_name, new_name):
     new_path = os.path.join(cat_path, new_name)
     if not os.path.exists(old_path):
         return False, "Проект не найден"
-    if os.path.exists(new_path):
+    if os.path.exists(new_path) and not _same_entry(old_path, new_path):
         return False, "Проект с таким именем уже существует"
 
     os.rename(old_path, new_path)
@@ -475,7 +489,7 @@ def move_project(src_cat, src_name, dst_cat, dst_name=None):
 
     if os.path.abspath(src_path) == os.path.abspath(dst_path):
         return False, "Проект уже находится в этой категории"
-    if os.path.exists(dst_path):
+    if os.path.exists(dst_path) and not _same_entry(src_path, dst_path):
         return False, "Проект с таким именем уже существует в категории назначения"
 
     shutil.move(src_path, dst_path)
