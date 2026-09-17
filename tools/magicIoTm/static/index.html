@@ -1056,7 +1056,7 @@ function renderDeviceManager(){
                 <span class="file-size" id="ramFileSize"></span>
               </div>
               <button class="btn-sm" id="ramCheckBtn" style="display:none" onclick="checkScenarioLoops('ram')" title="Проверка: зацикливание, скобки, if/then/else, переменные">🔍 Проверка</button>
-              <button class="btn-sm" id="ramPushBtn" onclick="pushFile('ram')" disabled title="">💾 Сохранить</button>
+              <button class="btn-sm" id="ramPushBtn" onclick="saveFile('ram')" disabled title="Выберите файл">💾 Сохранить</button>
             </div>
             <div class="devmgr-code">
               <div class="devmgr-lines" id="ramLines"></div>
@@ -1235,12 +1235,14 @@ async function selectFile(section, path){
     const checkBtn = document.getElementById(section + 'CheckBtn');
     if(checkBtn) checkBtn.style.display = isScenario ? '' : 'none';
     if(section === 'ram'){
-      // RAM: «Сохранить» пишет на устройство и обновляет локальную копию
+      // RAM: «Сохранить» всегда пишет локально; поддерживаемые прошивкой файлы —
+      // ещё и на устройство (если оно в сети)
       const pushBtn = document.getElementById(section + 'PushBtn');
       if(pushBtn){
-        const support = ['config.json','scenario.txt','settings.json'].includes(path);
-        pushBtn.disabled = !support;
-        pushBtn.title = support ? 'Записать файл обратно на устройство' : 'Файл не поддерживается прошивкой для записи на устройство';
+        pushBtn.disabled = false;
+        pushBtn.title = DEVICE_WRITABLE_FILES.includes(path)
+          ? 'Сохранить локально и записать на устройство (если оно в сети)'
+          : 'Сохранить локально (запись этого файла на устройство прошивкой не поддерживается)';
       }
     } else {
       // FS: «Сохранить» сохраняет локально в папку устройства
@@ -2236,6 +2238,11 @@ function hideLineNumbers(section){
   if(wrap) wrap.classList.remove('lines-on');
 }
 
+// Файлы, которые прошивка принимает обратно по WebSocket (WRITE_HEADERS в
+// utils/ws_client.py): только они и только в разделе RAM могут быть записаны
+// на устройство; FS-файлы записываются только локально.
+const DEVICE_WRITABLE_FILES = ['config.json', 'scenario.txt', 'settings.json', 'layout.json', 'devlist.json'];
+
 async function saveFile(section){
   // Секция проекта: сохраняем в data_svelte проекта
   if(section === 'pfs') return saveProjectFile();
@@ -2243,19 +2250,46 @@ async function saveFile(section){
   const ed = deviceEditors[section];
   if(!ed.path || ed.binary) return;
   const content = document.getElementById(section + 'Editor').value;
+  // 1) Локально сохраняем всегда — данные не теряются даже без устройства
   try{
     const r = await fetch(`/api/device/${encodeURIComponent(activeDevice.key || activeDevice.ip)}/file/${section}`, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({path: ed.path, content})
     });
     const d = await r.json();
-    if(d.success){ ed.original = content; toast(`Сохранено локально: ${ed.path}`, 'success'); }
-    else toast(d.error || 'Ошибка сохранения', 'error');
+    if(!d.success){ toast(d.error || 'Ошибка сохранения', 'error'); return; }
   }catch(e){
     toast('Ошибка сохранения', 'error');
+    return;
+  }
+  ed.original = content;
+  // 2) На устройство пишем только поддерживаемые прошивкой RAM-файлы
+  const name = ed.path.split('/').pop();
+  if(section !== 'ram' || !DEVICE_WRITABLE_FILES.includes(name)){
+    toast(`Сохранено локально: ${ed.path}`, 'success');
+    return;
+  }
+  if(!activeDevice.online){
+    toast(`Сохранено локально, устройство не доступно: ${ed.path}`, 'warning');
+    return;
+  }
+  try{
+    const r = await fetch(`/api/device/${encodeURIComponent(activeDevice.key || activeDevice.ip)}/write/ram`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({path: ed.path, content})
+    });
+    const d = await r.json();
+    if(d.success) toast(`Сохранено локально и в устройство: ${ed.path}`, 'success');
+    else toast(`Сохранено локально, ошибка записи в устройство: ${d.error || 'неизвестная ошибка'}`, 'error');
+  }catch(e){
+    toast(`Сохранено локально, ошибка записи в устройство: ${e.message || 'нет связи с сервером'}`, 'error');
   }
 }
 
+// [DEPRECATED] Ранее кнопка RAM «💾 Сохранить» вызывала pushFile — запись
+// только на устройство (локальная копия обновлялась как побочный эффект, а при
+// недоступном устройстве сохранение падало целиком). Теперь кнопка вызывает
+// saveFile('ram'): локально всегда, на устройство — если оно в сети.
 async function pushFile(section){
   if(section !== 'ram' || !activeDevice) return;
   const ed = deviceEditors[section];
