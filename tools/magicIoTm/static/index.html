@@ -2359,8 +2359,29 @@ async function pushFile(section){
   }
 }
 
+// Ручной пинг устройства через сервер (ICMP). Возвращает true, если хост ответил.
+async function pingDevice(key){
+  try{
+    const r = await fetch(`/api/device/${encodeURIComponent(key)}/ping`, {method:'POST'});
+    const d = await r.json();
+    return !!(d.success && d.online);
+  }catch(e){ return false; }
+}
+
+// Перед «⤵ Получить файлы/этот файл»: если устройство «не в сети» — сначала пинг;
+// при неудаче сообщение и отмена (вместо долгого зависания на WS/HTTP-таймауте).
+async function ensureDeviceReachable(){
+  if(!activeDevice) return false;
+  if(activeDevice.online) return true;
+  const ok = await pingDevice(activeDevice.key || activeDevice.ip);
+  if(ok){ activeDevice.online = true; return true; }
+  toast(`Устройство «${dispDeviceName(activeDevice.name)}» не в сети (ping не отвечает)`, 'warning');
+  return false;
+}
+
 async function fetchRam(){
   if(!activeDevice) return;
+  if(!await ensureDeviceReachable()) return;
   showFetchProgress('ram');
   try{
     const r = await fetch(`/api/device/${encodeURIComponent(activeDevice.key || activeDevice.ip)}/fetch/ram`, {method:'POST'});
@@ -2377,6 +2398,7 @@ async function fetchRam(){
 
 async function fetchFs(){
   if(!activeDevice) return;
+  if(!await ensureDeviceReachable()) return;
   showFetchProgress('fs');
   try{
     const r = await fetch(`/api/device/${encodeURIComponent(activeDevice.key || activeDevice.ip)}/fetch/fs`, {method:'POST'});
@@ -2398,6 +2420,7 @@ async function fetchFsFile(){
   const ed = deviceEditors.fs;
   const path = ed && ed.path;
   if(!path){ toast('Сначала выберите файл в дереве FS', 'warning'); return; }
+  if(!await ensureDeviceReachable()) return;
   const btn = document.getElementById('fsFetchOneBtn');
   if(btn) btn.disabled = true;
   try{
@@ -3042,6 +3065,16 @@ async function doProjectFetchFromDevice(single){
   if(!sel) return;
   const [deviceKey, section, live] = sel.value.split('|');
   if(!deviceKey){ toast('Выберите источник', 'warning'); return; }
+  if(live === '1'){
+    // Источник «с устройства»: статус «в сети» мог устареть — пингуем,
+    // при неудаче сообщение вместо сырой ошибки WS после таймаута
+    const opt = sel.options[sel.selectedIndex];
+    const lbl = opt ? opt.textContent : deviceKey;
+    if(!await pingDevice(deviceKey)){
+      toast(`Устройство «${lbl}» не в сети (ping не отвечает)`, 'warning');
+      return;
+    }
+  }
   const path = single ? (deviceEditors.pfs && deviceEditors.pfs.path) : '';
   if(single && !path){ toast('Сначала выберите файл в дереве FS', 'warning'); return; }
   try{

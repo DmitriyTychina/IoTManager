@@ -1,3 +1,4 @@
+import ipaddress
 import json
 import os
 import time
@@ -10,6 +11,7 @@ from flask import Blueprint, request, jsonify, Response
 from core.config import get_platformio_platforms, is_compatible
 from core.devices import (
     get_device_folder,
+    _host_pingable,
     _build_devices_payload,
     _devices_signature,
     _scan_snapshot,
@@ -533,6 +535,27 @@ def api_device_write_ram(device_key):
         logger.warning(f"Could not update local copy {abs_path}: {e}")
 
     return jsonify({"success": True, "path": rel})
+
+
+@devices_bp.route("/device/<device_key>/ping", methods=["POST"])
+def api_device_ping(device_key):
+    """Ручной пинг устройства перед получением файлов.
+
+    Для устройств со статусом «не в сети»: факт доступности по ICMP,
+    FSM-статус не меняется. Устройство без папки (orphan) ищем по IP
+    из ключа — фронтенд передаёт activeDevice.key || activeDevice.ip.
+    """
+    entry = get_device_folder(device_key)
+    ip = entry.get("ip") if entry else ""
+    if not ip:
+        try:
+            ipaddress.ip_address(device_key)
+            ip = device_key
+        except ValueError:
+            return jsonify({"success": False, "error": "Device not found"}), 404
+    online = _host_pingable(ip)
+    logger.info(f"Ping {ip} ({device_key}): {'ok' if online else 'no reply'}")
+    return jsonify({"success": True, "online": bool(online)})
 
 
 @devices_bp.route("/device/<device_key>/reboot", methods=["POST"])
