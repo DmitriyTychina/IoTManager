@@ -279,6 +279,8 @@ textarea{resize:vertical;min-height:60px;font-family:inherit}
 .devmgr-editor-head{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--border);font-size:12px;color:var(--muted)}
 .devmgr-editor-head .file-title{flex:1;display:flex;align-items:center;gap:6px;min-width:0}
 .devmgr-editor-head .file-name{font-family:Consolas,monospace;color:var(--text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Индикатор несохранённых правок: «●» перед именем файла */
+.devmgr-editor-head .file-name.dirty::before{content:'●';color:var(--warn);margin-right:5px;font-size:10px}
 .devmgr-editor-head .file-size{font-family:Consolas,monospace;color:var(--muted);white-space:nowrap}
 .devmgr-textarea{position:absolute;inset:0;width:100%;height:100%;box-sizing:border-box;border:none;resize:none;font-family:Consolas,'Courier New',monospace;font-size:12px;line-height:1.45;padding:10px;background:transparent;color:var(--text);min-height:0;white-space:pre;overflow:auto}
 /* Подсветка JSON/scenario: textarea поверх <pre> с раскрашенным содержимым */
@@ -547,10 +549,12 @@ function clearSidebarSelection(){
 }
 
 // Клик по устройству в списке (делегирование — список перерисовывается по SSE)
-document.getElementById('deviceTree').addEventListener('click', (e) => {
+document.getElementById('deviceTree').addEventListener('click', async (e) => {
   const item = e.target.closest('.device-item');
   if(!item) return;
   if(e.target.closest('.device-actions')) return; // удаление обрабатывается в deleteDevice
+  // Смена устройства закрывает редакторы RAM/FS и панель проекта — проверяем правки
+  if(!await confirmLeaveEditors()) return;
   clearSidebarSelection();
   item.classList.add('active');
   selectDevice(item.dataset.key, item.dataset.ip, item.dataset.name, item.dataset.online === '1', item.dataset.net);
@@ -568,7 +572,8 @@ async function deleteDevice(key){
       if(d.success){
         if(activeDevice && activeDevice.key === key){
           activeDevice = null;
-          exitDevice();
+          // Устройство и его файлы удалены — сохранять правки некуда, без модалки
+          exitDevice(true);
         }
         toast(d.warning || 'Устройство удалено', d.warning ? 'info' : 'success');
       } else {
@@ -992,6 +997,102 @@ function forgetFsFile(key){
   if(key) rememberedFsFile.delete(key);
 }
 
+// ==================== Несохранённые изменения в редакторах ====================
+// Редакторы трёх секций: ram/fs — менеджер устройства, pfs — файловая система
+// проекта. При уходе (смена файла, устройства, проекта, обновление страницы)
+// несохранённые правки защищаются модалкой «Сохранить / Не сохранять / Отмена».
+const EDITOR_SECTIONS = ['ram', 'fs', 'pfs'];
+const EDITOR_SECTION_LABEL = {ram:'RAM', fs:'FS', pfs:'проект'};
+
+function editorState(section){
+  return (section === 'pfs') ? deviceEditors.pfs : deviceEditors[section];
+}
+
+function editorFilePath(section){
+  const ed = editorState(section);
+  return (ed && ed.path) || '';
+}
+
+// Есть ли несохранённые правки: текст в textarea отличается от загруженного
+// оригинала. Бинарный файл и не выбранный файл «грязным» быть не могут.
+function isEditorDirty(section){
+  const ed = editorState(section);
+  if(!ed || !ed.path || ed.binary) return false;
+  const ta = document.getElementById(section + 'Editor');
+  return !!ta && ta.value !== ed.original;
+}
+
+function dirtyEditorSections(){
+  return EDITOR_SECTIONS.filter(isEditorDirty);
+}
+
+// Индикатор «●» перед именем файла в заголовке редактора
+function updateDirtyMark(section){
+  const nameEl = document.getElementById(section + 'FileName');
+  if(!nameEl) return;
+  const dirty = isEditorDirty(section);
+  nameEl.classList.toggle('dirty', dirty);
+  if(dirty) nameEl.title = 'Есть несохранённые изменения';
+}
+
+// Сохранить перечисленные секции по очереди; false — если хотя бы одна не
+// сохранилась локально (ошибка уже показана toast-ом внутри saveFile)
+async function saveEditorSections(sections){
+  for(const s of sections){
+    if(!await saveFile(s)) return false;
+  }
+  return true;
+}
+
+// Активный промис модалки «несохранённых изменений»: закрытие модалки мимо
+// её кнопок (Escape, клик по фону) — это отмена (уход не разрешён)
+let _unsavedLeaveResolve = null;
+
+function showUnsavedChangesModal(sections, resolve){
+  const rows = sections.map(s =>
+    `<li style="margin:2px 0"><span style="color:var(--muted)">[${EDITOR_SECTION_LABEL[s] || s}]</span> <span style="font-family:Consolas,monospace">${esc(editorFilePath(s))}</span></li>`
+  ).join('');
+  showModal(`<h3>⚠️ Несохранённые изменения</h3>
+    <p style="font-size:13px;margin:8px 0 4px">Изменены без сохранения:</p>
+    <ul style="font-size:13px;margin:4px 0 12px;padding-left:20px">${rows}</ul>
+    <p style="font-size:13px;margin:8px 0">Сохранить изменения перед переходом?</p>
+    <div class="modal-actions">
+      <button id="unsavedDiscardBtn" title="Уйти без сохранения — изменения будут потеряны">Не сохранять</button>
+      <button id="unsavedCancelBtn" title="Остаться в редакторе">Отмена</button>
+      <button id="unsavedSaveBtn" class="btn-primary" title="Сохранить и перейти">Сохранить</button>
+    </div>`);
+  _unsavedLeaveResolve = resolve;
+  document.getElementById('unsavedSaveBtn').addEventListener('click', async () => {
+    _unsavedLeaveResolve = null;
+    // Локально не сохранилось — остаёмся в редакторе (уход не разрешён)
+    const ok = await saveEditorSections(sections);
+    closeModal();
+    resolve(ok);
+  });
+  document.getElementById('unsavedDiscardBtn').addEventListener('click', () => {
+    _unsavedLeaveResolve = null;
+    closeModal();
+    resolve(true);
+  });
+  document.getElementById('unsavedCancelBtn').addEventListener('click', () => {
+    _unsavedLeaveResolve = null;
+    closeModal();
+    resolve(false);
+  });
+}
+
+// Проверка перед уходом: при несохранённых правках показывает модалку.
+// sections=null — проверить все редакторы (смена устройства/проекта закрывает их все).
+// Возвращает промис: true — уход разрешён (нет правок / «Сохранить» / «Не сохранять»),
+// false — остаёмся («Отмена» или неудачное сохранение).
+function confirmLeaveEditors(sections){
+  return new Promise(resolve => {
+    const dirty = (sections || EDITOR_SECTIONS).filter(isEditorDirty);
+    if(!dirty.length){ resolve(true); return; }
+    showUnsavedChangesModal(dirty, resolve);
+  });
+}
+
 function selectDevice(key, ip, name, online, net){
   activeDevice = {key, ip, name, online, net: net || (online ? 'green' : 'grey')};
   deviceEditors = {ram:{path:null,original:''}, fs:{path:null,original:''}};
@@ -1017,7 +1118,11 @@ function openDeviceWeb(){
   window.open('http://' + activeDevice.ip, '_blank', 'noopener');
 }
 
-function exitDevice(){
+async function exitDevice(skipConfirm){
+  // Выход закрывает редакторы RAM/FS (и панель проекта с её редактором FS).
+  // skipConfirm — вызов после удаления активного устройства: его файлы уже
+  // удалены, сохранять некуда, а правки теряются вместе с папкой осознанно.
+  if(!skipConfirm && !await confirmLeaveEditors()) return;
   activeDevice = null;
   clearSidebarSelection();
   document.getElementById('topProjectName').textContent = 'Проект не выбран';
@@ -1026,8 +1131,9 @@ function exitDevice(){
   document.getElementById('gaugeBarRam').style.display = 'none';
   document.getElementById('gaugeBarFs').style.display = 'none';
   if(currentProject){
-    // переоткрываем проект — восстановит тулбар, платформы, датчики и контент
-    openProject(currentProject.category, currentProject.name);
+    // переоткрываем проект — восстановит тулбар, платформы, датчики и контент.
+    // Правки уже проверены выше — openProject без повторной модалки.
+    openProject(currentProject.category, currentProject.name, true);
   } else {
     const tb = document.querySelector('.topbar');
     if(tb) tb.style.display = '';
@@ -1140,8 +1246,9 @@ async function loadTree(section){
          <span class="devmgr-tree-name">${esc(f)}</span>
        </div>`
     ).join('');
-    // Восстанавливаем выбор файла FS (в рамках сессии) при возврате на устройство
-    if(section === 'fs'){
+    // Восстанавливаем выбор файла FS (в рамках сессии) при возврате на устройство.
+    // Правки в редакторе не затираем: при «грязном» файле автопереключение пропускаем.
+    if(section === 'fs' && !isEditorDirty('fs')){
       const key = fsRememberKey();
       const remembered = key ? rememberedFsFile.get(key) : null;
       if(remembered && d.files.includes(remembered)){
@@ -1154,9 +1261,11 @@ async function loadTree(section){
   }
 }
 
-function onTreeClick(ev){
+async function onTreeClick(ev){
   const item = ev.target.closest('.devmgr-tree-item');
   if(!item) return;
+  // Смена файла в дереве: при несохранённых правках этой секции — модалка
+  if(!await confirmLeaveEditors([item.dataset.section])) return;
   selectFile(item.dataset.section, item.dataset.path);
 }
 
@@ -1193,6 +1302,8 @@ function showBinaryFileInfo(section, path, size){
   if(saveBtn) saveBtn.disabled = true;
   const pushBtn = document.getElementById(section + 'PushBtn');
   if(pushBtn) pushBtn.disabled = true;
+  // Новый файл — индикатор несохранённых правок сбрасываем
+  updateDirtyMark(section);
 }
 
 async function selectFile(section, path){
@@ -1256,6 +1367,8 @@ async function selectFile(section, path){
       if(saveBtn) saveBtn.disabled = false;
     }
     updateHighlight(section);
+    // Новый файл загружен — состояние «грязного» редактора сбрасываем
+    updateDirtyMark(section);
     // Запоминаем выбор файла FS (в рамках сессии) — для авто-восстановления при возврате
     if(section === 'fs') rememberFsFile(fsRememberKey(), path);
     // Панель «Результаты проверки» для scenario.txt отображается всегда (пока не закрыли ✕)
@@ -1357,6 +1470,7 @@ function applyHl(ta, hl){
 
 function onEditorInput(section){
   updateHighlight(section);
+  updateDirtyMark(section);
   const lines = document.getElementById(section + 'Lines');
   if(lines && lines.style.display !== 'none') renderLineNumbers(section);
 }
@@ -2294,12 +2408,15 @@ function hideLineNumbers(section){
 // на устройство; FS-файлы записываются только локально.
 const DEVICE_WRITABLE_FILES = ['config.json', 'scenario.txt', 'settings.json', 'layout.json', 'devlist.json'];
 
+// Возвращает true, если файл сохранён локально (запись в устройство — по
+// возможности; её ошибка не делает сохранение неудачным). Результат нужен
+// модалке «несохранённых изменений»: переход разрешён только после сохранения.
 async function saveFile(section){
   // Секция проекта: сохраняем в data_svelte проекта
   if(section === 'pfs') return saveProjectFile();
-  if(!activeDevice) return;
+  if(!activeDevice) return false;
   const ed = deviceEditors[section];
-  if(!ed.path || ed.binary) return;
+  if(!ed.path || ed.binary) return false;
   const content = document.getElementById(section + 'Editor').value;
   // 1) Локально сохраняем всегда — данные не теряются даже без устройства
   try{
@@ -2308,21 +2425,22 @@ async function saveFile(section){
       body: JSON.stringify({path: ed.path, content})
     });
     const d = await r.json();
-    if(!d.success){ toast(d.error || 'Ошибка сохранения', 'error'); return; }
+    if(!d.success){ toast(d.error || 'Ошибка сохранения', 'error'); return false; }
   }catch(e){
     toast('Ошибка сохранения', 'error');
-    return;
+    return false;
   }
   ed.original = content;
+  updateDirtyMark(section);
   // 2) На устройство пишем только поддерживаемые прошивкой RAM-файлы
   const name = ed.path.split('/').pop();
   if(section !== 'ram' || !DEVICE_WRITABLE_FILES.includes(name)){
     toast(`Сохранено локально: ${ed.path}`, 'success');
-    return;
+    return true;
   }
   if(!activeDevice.online){
     toast(`Сохранено локально, устройство не доступно: ${ed.path}`, 'warning');
-    return;
+    return true;
   }
   try{
     const r = await fetch(`/api/device/${encodeURIComponent(activeDevice.key || activeDevice.ip)}/write/ram`, {
@@ -2335,6 +2453,7 @@ async function saveFile(section){
   }catch(e){
     toast(`Сохранено локально, ошибка записи в устройство: ${e.message || 'нет связи с сервером'}`, 'error');
   }
+  return true;
 }
 
 // [DEPRECATED] Ранее кнопка RAM «💾 Сохранить» вызывала pushFile — запись
@@ -2420,6 +2539,8 @@ async function fetchFsFile(){
   const ed = deviceEditors.fs;
   const path = ed && ed.path;
   if(!path){ toast('Сначала выберите файл в дереве FS', 'warning'); return; }
+  // Полученный файл заменит содержимое редактора — при несохранённых правках модалка
+  if(!await confirmLeaveEditors(['fs'])) return;
   if(!await ensureDeviceReachable()) return;
   const btn = document.getElementById('fsFetchOneBtn');
   if(btn) btn.disabled = true;
@@ -2554,6 +2675,15 @@ function reloadDeviceTrees(){
 })();
 
 // ==================== Init ====================
+// Закрытие/обновление страницы при несохранённых правках — нативное окно
+// браузера (модалка панели здесь недоступна: документ уже выгружается)
+window.addEventListener('beforeunload', (e) => {
+  if(dirtyEditorSections().length){
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
 document.addEventListener('DOMContentLoaded', () => {
   if (localStorage.getItem('magicIoTm_dark') === '1') document.body.classList.add('dark');
   loadProjects();
@@ -2647,7 +2777,10 @@ function updatePlatformioActive(){
   el.classList.toggle('active', !!(currentProject && currentProject.name === 'PlatformIO'));
 }
 
-async function openProject(cat, name){
+async function openProject(cat, name, skipConfirm){
+  // Смена проекта закрывает редакторы устройства и проекта — при правках модалка.
+  // skipConfirm: вызов после собственной проверки exitDevice (без двойного вопроса).
+  if(!skipConfirm && !await confirmLeaveEditors()) return;
   // Проект PlatformIO открывается через специальный endpoint
   let url;
   if(name === 'PlatformIO'){
@@ -2663,6 +2796,9 @@ async function openProject(cat, name){
   // снова повесит класс 'active' на последнее выбранное устройство, хотя активен проект.
   clearSidebarSelection();
   activeDevice = null;
+  // Сброс состояния редактора FS прежнего проекта: без него остаётся путь из
+  // старого проекта (испортил бы «⤵ Получить этот файл») и ложная «грязь»
+  deviceEditors.pfs = {path:null, original:''};
   configData = d.config;
   currentProject = {category: cat, name: name};
   const isPio = (name === 'PlatformIO');
@@ -2936,10 +3072,11 @@ function loadProjectFsTree(){
            <span class="devmgr-tree-name">${esc(f)}</span>
          </div>`
       ).join('');
-      // Восстанавливаем выбор файла FS (в рамках сессии) при возврате на проект
+      // Восстанавливаем выбор файла FS (в рамках сессии) при возврате на проект.
+      // Правки в редакторе не затираем: «грязный» файл пропускаем.
       const key = fsRememberKey();
       const remembered = key ? rememberedFsFile.get(key) : null;
-      if(remembered && files.includes(remembered)){
+      if(remembered && files.includes(remembered) && !isEditorDirty('pfs')){
         const item = Array.from(el.querySelectorAll('.devmgr-tree-item')).find(i => i.dataset.path === remembered);
         if(item){ item.classList.add('active'); selectProjectFile(remembered); }
       }
@@ -2993,6 +3130,8 @@ async function selectProjectFile(path){
     const saveBtn = document.getElementById('pfsSaveBtn');
     if(saveBtn) saveBtn.disabled = false;
     updateHighlight('pfs');
+    // Новый файл загружен — состояние «грязного» редактора сбрасываем
+    updateDirtyMark('pfs');
     // Запоминаем выбор файла FS проекта (в рамках сессии) — для авто-восстановления при возврате
     rememberFsFile(fsRememberKey(), path);
     // Панель «Результаты проверки» для scenario.txt отображается всегда (пока не закрыли ✕)
@@ -3002,10 +3141,11 @@ async function selectProjectFile(path){
   }
 }
 
+// Возвращает true, если файл сохранён локально (см. комментарий у saveFile)
 async function saveProjectFile(){
-  if(!currentProject) return;
+  if(!currentProject) return false;
   const ed = deviceEditors.pfs;
-  if(!ed || !ed.path || ed.binary) return;
+  if(!ed || !ed.path || ed.binary) return false;
   const content = document.getElementById('pfsEditor').value;
   try{
     const r = await fetch(`/api/projects/${encodeURIComponent(currentProject.category)}/${encodeURIComponent(currentProject.name)}/file/fs`, {
@@ -3013,10 +3153,12 @@ async function saveProjectFile(){
       body: JSON.stringify({path: ed.path, content})
     });
     const d = await r.json();
-    if(d.success){ ed.original = content; toast(`Сохранено локально: ${ed.path}`, 'success'); }
+    if(d.success){ ed.original = content; updateDirtyMark('pfs'); toast(`Сохранено локально: ${ed.path}`, 'success'); }
     else toast(d.error || 'Ошибка сохранения', 'error');
+    return !!d.success;
   }catch(e){
     toast('Ошибка сохранения', 'error');
+    return false;
   }
 }
 
@@ -4106,6 +4248,13 @@ function showDeleteConfirm(title, message, onConfirm){
 }
 function closeModal(e){
   const overlay = document.getElementById('modalOverlay');
+  // Незавершённая модалка «несохранённых изменений»: закрытие мимо её кнопок
+  // (Escape, клик по фону, чужая showModal) — отмена, уход не разрешён
+  if(_unsavedLeaveResolve){
+    const r = _unsavedLeaveResolve;
+    _unsavedLeaveResolve = null;
+    r(false);
+  }
   // Если event не передан — клик по кнопке "Закрыть/Отмена"
   if(!e){
     overlay.classList.remove('active');
