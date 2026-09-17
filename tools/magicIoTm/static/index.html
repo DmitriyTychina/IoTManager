@@ -2949,7 +2949,7 @@ async function validateField(key, input){
   if(key === 'name'){
     const val = input.value.trim();
     if(!val){ hint.textContent='Имя обязательно'; hint.className='form-hint'; input.classList.add('invalid'); return; }
-    if(val.length > 16){ hint.textContent='Максимум 16 символов'; hint.className='form-hint'; input.classList.add('invalid'); return; }
+    if(val.length > 64){ hint.textContent='Максимум 64 символа'; hint.className='form-hint'; input.classList.add('invalid'); return; }
     if(val.includes(' ')){ hint.textContent='Без пробелов'; hint.className='form-hint'; input.classList.add('invalid'); return; }
     const r = await fetch(`/api/validate/name?value=${encodeURIComponent(val)}&project=${currentProject?currentProject.category+'/'+currentProject.name:''}`);
     const d = await r.json();

@@ -643,8 +643,8 @@ def validate_name(name, current_project=None):
     """Валидация имени устройства"""
     if not name:
         return False, "Имя не может быть пустым"
-    if len(name) > 16:
-        return False, "Имя не должно превышать 16 символов"
+    if len(name) > 64:
+        return False, "Имя не должно превышать 64 символа"
     if ' ' in name:
         return False, "Имя не должно содержать пробелы"
     # Проверка уникальности (текущий проект не участвует)
