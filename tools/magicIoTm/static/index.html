@@ -104,6 +104,10 @@ body.dark .gauge-track{background:#2a2a4a}
 .form-row label{font-size:12px;color:var(--muted)}
 .form-row input,.form-row select,.form-row textarea{padding:6px 8px;border:1px solid var(--border);border-radius:4px;background:var(--panel);color:var(--text);font-size:13px}
 .form-row input.invalid{border-color:var(--danger)}
+/* Селект с кнопкой «+» (создание категории/проекта) справа */
+.sel-plus{display:flex;gap:6px;align-items:stretch}
+.sel-plus select{flex:1;min-width:0}
+.sel-plus .btn-sm{flex:0 0 auto;padding:4px 10px;font-size:14px;line-height:1.4}
 .form-hint{font-size:11px;color:var(--danger)}
 .form-hint.ok{color:var(--accent2)}
 .pw-wrap{position:relative;display:flex;align-items:center}
@@ -514,6 +518,7 @@ function renderDevices(devices){
       <span class="device-status ${cls}" title="${STATUS_TIP[cls] || ''}"></span>
       <span class="device-name">${esc(label)}</span>
       <div class="device-actions">
+        <button class="btn-sm" title="Копировать устройство в проект" onclick="event.stopPropagation();showCopyDeviceToProject('${esc(d.key || '')}', ${d.online ? 1 : 0})">⧉</button>
         <button class="btn-sm btn-danger" title="Удалить устройство" onclick="event.stopPropagation();deleteDevice('${esc(d.key || '')}')">✕</button>
       </div>
     </div>`;
@@ -564,6 +569,142 @@ async function deleteDevice(key){
         toast(d.error || 'Не удалось удалить устройство', 'error');
       }
     });
+}
+
+// Копирование устройства в проект (существующий или новый) — правила кнопок «⤵ Из устройства».
+// Если раздел FS локально пуст, а устройство в сети — сначала предлагаем скачать FS на диск.
+async function showCopyDeviceToProject(key, online){
+  if(!key) return;
+  const devices = await loadDeviceListForCopy();
+  const dev = devices.find(x => x.key === key);
+  if(dev && !(dev.fs_settings || dev.fs_profile)){
+    if(online){
+      offerFetchFsForCopy(key);
+    } else {
+      toast('Раздел FS устройства не скопирован на диск, устройство не в сети', 'warning');
+      openCopyDeviceModal(key);
+    }
+    return;
+  }
+  openCopyDeviceModal(key);
+}
+
+// Предложение скачать раздел FS с устройства на диск, затем продолжить копирование в проект
+function offerFetchFsForCopy(key){
+  showModal(`<h3>Копировать устройство в проект</h3>
+    <p style="font-size:13px;color:var(--text);margin:8px 0 16px">Раздел FS устройства «${esc(dispDeviceName(key))}» не скопирован на диск. Скачать его с устройства (в фоне), затем продолжить копирование в проект?</p>
+    <div class="modal-actions">
+      <button title="Закрыть без сохранения" onclick="closeModal()">Отмена</button>
+      <button title="Продолжить копирование без раздела FS" onclick="openCopyDeviceModal('${esc(key)}')">Продолжить без FS</button>
+      <button class="btn-primary" title="Скопировать раздел FS с устройства на диск и продолжить" onclick="copyDeviceFetchFsThen('${esc(key)}')">⤵ Скопировать FS и продолжить</button>
+    </div>`);
+}
+
+// Скачивание раздела FS с устройства на диск (прогресс — как в менеджере устройства),
+// затем обычное копирование в проект
+async function copyDeviceFetchFsThen(key){
+  if(!key) return;
+  showFetchProgress('fs');
+  const unlockClose = () => { const b = document.getElementById('fetchCloseBtn'); if(b) b.disabled = false; };
+  try{
+    const r = await fetch(`/api/device/${encodeURIComponent(key)}/fetch/fs`, {method:'POST'});
+    const d = await r.json();
+    if(!d.success){ updateFetchProgress(d.error || 'Ошибка запуска', 0); unlockClose(); toast(d.error || 'Ошибка', 'error'); return; }
+    const result = await waitFetchDone('fs', key);
+    if(result && result.success){
+      toast(`Получено файлов FS: ${(result.files || []).length}`, 'success');
+      closeModal();
+      openCopyDeviceModal(key);
+    } else {
+      toast((result && result.error) || 'Ошибка получения файлов', 'error');
+    }
+  }catch(e){
+    updateFetchProgress('Ошибка связи с сервером', 0);
+    unlockClose();
+    toast('Ошибка связи с сервером', 'error');
+  }
+}
+
+// Модалка копирования в проект: источник (RAM/FS), категория и проект (создание — по «+»)
+async function openCopyDeviceModal(key, presetSection='', presetCat='', presetPrj=''){
+  const devices = await loadDeviceListForCopy();
+  const dev = devices.find(x => x.key === key);
+  const srcOpts = [];
+  if(dev){
+    if(dev.ram_settings || dev.ram_profile) srcOpts.push({section:'ram', label:'RAM (с устройства)'});
+    if(dev.fs_settings || dev.fs_profile) srcOpts.push({section:'fs', label:'FS (сохранённая копия)'});
+  }
+  if(srcOpts.length === 0){ toast('Нет сохранённых settings.json/profile.json в RAM/FS устройства', 'info'); return; }
+  const secOpts = srcOpts.map(o => `<option value="${o.section}"${o.section === presetSection ? ' selected' : ''}>${o.label}</option>`).join('');
+  showModal(`<h3>Копировать устройство в проект</h3>
+    <div class="form-row"><label>Источник:</label><select id="copyPrjSrc">${secOpts}</select></div>
+    <div class="form-row"><label>В категорию:</label>
+      <div class="sel-plus"><select id="copyPrjCat"></select><button class="btn-sm" title="Новая категория" onclick="devCopyPlusCategory('${esc(key)}')">+</button></div>
+    </div>
+    <div class="form-row"><label>Проект:</label>
+      <div class="sel-plus"><select id="copyPrjSel"></select><button class="btn-sm" title="Новый проект в выбранной категории" onclick="devCopyPlusProject('${esc(key)}')">+</button></div>
+    </div>
+    <div class="modal-actions"><button title="Закрыть без сохранения" onclick="closeModal()">Отмена</button><button class="btn-primary" title="Скопировать устройство в выбранный проект" onclick="copyDeviceToProject('${esc(key)}')">Копировать</button></div>`);
+  const pd = await fetch('/api/projects').then(r=>r.json());
+  const tree = pd.tree || {};
+  const catSel = document.getElementById('copyPrjCat');
+  Object.keys(tree).forEach(cat => {
+    const o = document.createElement('option');
+    o.value = cat; o.textContent = cat;
+    catSel.appendChild(o);
+  });
+  if(presetCat && tree[presetCat]) catSel.value = presetCat;
+  catSel.onchange = () => fillCopyPrjProjects(tree, '');
+  fillCopyPrjProjects(tree, presetPrj);
+}
+
+// Список проектов выбранной категории (создание проекта — по «+» рядом с селектом)
+function fillCopyPrjProjects(tree, presetPrj=''){
+  const sel = document.getElementById('copyPrjSel');
+  const cat = document.getElementById('copyPrjCat').value;
+  sel.innerHTML = '';
+  const projs = tree[cat] || [];
+  for(const p of projs){
+    const o = document.createElement('option');
+    o.value = p; o.textContent = p;
+    if(p === presetPrj) o.selected = true;
+    sel.appendChild(o);
+  }
+  if(projs.length === 0){
+    const o = document.createElement('option');
+    o.value = ''; o.textContent = '— нет проектов, создайте «+» —';
+    sel.appendChild(o);
+  }
+}
+
+async function copyDeviceToProject(key){
+  const section = document.getElementById('copyPrjSrc').value;
+  const dstCat = document.getElementById('copyPrjCat').value;
+  const dstName = document.getElementById('copyPrjSel').value;
+  if(!dstCat || !dstName){ toast('Выберите категорию и проект (или создайте их кнопкой «+»)', 'warning'); return; }
+  const r = await fetch(`/api/device/${encodeURIComponent(key)}/copy-to-project`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({dst_cat:dstCat,dst_name:dstName,section})});
+  const d = await r.json();
+  if(!d.success){ toast(d.error||'Ошибка', 'error'); return; }
+  closeModal();
+  loadProjects(); // обновить дерево проектов (мог быть создан новый)
+  // Если целевой проект открыт — перезагружаем панель, чтобы показать скопированные данные
+  if(currentProject && currentProject.category === dstCat && currentProject.name === dstName){
+    await openProject(dstCat, dstName);
+  }
+  toast(d.created ? `Создан проект ${dstCat}/${dstName} из устройства` : `Устройство скопировано в проект ${dstCat}/${dstName}`, 'success');
+}
+
+// «+ Категория» и «+ Проект» в модалке копирования устройства
+function devCopyPlusCategory(key){
+  const section = document.getElementById('copyPrjSrc')?.value || '';
+  _modalPlusReturn = {kind:'category', then: cat => openCopyDeviceModal(key, section, cat, '')};
+  showCreateCategory();
+}
+function devCopyPlusProject(key){
+  const section = document.getElementById('copyPrjSrc')?.value || '';
+  const cat = document.getElementById('copyPrjCat')?.value || '';
+  _modalPlusReturn = {kind:'project', then: (c, n) => openCopyDeviceModal(key, section, c, n)};
+  showCreateProject(cat);
 }
 
 function connectDevicesStream(){
@@ -2221,11 +2362,12 @@ function updateFetchProgress(label, pct){
   if(lb) lb.textContent = label;
 }
 
-function waitFetchDone(section){
+function waitFetchDone(section, keyOpt){
   return new Promise(resolve => {
+    const devKey = keyOpt || (activeDevice && (activeDevice.key || activeDevice.ip));
     const poll = async () => {
       try{
-        const r = await fetch(`/api/device/${encodeURIComponent(activeDevice.key || activeDevice.ip)}/fetch/${section}/status`);
+        const r = await fetch(`/api/device/${encodeURIComponent(devKey || '')}/fetch/${section}/status`);
         const d = await r.json();
         if(!d.success){
           // Разблокируем кнопку «Закрыть» при ошибке
@@ -3817,6 +3959,7 @@ function closeModal(e){
   if(!e){
     overlay.classList.remove('active');
     noCloseOverlay = false;
+    _modalPlusReturn = null; // отмена возврата в родительскую модалку
     if(overlay) overlay.removeAttribute('data-no-close-overlay');
     releaseScanBtn();
     return;
@@ -3832,9 +3975,15 @@ function closeModal(e){
   // Закрываем модалку
   overlay.classList.remove('active');
   noCloseOverlay = false;
+  _modalPlusReturn = null; // отмена возврата в родительскую модалку
   if(overlay) overlay.removeAttribute('data-no-close-overlay');
   releaseScanBtn();
 }
+
+// Возврат в родительскую модалку после «+» у селекта (см. devCopyPlusCategory,
+// copyPlusCategory и др.): {kind:'category'|'project', then} — действие, выполняемое
+// после успешного создания; then получает имя созданной категории или (категория, имя проекта)
+let _modalPlusReturn = null;
 
 function showCreateCategory(){
   showModal(`<h3>Новая категория</h3>
@@ -3847,7 +3996,12 @@ async function createCategory(){
   if(!name) return;
   const r = await fetch('/api/projects/category', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
   const d = await r.json();
-  if(d.success){ closeModal(); loadProjects(); toast('Категория создана', 'success'); }
+  if(d.success){
+    // Хук читаем ДО closeModal() — закрытие сбрасывает _modalPlusReturn
+    const hook = _modalPlusReturn; _modalPlusReturn = null;
+    closeModal(); loadProjects(); toast('Категория создана', 'success');
+    if(hook) hook.then(name);
+  }
   else toast(d.error||'Ошибка', 'error');
 }
 
@@ -3881,11 +4035,13 @@ async function deleteCategory(name){
     });
 }
 
-function showCreateProject(defaultCat=''){
+function showCreateProject(defaultCat='', presetName='', presetDesc=''){
   showModal(`<h3>Новый проект</h3>
-    <div class="form-row"><label>Категория:</label><select id="projCat"></select></div>
-    <div class="form-row"><label>Имя проекта:</label><input type="text" id="projName" maxlength="16"></div>
-    <div class="form-row"><label>Описание:</label><textarea id="projDesc"></textarea></div>
+    <div class="form-row"><label>Категория:</label>
+      <div class="sel-plus"><select id="projCat"></select><button class="btn-sm" title="Новая категория" onclick="projPlusCategory()">+</button></div>
+    </div>
+    <div class="form-row"><label>Имя проекта:</label><input type="text" id="projName" maxlength="16" value="${esc(presetName)}"></div>
+    <div class="form-row"><label>Описание:</label><textarea id="projDesc">${esc(presetDesc)}</textarea></div>
     <div class="modal-actions"><button title="Закрыть без сохранения" onclick="closeModal()">Отмена</button><button class="btn-primary" title="Создать новый проект" onclick="createProject()">Создать</button></div>`);
   // Заполняем категории
   fetch('/api/projects').then(r=>r.json()).then(d=>{
@@ -3906,8 +4062,31 @@ async function createProject(){
   if(!cat || !name) return;
   const r = await fetch('/api/projects/create', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({category:cat,name,description:desc})});
   const d = await r.json();
-  if(d.success){ closeModal(); loadProjects(); openProject(cat, name); toast('Проект создан', 'success'); }
+  if(d.success){
+    // Хук читаем ДО closeModal() — закрытие сбрасывает _modalPlusReturn
+    const hook = _modalPlusReturn; _modalPlusReturn = null;
+    closeModal(); loadProjects(); openProject(cat, name); toast('Проект создан', 'success');
+    if(hook) hook.then(cat, name);
+  }
   else toast(d.error||'Ошибка', 'error');
+}
+
+// ==================== «+» у селектов в модалках ====================
+// Каждый обработчик запоминает состояние полей родительской модалки и после
+// создания категории/проекта переоткрывает модалку с выбранным новым пунктом.
+
+// «+ Категория» в модалке «Новый проект»
+function projPlusCategory(){
+  const name = document.getElementById('projName')?.value || '';
+  const desc = document.getElementById('projDesc')?.value || '';
+  // Если «Новый проект» открыт по «+» из другой модалки — после создания проекта
+  // вернёмся в исходную модалку (цепочка хуков)
+  const outer = (_modalPlusReturn && _modalPlusReturn.kind === 'project') ? _modalPlusReturn : null;
+  _modalPlusReturn = {kind:'category', then: cat => {
+    _modalPlusReturn = outer;
+    showCreateProject(cat, name, desc);
+  }};
+  showCreateCategory();
 }
 
 async function deleteProject(cat, name){
@@ -3957,10 +4136,12 @@ async function renameProject(cat, oldName){
   else toast(d.error||'Ошибка', 'error');
 }
 
-function showCopy(srcCat, srcName){
+function showCopy(srcCat, srcName, presetName='', presetCat=''){
   showModal(`<h3>Копировать проект</h3>
-    <div class="form-row"><label>В категорию:</label><select id="copyDstCat"></select></div>
-    <div class="form-row"><label>Имя копии:</label><input type="text" id="copyDstName" value="${esc(srcName)}_copy" maxlength="16"></div>
+    <div class="form-row"><label>В категорию:</label>
+      <div class="sel-plus"><select id="copyDstCat"></select><button class="btn-sm" title="Новая категория" onclick="copyPlusCategory('${esc(srcCat)}','${esc(srcName)}')">+</button></div>
+    </div>
+    <div class="form-row"><label>Имя копии:</label><input type="text" id="copyDstName" value="${esc(presetName || (srcName + '_copy'))}" maxlength="16"></div>
     <div class="modal-actions"><button title="Закрыть без сохранения" onclick="closeModal()">Отмена</button><button class="btn-primary" title="Создать копию проекта" onclick="copyProject('${esc(srcCat)}','${esc(srcName)}')">Копировать</button></div>`);
   fetch('/api/projects').then(r=>r.json()).then(d=>{
     const sel = document.getElementById('copyDstCat');
@@ -3970,10 +4151,17 @@ function showCopy(srcCat, srcName){
       o.value = cat; o.textContent = cat;
       sel.appendChild(o);
     });
+    if(presetCat && cats.includes(presetCat)){ sel.value = presetCat; return; }
     // Выбираем категорию источника, если она реальна; иначе первую доступную
     sel.value = srcCat;
     if(!sel.value && cats.length) sel.selectedIndex = 0;
   });
+}
+// «+ Категория» в модалке «Копировать проект»
+function copyPlusCategory(srcCat, srcName){
+  const name = document.getElementById('copyDstName')?.value || '';
+  _modalPlusReturn = {kind:'category', then: cat => showCopy(srcCat, srcName, name, cat)};
+  showCreateCategory();
 }
 async function copyProject(srcCat, srcName){
   const dstCat = document.getElementById('copyDstCat').value;
@@ -3985,21 +4173,29 @@ async function copyProject(srcCat, srcName){
   else toast(d.error||'Ошибка', 'error');
 }
 
-function showMove(srcCat, srcName){
+function showMove(srcCat, srcName, presetName='', presetCat=''){
   showModal(`<h3>Перенести проект</h3>
-    <div class="form-row"><label>В категорию:</label><select id="moveDstCat"></select></div>
-    <div class="form-row"><label>Имя проекта:</label><input type="text" id="moveDstName" value="${esc(srcName)}" maxlength="16"></div>
+    <div class="form-row"><label>В категорию:</label>
+      <div class="sel-plus"><select id="moveDstCat"></select><button class="btn-sm" title="Новая категория" onclick="movePlusCategory('${esc(srcCat)}','${esc(srcName)}')">+</button></div>
+    </div>
+    <div class="form-row"><label>Имя проекта:</label><input type="text" id="moveDstName" value="${esc(presetName || srcName)}" maxlength="16"></div>
     <div class="modal-actions"><button title="Закрыть без сохранения" onclick="closeModal()">Отмена</button><button class="btn-primary" title="Перенести проект в выбранную категорию" onclick="moveProject('${esc(srcCat)}','${esc(srcName)}')">Перенести</button></div>`);
   fetch('/api/projects').then(r=>r.json()).then(d=>{
     const sel = document.getElementById('moveDstCat');
     for(const cat of Object.keys(d.tree||{})){
       const o = document.createElement('option');
       o.value = cat; o.textContent = cat;
-      if(cat !== srcCat) o.selected = true; // по умолчанию — другая категория
+      if(presetCat ? cat === presetCat : cat !== srcCat) o.selected = true; // по умолчанию — другая категория
       sel.appendChild(o);
     }
   });
   setTimeout(()=>document.getElementById('moveDstName')?.focus(), 50);
+}
+// «+ Категория» в модалке «Перенести проект»
+function movePlusCategory(srcCat, srcName){
+  const name = document.getElementById('moveDstName')?.value || '';
+  _modalPlusReturn = {kind:'category', then: cat => showMove(srcCat, srcName, name, cat)};
+  showCreateCategory();
 }
 async function moveProject(srcCat, srcName){
   const dstCat = document.getElementById('moveDstCat').value;

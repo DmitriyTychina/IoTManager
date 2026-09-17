@@ -7,6 +7,7 @@ import logging
 import state.globals as globals_
 from flask import Blueprint, request, jsonify, Response
 
+from core.config import get_platformio_platforms, is_compatible
 from core.devices import (
     get_device_folder,
     _build_devices_payload,
@@ -22,6 +23,7 @@ from core.devices import (
     _fetch_progress,
     ws_client,
 )
+from utils import projects
 
 # Import locks and state from state.globals
 _device_folders_lock = globals_._device_folders_lock
@@ -121,6 +123,109 @@ def api_device_delete(device_key):
     except Exception as e:
         logger.error(f"Delete device error: {e}", exc_info=True)
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+@devices_bp.route("/device/<device_key>/copy-to-project", methods=["POST"])
+def api_device_copy_to_project(device_key):
+    """Копирование устройства в проект: существующий или новый.
+
+    Правила те же, что у кнопок «⤵ Из устройства» в панели проекта:
+    - settings.json (RAM/FS) -> iotmSettings, все поля кроме id/ip/root;
+    - profile.json (RAM) / flashProfile.json (FS) -> платформа из default_envs
+      (несовместимые модули отключаются) и активность модулей по path;
+    - проект назначения при отсутствии создаётся из корневого шаблона.
+    """
+    data = request.json or {}
+    dst_cat = (data.get("dst_cat") or "").strip()
+    dst_name = (data.get("dst_name") or "").strip()
+    section = (data.get("section") or "ram").lower()
+    for value, label in ((dst_cat, "категория"), (dst_name, "имя проекта")):
+        if not value or value in (".", "..") or "/" in value or "\\" in value or ".." in value:
+            return jsonify({"success": False, "error": f"Некорректное имя: {label}"}), 400
+    if section not in ("ram", "fs"):
+        return jsonify({"success": False, "error": "Unknown section"}), 400
+    if not os.path.isdir(os.path.join(projects.PROJECTS_DIR, dst_cat)):
+        return jsonify({"success": False, "error": "Категория назначения не найдена"}), 400
+
+    settings = _device_section_json(device_key, section, "settings.json")
+    profile = _device_section_json(device_key, section, "profile.json" if section == "ram" else "flashProfile.json")
+    # _device_section_json возвращает (Response, status) при ошибке чтения — трактуем как отсутствие файла
+    settings = {} if isinstance(settings, tuple) else (settings or {})
+    profile = {} if isinstance(profile, tuple) else (profile or {})
+    if not settings and not profile:
+        return jsonify({"success": False, "error": f"Нет settings.json и profile.json в разделе {section.upper()}"}), 404
+
+    default_envs = (profile.get("projectProp", {}).get("platformio", {}).get("default_envs")
+                    or profile.get("default_envs"))
+    if default_envs and default_envs not in get_platformio_platforms():
+        return jsonify({"success": False, "error": f"Платформа не найдена: {default_envs}"}), 400
+
+    dst_path = os.path.join(projects.PROJECTS_DIR, dst_cat, dst_name)
+    created = False
+    if os.path.exists(dst_path):
+        if projects.is_platformio(dst_name):
+            return jsonify({"success": False, "error": "Проект PlatformIO нельзя изменить"}), 400
+        cfg = projects.load_project_config(dst_cat, dst_name)
+        if cfg is None:
+            return jsonify({"success": False, "error": "myProfile.json проекта не найден"}), 400
+    else:
+        ok, msg = projects.create_project(dst_cat, dst_name, "")
+        if not ok:
+            return jsonify({"success": False, "error": msg}), 400
+        cfg = projects.load_project_config(dst_cat, dst_name)
+        created = True
+
+    # 1) Значения: все поля настроек кроме служебных (id, ip, root)
+    copied_settings = 0
+    if settings:
+        target_settings = cfg.setdefault("iotmSettings", {})
+        for key, val in settings.items():
+            if key not in ("id", "ip", "root"):
+                target_settings[key] = val
+                copied_settings += 1
+
+    # 2) Платформа из default_envs: несовместимые модули отключаются
+    if default_envs:
+        for mods in cfg.get("modules", {}).values():
+            if not isinstance(mods, list):
+                continue
+            for m in mods:
+                mod_name = m.get("path", "").split("/")[-1]
+                libs = globals_.modinfo_cache.get(mod_name, {}).get("usedLibs", {})
+                if m.get("active") and not is_compatible(default_envs, libs):
+                    m["active"] = False
+
+    # 3) Активность модулей по path из профиля устройства (у устройства активные win)
+    copied_modules = 0
+    modules_src = profile.get("modules", {})
+    if isinstance(modules_src, dict):
+        for sec, arr in modules_src.items():
+            target_mods = cfg.get("modules", {}).get(sec)
+            if not isinstance(target_mods, list) or not isinstance(arr, list):
+                continue
+            src_map = {m.get("path"): bool(m.get("active")) for m in arr if isinstance(m, dict)}
+            for m in target_mods:
+                if m.get("path") in src_map:
+                    m["active"] = src_map[m.get("path")]
+                    copied_modules += 1
+
+    if default_envs:
+        cfg.setdefault("projectProp", {}).setdefault("platformio", {})["default_envs"] = default_envs
+
+    projects.save_project_config(dst_cat, dst_name, cfg)
+
+    # Если целевой проект открыт в панели — обновляем её состояние
+    with globals_._lock:
+        cur = globals_.current_project
+        if cur and cur.get("category") == dst_cat and cur.get("name") == dst_name:
+            globals_.current_config = cfg
+            if default_envs:
+                globals_.current_platform = default_envs
+
+    logger.info(f"Устройство скопировано в проект: {device_key} ({section.upper()}) -> "
+                f"{dst_cat}/{dst_name}{' (проект создан)' if created else ''}")
+    return jsonify({"success": True, "created": created, "category": dst_cat, "name": dst_name,
+                    "settings": copied_settings, "modules": copied_modules, "platform": default_envs})
 
 
 @devices_bp.route("/device/<device_key>/info", methods=["GET"])
