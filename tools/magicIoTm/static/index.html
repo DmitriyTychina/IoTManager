@@ -958,6 +958,7 @@ async function loadTree(section){
       el.innerHTML = `<div class="empty-state" style="padding:12px">${section === 'ram' ? 'Файлы не загружены' : 'Раздел FS пуст'}</div>`;
       return;
     }
+    // Бинарные файлы (*.gz, favicon.ico) видны в дереве, но в редактор не открываются
     el.innerHTML = d.files.map(f =>
       `<div class="devmgr-tree-item" data-section="${section}" data-path="${esc(f)}">
          <span class="devmgr-tree-name">${esc(f)}</span>
@@ -974,7 +975,41 @@ function onTreeClick(ev){
   selectFile(item.dataset.section, item.dataset.path);
 }
 
+// Бинарный файл в FS (*.gz, favicon.ico): виден в дереве, но содержимое
+// в редакторе не показывается (просмотр и редактирование недоступны)
+function isBinaryFsPath(path){
+  const p = path.toLowerCase();
+  return p.endsWith('.gz') || p.split('/').pop() === 'favicon.ico';
+}
+
+function showBinaryFileInfo(section, path, size){
+  deviceEditors[section] = {path: null, original: ''};
+  const checkPanel = document.getElementById(section + 'Check');
+  if(checkPanel) checkPanel.classList.remove('active');
+  hideLineNumbers(section);
+  const nameEl = document.getElementById(section + 'FileName');
+  if(nameEl) nameEl.textContent = path;
+  const sizeEl = document.getElementById(section + 'FileSize');
+  if(sizeEl) sizeEl.textContent = (typeof size === 'number') ? size + ' байт' : '';
+  const ed = document.getElementById(section + 'Editor');
+  if(ed){
+    ed.value = '';
+    ed.disabled = true;
+    ed.placeholder = 'Бинарный файл — просмотр и редактирование недоступны';
+  }
+  const checkBtn = document.getElementById(section + 'CheckBtn');
+  if(checkBtn) checkBtn.style.display = 'none';
+  const saveBtn = document.getElementById(section + 'SaveBtn');
+  if(saveBtn) saveBtn.disabled = true;
+  const pushBtn = document.getElementById(section + 'PushBtn');
+  if(pushBtn) pushBtn.disabled = true;
+}
+
 async function selectFile(section, path){
+  if(section === 'pfs'){
+    await selectProjectFile(path);
+    return;
+  }
   if(!activeDevice) return;
   const treeEl = document.getElementById(section + 'Tree');
   if(treeEl) treeEl.querySelectorAll('.devmgr-tree-item').forEach(i => i.classList.remove('active'));
@@ -983,6 +1018,14 @@ async function selectFile(section, path){
     if(item) item.classList.add('active');
   }
   try{
+    // Бинарный файл (*.gz, favicon.ico): имя и размер показываем, содержимое не открываем
+    if(isBinaryFsPath(path)){
+      const r = await fetch(`/api/device/${encodeURIComponent(activeDevice.key || activeDevice.ip)}/file/${section}?path=${encodeURIComponent(path)}&meta=1`);
+      const d = await r.json();
+      if(!d.success){ toast(d.error || 'Ошибка', 'error'); return; }
+      showBinaryFileInfo(section, path, d.size);
+      return;
+    }
     const r = await fetch(`/api/device/${encodeURIComponent(activeDevice.key || activeDevice.ip)}/file/${section}?path=${encodeURIComponent(path)}`);
     const d = await r.json();
     if(!d.success){ toast(d.error || 'Ошибка', 'error'); return; }
@@ -997,7 +1040,9 @@ async function selectFile(section, path){
     document.getElementById(section + 'FileName').textContent = path;
     const sizeEl = document.getElementById(section + 'FileSize');
     if(sizeEl) sizeEl.textContent = (typeof d.size === 'number') ? d.size + ' байт' : '';
-    document.getElementById(section + 'Editor').value = d.content;
+    const edEl = document.getElementById(section + 'Editor');
+    if(edEl){ edEl.disabled = false; edEl.placeholder = 'Выберите файл'; }
+    if(edEl) edEl.value = d.content;
     const isScenario = /scenario\.txt$/i.test(path);
     const checkBtn = document.getElementById(section + 'CheckBtn');
     if(checkBtn) checkBtn.style.display = isScenario ? '' : 'none';
@@ -1597,9 +1642,18 @@ async function fetchConfigFromDevice(section, deviceKey, configPath = 'config.js
   return Array.from(ids);
 }
 
-// Сырой список элементов config.json (id + subtype) с устройства.
+// Сырой список элементов config.json (id + subtype) с устройства или из проекта.
 async function fetchConfigItems(section, deviceKey, configPath){
   try{
+    // Для секции проекта config.json берём из data_svelte проекта
+    if(section === 'pfs'){
+      if(!currentProject) return [];
+      const pr = await fetch(`/api/projects/${encodeURIComponent(currentProject.category)}/${encodeURIComponent(currentProject.name)}/file/fs?path=${encodeURIComponent(configPath)}`);
+      const pd = await pr.json();
+      if(!pd.success || !pd.content) return [];
+      const pitems = JSON.parse(pd.content);
+      return Array.isArray(pitems) ? pitems : [];
+    }
     const r = await fetch(`/api/device/${encodeURIComponent(deviceKey)}/file/${section}?path=${encodeURIComponent(configPath)}`);
     const d = await r.json();
     if(!d.success || !d.content) return [];
@@ -1867,6 +1921,8 @@ function hideLineNumbers(section){
 }
 
 async function saveFile(section){
+  // Секция проекта: сохраняем в data_svelte проекта
+  if(section === 'pfs') return saveProjectFile();
   if(!activeDevice) return;
   const ed = deviceEditors[section];
   if(!ed.path) return;
@@ -2135,6 +2191,7 @@ async function openProject(cat, name){
   await loadPlatforms();
   await loadCompatibility();
   renderContent(d.about || '');
+  loadProjectFsTree();
   updateGauge();
   refreshUploadButtons(); // включаем/затеняем 🚀 в зависимости от наличия прошивки
   loadProjects(); // обновить дерево (active)
@@ -2230,7 +2287,43 @@ function renderContent(about){
       </div>
       <div class="module-list" id="moduleList"></div>
     </div>
-  ` + aboutSection;
+  ` + aboutSection + `
+    <div class="content-section" id="projectFsSection">
+      <h2>🗂️ Файловая система FS</h2>
+      <div class="devmgr-panel" style="min-height:420px">
+        <div class="devmgr-panel-head">
+          <span class="devmgr-panel-title">Файлы из файловой системы</span>
+        </div>
+        <div class="devmgr-panel-body">
+          <div class="devmgr-tree" id="pfsTree" onclick="onTreeClick(event)"><div class="empty-state" style="padding:12px">Раздел FS пуст</div></div>
+          <div class="devmgr-editor">
+            <div class="devmgr-editor-head">
+              <div class="file-title">
+                <span class="file-name" id="pfsFileName">— не выбран файл —</span>
+                <span class="file-size" id="pfsFileSize"></span>
+              </div>
+              <button class="btn-sm" id="pfsCheckBtn" style="display:none" onclick="checkScenarioLoops('pfs')" title="Проверка: зацикливание, скобки, if/then/else, переменные">🔍 Проверка</button>
+              <button class="btn-sm" id="pfsSaveBtn" onclick="saveFile('pfs')" disabled title="Сохранить файл локально в проект">💾 Сохранить</button>
+            </div>
+            <div class="devmgr-code">
+              <div class="devmgr-gutter" id="pfsGutter"><pre></pre></div>
+              <div class="devmgr-code-editor" id="pfsCodeEditor">
+                <pre class="devmgr-hl" id="pfsHl"></pre>
+                <textarea id="pfsEditor" class="devmgr-textarea" spellcheck="false" wrap="off" oninput="onEditorInput('pfs')" onscroll="onEditorScroll('pfs')" onclick="onEditorCaret('pfs')" onkeyup="onEditorCaret('pfs')" onselect="onEditorCaret('pfs')" placeholder="Выберите файл"></textarea>
+              </div>
+              <div class="devmgr-check" id="pfsCheck">
+                <div class="devmgr-check-head">
+                  <span class="devmgr-check-title">🔍 Проверка</span>
+                  <button class="devmgr-check-close" title="Закрыть" onclick="closeCheck('pfs')">✕</button>
+                </div>
+                <div class="devmgr-check-body" id="pfsCheckBody"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
   renderSettings();
   renderModules();
   // Обновляем состояние кнопок копирования из устройства (появились в DOM)
@@ -2326,6 +2419,99 @@ function debounceSaveAbout(){
     if(!ta || !currentProject) return;
     await fetch('/api/config/about', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:ta.value})});
   }, 800);
+}
+
+// ==================== Файловая система FS проекта ====================
+
+// Каталог FS проекта: <проект>/data_svelte. Показывается в разделе «Файловая система FS».
+function loadProjectFsTree(){
+  const el = document.getElementById('pfsTree');
+  if(!el || !currentProject) return;
+  fetch(`/api/projects/${encodeURIComponent(currentProject.category)}/${encodeURIComponent(currentProject.name)}/tree/fs`)
+    .then(r => r.json())
+    .then(d => {
+      if(!d.success){
+        el.innerHTML = `<div class="empty-state" style="padding:12px">${esc(d.error || 'Ошибка')}</div>`;
+        return;
+      }
+      const files = d.files || [];
+      // Бинарные файлы (*.gz, favicon.ico) видны в дереве, но в редактор не открываются
+      if(!files.length){
+        el.innerHTML = '<div class="empty-state" style="padding:12px">Раздел FS пуст</div>';
+        return;
+      }
+      el.innerHTML = files.map(f =>
+        `<div class="devmgr-tree-item" data-section="pfs" data-path="${esc(f)}">
+           <span class="devmgr-tree-name">${esc(f)}</span>
+         </div>`
+      ).join('');
+    })
+    .catch(() => {
+      el.innerHTML = '<div class="empty-state" style="padding:12px">Ошибка загрузки</div>';
+    });
+}
+
+async function selectProjectFile(path){
+  if(!currentProject) return;
+  const treeEl = document.getElementById('pfsTree');
+  if(treeEl) treeEl.querySelectorAll('.devmgr-tree-item').forEach(i => i.classList.remove('active'));
+  if(treeEl){
+    const item = Array.from(treeEl.querySelectorAll('.devmgr-tree-item')).find(i => i.dataset.path === path);
+    if(item) item.classList.add('active');
+  }
+  try{
+    // Бинарный файл (*.gz, favicon.ico): имя и размер показываем, содержимое не открываем
+    if(isBinaryFsPath(path)){
+      const r = await fetch(`/api/projects/${encodeURIComponent(currentProject.category)}/${encodeURIComponent(currentProject.name)}/file/fs?path=${encodeURIComponent(path)}&meta=1`);
+      const d = await r.json();
+      if(!d.success){ toast(d.error || 'Ошибка', 'error'); return; }
+      showBinaryFileInfo('pfs', path, d.size);
+      return;
+    }
+    const r = await fetch(`/api/projects/${encodeURIComponent(currentProject.category)}/${encodeURIComponent(currentProject.name)}/file/fs?path=${encodeURIComponent(path)}`);
+    const d = await r.json();
+    if(!d.success){ toast(d.error || 'Ошибка', 'error'); return; }
+    // Любой .json — форматируем с переносами строк, даже если файл однострочный
+    if(/\.json$/i.test(path)){
+      try{ d.content = JSON.stringify(JSON.parse(d.content), null, 2); }catch(_e){}
+    }
+    if(!deviceEditors.pfs) deviceEditors.pfs = {path:null, original:''};
+    deviceEditors.pfs = {path, original: d.content};
+    const checkPanel = document.getElementById('pfsCheck');
+    if(checkPanel) checkPanel.classList.remove('active');
+    hideLineNumbers('pfs');
+    document.getElementById('pfsFileName').textContent = path;
+    const sizeEl = document.getElementById('pfsFileSize');
+    if(sizeEl) sizeEl.textContent = (typeof d.size === 'number') ? d.size + ' байт' : '';
+    const pfsEd = document.getElementById('pfsEditor');
+    if(pfsEd){ pfsEd.disabled = false; pfsEd.placeholder = 'Выберите файл'; pfsEd.value = d.content; }
+    const isScenario = /scenario\.txt$/i.test(path);
+    const checkBtn = document.getElementById('pfsCheckBtn');
+    if(checkBtn) checkBtn.style.display = isScenario ? '' : 'none';
+    const saveBtn = document.getElementById('pfsSaveBtn');
+    if(saveBtn) saveBtn.disabled = false;
+    updateHighlight('pfs');
+  }catch(e){
+    toast('Ошибка чтения файла', 'error');
+  }
+}
+
+async function saveProjectFile(){
+  if(!currentProject) return;
+  const ed = deviceEditors.pfs;
+  if(!ed || !ed.path) return;
+  const content = document.getElementById('pfsEditor').value;
+  try{
+    const r = await fetch(`/api/projects/${encodeURIComponent(currentProject.category)}/${encodeURIComponent(currentProject.name)}/file/fs`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({path: ed.path, content})
+    });
+    const d = await r.json();
+    if(d.success){ ed.original = content; toast(`Сохранено локально: ${ed.path}`, 'success'); }
+    else toast(d.error || 'Ошибка сохранения', 'error');
+  }catch(e){
+    toast('Ошибка сохранения', 'error');
+  }
 }
 
 async function validateField(key, input){
