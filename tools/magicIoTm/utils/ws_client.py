@@ -93,6 +93,23 @@ def build_text_frame(message):
     return header + mask + masked
 
 
+def build_pong_frame(payload=b""):
+    """Собирает замаскированный pong-фрейм (опкод 0xA) — ответ на ping сервера.
+
+    Прошивка с включённым heartbeat (enableHeartbeat в WsServer.cpp) пингует
+    клиентов; без ответа pong соединение разрывается после серии таймаутов.
+    По RFC 6455 pong возвращает payload полученного пинга.
+    """
+    mask = os.urandom(4)
+    masked = bytes(b ^ mask[i % 4] for i, b in enumerate(payload))
+    length = len(payload)
+    if length < 126:
+        header = b"\x8a" + bytes([0x80 | length])
+    else:
+        header = b"\x8a" + bytes([0x80 | 126]) + struct.pack(">H", length)
+    return header + mask + masked
+
+
 def parse_frame(buf):
     """Извлекает один полный фрейм из буфера.
     Возвращает (fin, opcode, payload, rest) либо (None,None,None,buf)."""
@@ -217,7 +234,14 @@ def fetch_ram(host, out_dir, port=PORT, timeout=DEFAULT_TIMEOUT, keep_only_ram=T
 
             if opcode == 0x8:   # Close
                 break
-            if opcode in (0x9, 0xA):   # Ping/Pong — признак активности соединения
+            if opcode == 0x9:   # Ping от сервера (heartbeat) — отвечаем Pong
+                try:
+                    sock.sendall(build_pong_frame(pl))
+                except OSError:
+                    break
+                last_response_time = time.time()
+                continue
+            if opcode == 0xA:   # Pong — признак активности соединения
                 last_response_time = time.time()
                 continue
 
@@ -303,7 +327,14 @@ def fetch_profile(host, port=PORT, timeout=DEFAULT_TIMEOUT):
 
             if opcode == 0x8:   # Close
                 break
-            if opcode in (0x9, 0xA):   # Ping/Pong
+            if opcode == 0x9:   # Ping от сервера (heartbeat) — отвечаем Pong
+                try:
+                    sock.sendall(build_pong_frame(pl))
+                except OSError:
+                    break
+                last_response_time = time.time()
+                continue
+            if opcode == 0xA:   # Pong
                 last_response_time = time.time()
                 continue
             if opcode == 0x0:   # continuation
@@ -381,7 +412,14 @@ def fetch_settings(host, port=PORT, timeout=DEFAULT_TIMEOUT):
 
             if opcode == 0x8:   # Close
                 break
-            if opcode in (0x9, 0xA):   # Ping/Pong
+            if opcode == 0x9:   # Ping от сервера (heartbeat) — отвечаем Pong
+                try:
+                    sock.sendall(build_pong_frame(pl))
+                except OSError:
+                    break
+                last_response_time = time.time()
+                continue
+            if opcode == 0xA:   # Pong
                 last_response_time = time.time()
                 continue
             if opcode == 0x0:   # continuation
@@ -634,7 +672,14 @@ def fetch_ram_file(host, filename, out_dir, port=PORT, timeout=DEFAULT_TIMEOUT):
 
             if opcode == 0x8:   # Close
                 break
-            if opcode in (0x9, 0xA):   # Ping/Pong
+            if opcode == 0x9:   # Ping от сервера (heartbeat) — отвечаем Pong
+                try:
+                    sock.sendall(build_pong_frame(pl))
+                except OSError:
+                    break
+                last_response_time = time.time()
+                continue
+            if opcode == 0xA:   # Pong
                 last_response_time = time.time()
                 continue
             if opcode == 0x0:   # continuation
