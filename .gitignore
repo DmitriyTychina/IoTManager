@@ -1,2 +1,9 @@
 .pio
 .vscode
+
+# Local documentation — keep in local environment only, do not commit/push
+/AGENTS.md
+/CHANGELOG.md
+/KODA.md
+/README.md
+/docs/
