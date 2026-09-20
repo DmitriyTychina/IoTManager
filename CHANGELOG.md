@@ -61,6 +61,11 @@
   Отладочная сборка ESP32-C6 при необходимости делается копией `esp32c6_4mb` с
   `build_type = debug` и `-DCORE_DEBUG_LEVEL=4`. Ссылок на
   `${common_env_data.build_flags}` стало 18.
+- Репозиторный `platformio.ini` синхронизирован с эталонным профилем:
+  `default_envs = esp32c3m_4mb`; в `esp32c3m_4mb_fromitems` актуализирован набор модулей
+  (добавлены `sensors/AnalogAdc`, `sensors/Ds18b20` + `DallasTemperature`,
+  `exec/ButtonIn`/`ButtonOut`; убраны `Cron`, `owmWeather`, `VariableColor`); убран
+  пустой `build_flags` в `esp32c6_8mb_fromitems`.
 
 ### Панель magicIoTm
 
