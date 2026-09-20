@@ -88,16 +88,19 @@ WEB_SOCKETS_FRAME_SIZE создан для того что бы не загру�
 
 // выбор сервера и веб-сокетов
 //   асинхронный вариант: ESPAsyncWebServer + AsyncWebSocket — задаётся флагами
-//     -DASYNC_WEB_SERVER -DASYNC_WEB_SOCKETS в окружениях *_async (platformio.ini),
-//     библиотеки ESPAsyncWebServer/AsyncTCP(ESPAsyncTCP) должны быть в lib_deps env!
-//   стандартный вариант: WebServer/ESP8266WebServer + WebSocketsServer — по умолчанию
-//   ВНИМАНИЕ: раскомментировать здесь ASYNC-пару нельзя — это включит её во всех
-//   окружениях, включая те, где библиотек нет (ошибка "ESPAsyncWebServer.h: No such
-//   file or directory") и bk7231n/LIBRETINY (для него вариант запрещён ниже).
+//     -DASYNC_WEB_SERVER -DASYNC_WEB_SOCKETS из [common_env_data].build_flags
+//     (platformio.ini); на них ссылаются все базовые env плат, поэтому все сборки идут
+//     с асинхронным сервером; библиотеки ESPAsyncWebServer/AsyncTCP(ESPAsyncTCP) должны
+//     быть в lib_deps env (ESP8266 — ESPAsyncTCP)
+//   стандартный вариант: WebServer/ESP8266WebServer + WebSocketsServer — резервный,
+//     срабатывает по умолчанию ниже, если ASYNC-флаги не заданы (например в bk7231n)
+//   ВНИМАНИЕ: раскомментировать здесь ASYNC-пару нельзя — макрос включит её во всех
+//   окружениях, включая bk7231n/LIBRETINY, для которого вариант запрещён ниже (#error),
+//   и лишит возможности собрать стандартный вариант только флагами.
 // #define ASYNC_WEB_SERVER
 // #define ASYNC_WEB_SOCKETS
-// по умолчанию — стандартный вариант; если вариант сервера задан флагами -D в
-// platformio.ini (окружения *_async), значения по умолчанию не применяются
+// если вариант сервера задан флагами -D в platformio.ini
+// ([common_env_data].build_flags), значения по умолчанию не применяются
 #if !defined(ASYNC_WEB_SERVER) && !defined(STANDARD_WEB_SERVER)
 #define STANDARD_WEB_SERVER
 #define STANDARD_WEB_SOCKETS

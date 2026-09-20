@@ -3,7 +3,7 @@
 
 # Local documentation — keep in local environment only, do not commit/push
 /AGENTS.md
-/CHANGELOG.md
+# /CHANGELOG.md [DEPRECATED-игнор] — файл версионируется и пушится на GitHub (см. CHANGELOG)
 /KODA.md
 /README.md
 /docs/
