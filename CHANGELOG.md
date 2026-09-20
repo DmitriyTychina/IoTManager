@@ -20,7 +20,7 @@
   вариант включён сразу во всех сборках через `[common_env_data]` — в `lib_deps_external`
   добавлен `ESP32Async/ESPAsyncWebServer`, а `build_flags` задаёт
   `-DASYNC_WEB_SERVER -DASYNC_WEB_SOCKETS`; на `${common_env_data.build_flags}` ссылаются
-  все 19 базовых env плат, ESP8266-окружения дополнительно тянут `ESP32Async/ESPAsyncTCP`
+  все 18 базовых env плат, ESP8266-окружения дополнительно тянут `ESP32Async/ESPAsyncTCP`
   в `lib_deps`. `bk7231n` не затронут: его `build_flags` на
   `${common_env_data.build_flags}` не ссылается, там остаются `STANDARD_WEB_SERVER` +
   `STANDARD_WEB_SOCKETS` (LT_WebSockets). Стандартный вариант сохранён в коде как
@@ -57,6 +57,10 @@
   `firmware.bin`/`bootloader.bin` (`02 2f` = DIO, 4MB, 80 MHz).
   После смены режима прошивать с полным стиранием: `-t erase`, затем `-t upload` и `-t uploadfs`
   (при `erase` файловая система LittleFS стирается).
+- Удалено отладочное окружение `esp32c6_4mb_debug` из `platformio.ini` (не использовалось).
+  Отладочная сборка ESP32-C6 при необходимости делается копией `esp32c6_4mb` с
+  `build_type = debug` и `-DCORE_DEBUG_LEVEL=4`. Ссылок на
+  `${common_env_data.build_flags}` стало 18.
 
 ### Панель magicIoTm
 
