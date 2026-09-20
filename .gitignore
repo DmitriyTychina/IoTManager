@@ -42,6 +42,7 @@ data_svelte/index.html
 data_svelte/favicon.ico
 data_svelte/items.json
 data_svelte/flashProfile.json
+data_svelte/widgets.json
 data_svelte/build/
 
 # Local documentation — keep in local environment only, do not commit/push
