@@ -432,7 +432,16 @@ void webSocketSendBin(uint8_t num, uint8_t* data, size_t size, bool fin, bool co
 }
 // отправка бинарного фрейма всем клиентам
 void webSocketSendBinAll(uint8_t* data, size_t size, bool fin, bool continuation) {
-    standWebSocket.broadcastBIN(data, size, fin, continuation);
+    // Шлём только клиентам, отвечающим на пинги (/pi|): веб-интерфейс шлёт их
+    // каждые ~2 сек, поэтому ws_clients[i]==1 означает живого клиента.
+    // Синхронная запись (WiFiClient::write) в клиента, потерявшего WiFi, блокирует
+    // loop() на секунды (select-таймаут × write-retry), замораживая таймеры и
+    // сценарии — особенно заметно на одноядерном ESP32-S2. Непингующий клиент
+    // фрейм всё равно не примет, а PiWS-таймер отключит его через цикл проверки.
+    for (uint8_t i = 0; i < WEBSOCKETS_CLIENT_MAX; i++) {
+        if (ws_clients[i] != 1) continue;
+        standWebSocket.sendBIN(i, data, size, fin, continuation);
+    }
 }
 // отключение клиента по номеру
 void webSocketDisconnectClient(uint8_t num) {
