@@ -372,11 +372,25 @@ void handleWsTextMessage(uint8_t num, uint8_t* payload, size_t length) {
                 cleanLogs();
             }
 
-            // команда обновления прошивки esp
+            // команда обновления прошивки esp (полная: ФС + прошивка)
             if (headerStr == "/update|") {
                 String path;
                 writeUint8tToString(payload, length, headerLenth, path);
                 upgrade_firmware(3, path);
+            }
+
+            // команда обновления только прошивки (без ФС)
+            if (headerStr == "/update1|") {
+                String path;
+                writeUint8tToString(payload, length, headerLenth, path);
+                upgrade_firmware(1, path);
+            }
+
+            // команда обновления только файловой системы
+            if (headerStr == "/update2|") {
+                String path;
+                writeUint8tToString(payload, length, headerLenth, path);
+                upgrade_firmware(2, path);
             }
 
             // Прием команд control c dashboard
@@ -528,9 +542,9 @@ void sendFileToWsByFrames(const String& filename, const String& header, const St
 
     auto path = filepath(filename);
     auto file = FileFS.open(path, "r");
-    //SerialPrint("I", "sendFileToWsByFrames", ("reed file: ")+ path);
+    // SerialPrint("I", "sendFileToWsByFrames", ("reed file: ") + path);
     if (!file) {
-        SerialPrint("E", "FS", F("reed file error"));
+        SerialPrint("E", "FS", "reed file error " + path);
         return;
     }
 

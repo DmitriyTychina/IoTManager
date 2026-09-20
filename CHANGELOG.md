@@ -62,6 +62,22 @@
   `build_type = debug` и `-DCORE_DEBUG_LEVEL=4`. Ссылок на
   `${common_env_data.build_flags}` стало 18.
 - Версия прошивки поднята: `FIRMWARE_VERSION 463` (`include/Const.h`).
+- Ветка `tools` объединена с `ver4dev` (97 коммитов, merge-base `80d112f2`):
+  - код панели `tools/magicIoTm/` и `tools/measure_size/` включён в репозиторий
+    (раньше был только локальным); мусор (`__pycache__`, логи замеров) в индекс
+    не взят;
+  - из прошивки перенесены OTA-фичи: WS-команды `/update1|` (только прошивка) и
+    `/update2|` (только ФС) в `src/WsServer.cpp`, параметр `type` у локальной OTA
+    (`/api`-обработчик `handleLocalOTA_Handler` в `src/StandWebServer.cpp`);
+  - `modinfo.json` модуля `EctoControlAdapter` оставлен в редакции ver4dev (v2.0,
+    с `usedRam`) — в `tools` параллельно набиралась другая редакция метаданных
+    (v1.0), код модуля при этом не менялся;
+  - генерируемые артефакты `data_svelte/*` и `src/modules/API.cpp` сняты с учёта
+    (их пересобирает `PrepareProject.py`, наборы-источники `data_full/` и
+    `data_lite/` остаются в репозитории);
+  - `AGENTS.md`, `KODA.md`, `README.md`, `docs/` в `ver4dev` остаются локальными
+    (решение от коммита `3d0c233f`), `.gitignore` объединён (полный список
+    runtime-игноров из `tools` + блок локальных документов).
 - Репозиторный `platformio.ini` синхронизирован с эталонным профилем:
   `default_envs = esp32c3m_4mb`; в `esp32c3m_4mb_fromitems` актуализирован набор модулей
   (добавлены `sensors/AnalogAdc`, `sensors/Ds18b20` + `DallasTemperature`,
