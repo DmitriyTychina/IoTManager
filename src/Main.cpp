@@ -342,6 +342,13 @@ void loop() {
     standWebSocket.loop();
     stopErrorMarker(SOCKETS_ERRORMARKER);
 #endif
+#ifdef ASYNC_WEB_SOCKETS
+    // асинхронный сервер обслуживает соединения сам (в прерываниях AsyncTCP),
+    // здесь только разбор накопленных сообщений и служебные операции
+    initErrorMarker(SOCKETS_ERRORMARKER);
+    asyncWebSocketsLoop();
+    stopErrorMarker(SOCKETS_ERRORMARKER);
+#endif
     if (benchTaskItem) benchTaskItem->postTaskFunction("webSocket");
     if (benchTaskItem) benchTaskItem->preTaskFunction("mqtt");
     initErrorMarker(MQTT_ERRORMARKER);

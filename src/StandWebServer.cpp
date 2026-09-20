@@ -1,5 +1,9 @@
 #include "StandWebServer.h"
-#ifdef STANDARD_WEB_SERVER
+// Общий код обработчиков для обоих вариантов HTTP: STANDARD_WEB_SERVER и ASYNC_WEB_SERVER.
+// В ASYNC все вызовы HTTP.* уходят в обёртку AsyncWebServerCompat (см. WebServerCompat.h),
+// поэтому обработчики (/set, /status, /list, /edit, /localota, /update, статики) собираются
+// без изменений для обеих реализаций.
+#if defined(STANDARD_WEB_SERVER) || defined(ASYNC_WEB_SERVER)
 
 File uploadFile;
 String unsupportedFiles = String();
@@ -288,11 +292,16 @@ bool handleFileRead(String path) {
     if (HTTP.hasArg("download")) {
         contentType = F("application/octet-stream");
     } else {
+#ifdef ASYNC_WEB_SERVER
+        // в ASYNC mime::getContentType ядра недоступна — используем таблицу обёртки
+        contentType = HTTP.getContentType(path);
+#else
 #ifdef ESP32
         contentType = getContentType(path);
 #endif
 #ifdef ESP8266
         contentType = mime::getContentType(path);
+#endif
 #endif
     }
 
@@ -742,6 +751,9 @@ FileFS.open(path.c_str());
    and if it fails, return a 404 page with debug information
 */
 void handleNotFound() {
+#ifdef ASYNC_WEB_SERVER
+    String uri = HTTP.urlDecode(HTTP.uri());  // required to read paths with blanks
+#else
 #ifdef ESP8266
     String uri = ESP8266WebServer::urlDecode(HTTP.uri());  // required to read paths with blanks
 #endif
@@ -750,6 +762,7 @@ void handleNotFound() {
 #endif
 #ifdef LIBRETINY
     String uri = WebServer::urlDecode(HTTP.uri());  // required to read paths with blanks
+#endif
 #endif
     if (handleFileRead(uri)) {
         return;
