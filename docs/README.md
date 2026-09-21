@@ -13,6 +13,7 @@
 | [reference/data-formats.md](reference/data-formats.md) | Reference | Форматы данных: `data_svelte`, `myProfile.json` |
 | [reference/device-status-fsm.md](reference/device-status-fsm.md) | Reference | Конечный автомат статусов устройств |
 | [decisions/](decisions/) | Explanation | Архитектурные решения (ADR) |
+| | [articles/](articles/) | Article | Рекламные и разъясняющие статьи |
 
 Для AI-ассистентов есть отдельный контракт: [`AGENTS.md`](../AGENTS.md) (карта, команды, правила, риски).
 
