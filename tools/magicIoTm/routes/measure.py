@@ -5,7 +5,8 @@ from flask import Blueprint, request, jsonify, Response
 
 from core.builder import get_platformio_path, is_running as build_is_running
 from core.measurer import start, is_running as measure_is_running, event_stream, stop
-from core.config import PROJECT_ROOT, scan_modinfo, load_platforms, _project_dir, BASE_DIR, MEASURE_SCRIPT
+from core.config import (PROJECT_ROOT, scan_modinfo, load_platforms, _project_dir,
+                         BASE_DIR, MEASURE_SCRIPT, get_platformio_platforms)
 
 logger = logging.getLogger(__name__)
 
@@ -26,9 +27,16 @@ def api_measure_start():
     scope = data.get('scope', 'all')
     module_path = (data.get('module') or '').strip()
     platform = (data.get('platform') or '').strip() or globals_.current_platform
+    # Область замера базы: 'current' — только выбранная платформа, 'all' — все
+    plat_scope = data.get('platforms_scope') or 'current'
 
-    args = ['--no-color', '--env', platform,
-            '--pio', get_platformio_path(), '--baseline', 'prev']
+    env_list = [platform]
+    if scope == 'baseline' and plat_scope == 'all':
+        env_list = get_platformio_platforms() or [platform]
+
+    args = ['--no-color', '--pio', get_platformio_path(), '--baseline', 'prev']
+    for env in env_list:
+        args += ['--env', env]
     label = f"{globals_.current_project.get('category', '')}/{globals_.current_project.get('name', '')}"
 
     if scope == 'module':
@@ -38,7 +46,10 @@ def api_measure_start():
         label = f"{label} · модуль {module_path.split('/')[-1]}"
     elif scope == 'baseline':
         args += ['--baseline', 'build', '--baseline-only']
-        label = f"{label} · базовая прошивка"
+        if len(env_list) > 1:
+            label = f"{label} · базовая прошивка ({len(env_list)} платформ)"
+        else:
+            label = f"{label} · базовая прошивка"
     elif scope == 'profile':
         args += ['--mode', '2']
     elif scope == 'without':
@@ -58,7 +69,8 @@ def api_measure_start():
     }
     if not start(cfg):
         return jsonify({"success": False, "error": "Не удалось запустить замер"}), 409
-    logger.info(f"Замер запущен: scope={scope}, platform={platform}, module={module_path}")
+    logger.info(f"Замер запущен: scope={scope}, platform={platform}, module={module_path}, "
+                f"platforms_scope={plat_scope if scope == 'baseline' else '-'}")
     return jsonify({"success": True})
 
 

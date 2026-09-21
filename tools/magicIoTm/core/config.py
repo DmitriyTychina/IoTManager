@@ -29,8 +29,26 @@ PLATFORMIO_INI_FILE = os.path.join(PROJECT_ROOT, 'platformio.ini')
 MEASURE_SCRIPT = os.path.abspath(os.path.join(BASE_DIR, '..', '..', 'measure_size', 'measure.py'))
 
 
+def _latest_platform_record(entry):
+    """Последняя (самая свежая) запись платформы из platforms.json.
+
+    Платформа хранится как список-история замеров — берётся последний
+    элемент. Старый формат (плоский словарь) поддерживается: возвращается
+    он сам. Для отсутствующей/битой записи — пустой словарь.
+    """
+    if isinstance(entry, list) and entry:
+        rec = entry[-1]
+        return rec if isinstance(rec, dict) else {}
+    if isinstance(entry, dict):
+        return entry
+    return {}
+
+
 def load_platforms():
     """Загрузка platforms.json с baseline/total значениями.
+
+    Каждая платформа в файле — список-история замеров; в кэш попадает
+    последняя (самая свежая) запись. Старый плоский формат тоже поддерживается.
 
     Кэш подменяется новым словарём только после успешного чтения файла:
     параллельные запросы (/api/size и т.п.) видят либо старые, либо новые
@@ -43,15 +61,19 @@ def load_platforms():
     except Exception as e:
         logger.error(f"platforms.json: {e}")
         return  # при ошибке чтения оставляем предыдущий кэш без изменений
-    globals_.platforms_cache = data
+    globals_.platforms_cache = {
+        env: _latest_platform_record(entry) for env, entry in data.items()
+    }
     logger.info(f"Загружено платформ: {len(data)}")
 
 
 def save_platform_fs_total(env, fs_total):
     """Сохраняет ёмкость ФС (total_fs) платформы в platforms.json.
 
-    Запись происходит, если поля ещё нет ИЛИ текущее значение отличается от
-    переданного размера (например, изменился раздел littlefs).
+    Обновляется последняя запись истории замеров платформы (старый плоский
+    формат обновляется как есть). Запись происходит, если поля ещё нет ИЛИ
+    текущее значение отличается от переданного размера (например, изменился
+    раздел littlefs).
     """
     if not env or not fs_total:
         return
@@ -60,10 +82,17 @@ def save_platform_fs_total(env, fs_total):
             data = json.load(f)
     except Exception:
         data = {}
-    entry = data.setdefault(env, {})
-    current = entry.get("total_fs")
+    entry = data.setdefault(env, [])
+    if isinstance(entry, dict):
+        record = entry  # старый плоский формат (без истории)
+    elif isinstance(entry, list) and entry and isinstance(entry[-1], dict):
+        record = entry[-1]
+    else:
+        record = {}
+        data[env] = [record]
+    current = record.get("total_fs")
     if not current or current != fs_total:
-        entry["total_fs"] = fs_total
+        record["total_fs"] = fs_total
         try:
             with open(PLATFORMS_FILE, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=4)
@@ -71,7 +100,29 @@ def save_platform_fs_total(env, fs_total):
             logger.error(f"Не удалось сохранить total_fs в platforms.json: {e}")
     # Обновляем кэш для немедленного отображения
     if env in globals_.platforms_cache:
-        globals_.platforms_cache[env]["total_fs"] = entry.get("total_fs") or fs_total
+        globals_.platforms_cache[env]["total_fs"] = record.get("total_fs") or fs_total
+
+
+def read_firmware_version():
+    """Читает текущую версию прошивки FIRMWARE_VERSION из include/Const.h.
+
+    Похожая функция есть в tools/measure_size/measure.py — там она нужна при
+    записи замеров, здесь — для отображения версии в панели. При ошибке
+    чтения/парсинга возвращается 'unknown' (панель скрывает такую версию).
+    """
+    const_path = os.path.join(PROJECT_ROOT, 'include', 'Const.h')
+    try:
+        with open(const_path, 'r', encoding='utf-8', errors='replace') as f:
+            text = f.read()
+        m = re.search(
+            r'^[ \t]*#[ \t]*define[ \t]+FIRMWARE_VERSION[ \t]+"([^"]*)"',
+            text, re.MULTILINE,
+        )
+        if m:
+            return m.group(1)
+    except OSError:
+        pass
+    return "unknown"
 
 
 def load_platformio_envs(ini_path=None):

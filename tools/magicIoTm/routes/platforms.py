@@ -2,7 +2,9 @@ import logging
 
 import state.globals as globals_
 from flask import Blueprint, request, jsonify
-from core.config import get_platformio_platforms, scan_modinfo, load_platforms, calc_size, get_fs_usage, is_compatible
+from core.config import (get_platformio_platforms, scan_modinfo, load_platforms,
+                         calc_size, get_fs_usage, is_compatible,
+                         read_firmware_version)
 from utils import projects
 
 logger = logging.getLogger(__name__)
@@ -18,8 +20,15 @@ def api_platforms():
         platforms.append({
             "name": p,
             "baseline_flash": pl.get("baseline_flash", 0),
+            # Версия прошивки последнего замера (FIRMWARE_VERSION из platforms.json)
+            "baseline_version": pl.get("FIRMWARE_VERSION", ""),
         })
-    return jsonify({"success": True, "platforms": platforms})
+    return jsonify({
+        "success": True,
+        "platforms": platforms,
+        # Текущая версия прошивки из include/Const.h
+        "firmware_version": read_firmware_version(),
+    })
 
 
 @bp.route('/platform/change', methods=['POST'])

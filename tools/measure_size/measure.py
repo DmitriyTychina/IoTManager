@@ -23,7 +23,8 @@
      baseline_ram    — размер занятой RAM без модулей
      total_flash     — общий Flash платформы (характеристика платформы)
      total_ram       — общая RAM платформы (характеристика платформы)
-   Результаты точечно записываются в src/modules/platforms.json.
+   Каждый замер ДОПИСЫВАЕТСЯ в историю платформы в tools/measure_size/platforms.json
+   (поля FIRMWARE_VERSION из include/Const.h и datetime времени замера).
 
 4. ИЗМЕРЕНИЕ МОДУЛЕЙ:
    Для каждого модуля и каждой поддерживаемой платформы:
@@ -1095,42 +1096,90 @@ def fs_used_dir(project_dir, env):
 
 def load_platforms_data():
     """
-    Загружает данные о платформах из src/modules/platforms.json.
+    Загружает данные о платформах из tools/measure_size/platforms.json.
     Если файл не существует — возвращает пустой словарь.
 
-    Структура:
+    Структура (история замеров, новый формат):
       {
-        "esp8266_1mb": {
-          "baseline_flash": 448579,
-          "baseline_ram": 37228,
-          "total_flash": 761840,
-          "total_ram": 81920
-        },
-        "bk7231n": { ... }
+        "esp8266_1mb": [
+          {
+            "FIRMWARE_VERSION": "463.2225",       # из include/Const.h
+            "datetime": "21.09.2026 00:02:20",    # время замера
+            "baseline_flash": 448947,
+            "baseline_ram": 37276,
+            "total_flash": 761840,
+            "total_ram": 81920,
+            "total_fs": 262144
+          },
+          ...
+        ],
+        "bk7231n": [ ... ]
       }
+    Актуальный замер платформы — ПОСЛЕДНИЙ элемент списка.
+    Старый формат (плоский словарь без истории) тоже читается.
     """
     if PLATFORMS_JSON.is_file():
         return load_json(PLATFORMS_JSON)
     return {}
 
 
+def latest_platform_record(platforms_data, env):
+    """
+    Последняя (самая свежая) запись замера платформы из platforms.json.
+
+    Платформа хранится как список-история замеров — берётся последний
+    элемент. Старый формат (плоский словарь) поддерживается: возвращается
+    он сам. Для неизвестной платформы — пустой словарь.
+    """
+    entry = platforms_data.get(env)
+    if isinstance(entry, list) and entry:
+        rec = entry[-1]
+        return rec if isinstance(rec, dict) else {}
+    if isinstance(entry, dict):
+        return entry
+    return {}
+
+
+def read_firmware_version():
+    """Читает версию прошивки FIRMWARE_VERSION из include/Const.h."""
+    const_path = PROJECT_ROOT / "include" / "Const.h"
+    try:
+        text = const_path.read_text(encoding="utf-8", errors="replace")
+        m = re.search(
+            r'^[ \t]*#[ \t]*define[ \t]+FIRMWARE_VERSION[ \t]+"([^"]*)"',
+            text, re.MULTILINE,
+        )
+        if m:
+            return m.group(1)
+    except OSError:
+        pass
+    return "unknown"
+
+
 def save_platforms_data(data):
     """
-    Сохраняет данные о платформах в src/modules/platforms.json.
+    Сохраняет данные о платформах в tools/measure_size/platforms.json.
     Перезаписывает весь файл (для инициализации).
     """
     save_json(PLATFORMS_JSON, data)
 
 
-def update_platforms_data(env, sizes):
+def update_platforms_data(env, sizes, fw_version=None):
     """
-    Точечно обновляет данные платформы в src/modules/platforms.json.
-    Не перезаписывает весь файл, а только обновляет нужные поля.
-    Если файл не существует — создаёт его.
+    Дописывает замер платформы в историю tools/measure_size/platforms.json.
+
+    Каждая платформа — список записей; новый замер добавляется в конец
+    с полями FIRMWARE_VERSION (из include/Const.h) и datetime (время замера).
+    Старый формат (плоский словарь) при обнаружении переносится в историю
+    первой записью.
 
     Параметры:
       env:   ключ платформы (например, "bk7231n")
-      sizes: словарь с полями {baseline_flash, baseline_ram, total_flash, total_ram}
+      sizes: словарь с полями {baseline_flash, baseline_ram, total_flash, total_ram, total_fs}
+      fw_version: версия прошивки; если не задана — читается из Const.h
+
+    Возвращает дельту baseline_flash относительно предыдущей записи (int)
+    или None, если числовых предыдущих замеров не было.
     """
     platforms = load_platforms_data()
 
@@ -1138,18 +1187,39 @@ def update_platforms_data(env, sizes):
     if not platforms:
         platforms = {}
 
-    # Обновляем поля для данной платформы
-    if env not in platforms:
-        platforms[env] = {}
+    entry = platforms.get(env)
+    # Миграция старого формата: плоский словарь -> история с одной записью
+    if isinstance(entry, dict):
+        entry = [entry]
+        platforms[env] = entry
+    elif not isinstance(entry, list):
+        entry = []
+        platforms[env] = entry
 
-    platforms[env]["baseline_flash"] = sizes["baseline_flash"]
-    platforms[env]["baseline_ram"] = sizes["baseline_ram"]
-    platforms[env]["total_flash"] = sizes["total_flash"]
-    platforms[env]["total_ram"] = sizes["total_ram"]
+    # Предыдущий числовой baseline — для расчёта дельты
+    prev_baseline = None
+    for rec in reversed(entry):
+        if isinstance(rec, dict) and isinstance(rec.get("baseline_flash"), (int, float)):
+            prev_baseline = int(rec["baseline_flash"])
+            break
+
+    record = {
+        "FIRMWARE_VERSION": fw_version if fw_version is not None else read_firmware_version(),
+        "datetime": datetime.now().strftime("%d.%m.%Y %H:%M:%S"),
+        "baseline_flash": sizes["baseline_flash"],
+        "baseline_ram": sizes["baseline_ram"],
+        "total_flash": sizes["total_flash"],
+        "total_ram": sizes["total_ram"],
+    }
     if "total_fs" in sizes:
-        platforms[env]["total_fs"] = sizes["total_fs"]
+        record["total_fs"] = sizes["total_fs"]
+    entry.append(record)
 
     save_json(PLATFORMS_JSON, platforms)
+
+    if prev_baseline is not None:
+        return int(sizes["baseline_flash"]) - prev_baseline
+    return None
 
 
 def choose_baseline_source(envs):
@@ -1174,7 +1244,7 @@ def choose_baseline_source(envs):
     platforms_data = load_platforms_data()
     all_present = True
     for env in envs:
-        pdata = platforms_data.get(env, {})
+        pdata = latest_platform_record(platforms_data, env)
         vals = [
             pdata.get("baseline_flash"),
             pdata.get("baseline_ram"),
@@ -1560,7 +1630,7 @@ def main():
         # автоматически выполняем новую baseline-сборку.
         if baseline_source == "prev":
             missing_prev = [e for e in envs
-                            if not platforms_data.get(e) or not (platforms_data[e].get("total_fs") or 0)]
+                            if not latest_platform_record(platforms_data, e).get("total_fs")]
             if missing_prev:
                 log_step(
                     "Нет базовых замеров для: " + ", ".join(missing_prev)
@@ -1576,7 +1646,7 @@ def main():
             # -----------------------------------------------------------------
             log_section("Базовые размеры (из platforms.json)")
             for env in envs:
-                pdata = platforms_data.get(env, {})
+                pdata = latest_platform_record(platforms_data, env)
                 baseline_sizes[env] = {
                     "baseline_flash": int(pdata.get("baseline_flash") or 0),
                     "baseline_ram": int(pdata.get("baseline_ram") or 0),
@@ -1635,7 +1705,13 @@ def main():
         if baseline_source == "build":
             for env in envs:
                 if env in baseline_sizes:
-                    update_platforms_data(env, baseline_sizes[env])
+                    delta = update_platforms_data(env, baseline_sizes[env])
+                    if delta is None:
+                        log_ok(f"{env}: platforms.json — первая запись истории замеров")
+                    elif delta == 0:
+                        log_ok(f"{env}: размер базы не изменился (0 B)")
+                    else:
+                        log_ok(f"{env}: размер базы изменился на {delta:+d} B")
             log_ok(f"platforms.json обновлён: {PLATFORMS_JSON}")
 
         # -------------------------------------------------------------------------
