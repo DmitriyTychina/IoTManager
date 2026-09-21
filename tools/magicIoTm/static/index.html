@@ -375,9 +375,10 @@ body.dark .tok-bracket{background:#f9a825;color:#1a1a1a}
     <div class="topbar">
       <span class="project-name" id="topProjectName" style="display:none">Проект не выбран</span>
       <div class="platform-select" id="platformSelectWrap" style="display:none">
+        <span id="fwVersion" class="baseline-size" style="display:none" title="Текущая версия прошивки (FIRMWARE_VERSION из include/Const.h)"></span>
         <label>Платформа:</label>
         <select id="platformSelect" onchange="changePlatform()"></select>
-        <button class="btn-sm" title="Замер размера прошивки без модулей" onclick="startMeasure('baseline','')">⚖️ Замер базы</button>
+        <button class="btn-sm" title="Замер размера прошивки без модулей" onclick="showBaselineScopeModal()">⚖️ Замер базы</button>
         <span id="baselineSize" class="baseline-size"></span>
       </div>
       <div class="build-upload">
@@ -2689,6 +2690,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadProjects();
   connectDevicesStream();
   checkEsptoolUpdate();
+  checkPlatformio();
   // По умолчанию открываем проект PlatformIO
   openProject('_main_', 'PlatformIO');
   // Инициализация кнопок копирования из устройства
@@ -2829,10 +2831,13 @@ async function loadPlatforms(){
   const sel = document.getElementById('platformSelect');
   sel.innerHTML = '';
   if(d.success && d.platforms){
+    // Запоминаем текущую версию прошивки из Const.h для топбара
+    renderBaselineSize._fwVersion = d.firmware_version || '';
     d.platforms.forEach(p=>{
       const o = document.createElement('option');
       o.value = p.name; o.textContent = p.name;
       o.dataset.baseline = p.baseline_flash || 0;
+      o.dataset.baselineVersion = p.baseline_version || '';
       sel.appendChild(o);
     });
   }
@@ -2846,11 +2851,26 @@ function renderBaselineSize(){
   const sel = document.getElementById('platformSelect');
   const el = document.getElementById('baselineSize');
   if(!el) return;
+  // Текущая версия прошивки (FIRMWARE_VERSION из Const.h) — слева от «Платформа:»
+  const fwEl = document.getElementById('fwVersion');
+  if(fwEl){
+    const ver = (renderBaselineSize._fwVersion || '').trim();
+    if(ver && ver !== 'unknown'){
+      fwEl.style.display = 'inline';
+      fwEl.textContent = '[ver: ' + ver + ']';
+    } else {
+      fwEl.style.display = 'none';
+      fwEl.textContent = '';
+    }
+  }
   const opt = sel.selectedOptions[0];
   const b = opt ? parseInt(opt.dataset.baseline||0, 10) : 0;
   if(b > 0){
     el.style.display = 'inline';
-    el.textContent = 'Базовый размер ' + formatBytes(b);
+    // Версия прошивки последнего замера платформы — в скобках после размера
+    const bVer = (opt ? (opt.dataset.baselineVersion || '') : '').trim();
+    el.textContent = 'Базовый размер ' + formatBytes(b) +
+      (bVer && bVer !== 'unknown' ? ' ([ver: ' + bVer + '])' : '');
   } else {
     el.style.display = 'none';
   }
@@ -4060,10 +4080,106 @@ function checkEsptoolUpdate(){
   }).catch(()=>{});
 }
 
+// ==================== Проверка PlatformIO на старте ====================
+// В отличие от esptool, pio не ставится молча: панель показывает модалку
+// и устанавливает только по согласию пользователя.
+function checkPlatformio(){
+  fetch('/api/tools/platformio').then(r=>r.json()).then(d=>{
+    // Фоновая проверка на сервере ещё не завершилась — спросим позже
+    if(d && d.last_checked == null){ setTimeout(checkPlatformio, 1500); return; }
+    if(d && d.available===false && !localStorage.getItem('magicIoTm_pio_skip')){
+      showModal(`<h3>🧰 PlatformIO не найден</h3>
+        <p style="font-size:13px;color:var(--text);margin:8px 0 16px">Для сборки и прошивки нужен PlatformIO (pio). Панель может установить его автоматически в своё окружение — это займёт несколько минут. Установить?</p>
+        <div class="modal-actions">
+          <button onclick="closeModal(); localStorage.setItem('magicIoTm_pio_skip','1')">Позже</button>
+          <button id="pioInstallBtn" title="Установить PlatformIO в окружение панели">Установить</button>
+        </div>`);
+      document.getElementById('pioInstallBtn').addEventListener('click', async ()=>{
+        document.getElementById('pioInstallBtn').disabled = true;
+        toast('Установка PlatformIO... это может занять несколько минут');
+        try{
+          const rr = await fetch('/api/tools/platformio/install', {method:'POST'});
+          const dd = await rr.json();
+          if(dd.success){
+            closeModal();
+            localStorage.removeItem('magicIoTm_pio_skip');
+            toast('PlatformIO установлен: ' + esc(dd.status?.path || ''), 'info');
+          }else{
+            document.getElementById('pioInstallBtn').disabled = false;
+            toast('Ошибка: ' + (dd.error || 'установка не удалась'), 'error');
+          }
+        }catch(e){
+          document.getElementById('pioInstallBtn').disabled = false;
+          toast('Ошибка установки PlatformIO','error');
+        }
+      });
+    }
+  }).catch(()=>{});
+}
+
 // ==================== Measure (замер размера модулей) ====================
 let measureStream = null;
 let measureDone = false;
 let measureScope = '';
+let measurePlatScope = 'current';   // область замера базы: 'current' | 'all'
+let measurePlatform = '';           // платформа, выбранная на момент запуска замера
+let measureBaselineBefore = null;   // снапшот базовых размеров до замера базы
+
+// ==================== Замер базы: выбор области ====================
+function showBaselineScopeModal(){
+  if(!currentProject){ toast('Сначала откройте проект', 'error'); return; }
+  const sel = document.getElementById('platformSelect');
+  const cur = sel && sel.value ? sel.value : '';
+  const total = sel ? sel.options.length : 0;
+  showModal(`<h3>⚖️ Замер базы</h3>
+    <p style="color:var(--muted);font-size:12px;margin-bottom:12px">Замер размера прошивки без модулей. Результат дописывается в историю замеров platforms.json.</p>
+    <div class="measure-scope-list">
+      <button class="btn-sm" onclick="closeModal(); startMeasure('baseline','',null,'current')">Текущая платформа<span class="ms-desc">${esc(cur || '—')} · одна базовая сборка</span></button>
+      <button class="btn-sm" onclick="closeModal(); startMeasure('baseline','',null,'all')">Все платформы<span class="ms-desc">${total} платформ · базовая сборка для каждой</span></button>
+    </div>
+    <div class="modal-actions"><button onclick="closeModal()">Отмена</button></div>`);
+}
+
+// Снапшот базовых размеров всех платформ: {имя: baseline_flash}
+async function fetchBaselineMap(){
+  try{
+    const r = await fetch('/api/platforms');
+    const d = await r.json();
+    const m = {};
+    (d.platforms || []).forEach(p=>{ m[p.name] = p.baseline_flash || 0; });
+    return m;
+  }catch(_){ return null; }
+}
+
+function bytesPlural(n){
+  const a = Math.abs(n) % 100, b = a % 10;
+  if(a > 10 && a < 20) return 'байт';
+  if(b > 1 && b < 5) return 'байта';
+  return 'байт';
+}
+
+function fmtBytesDelta(d){
+  const sign = d > 0 ? '+' : (d < 0 ? '-' : '');
+  return sign + Math.abs(d) + ' ' + bytesPlural(d);
+}
+
+// Дельта базового размера по завершении замера базы
+function baselineDeltaText(before, after){
+  if(!before || !after) return '';
+  if(measurePlatScope === 'all'){
+    const parts = [];
+    Object.keys(after).forEach(p=>{
+      if(p in before && after[p] !== before[p]){
+        parts.push(p + ': ' + fmtBytesDelta(after[p] - before[p]));
+      }
+    });
+    return parts.length
+      ? ' Размер базы изменился: ' + parts.join(', ') + '.'
+      : ' Размер базы не изменился.';
+  }
+  const d = (after[measurePlatform] || 0) - (before[measurePlatform] || 0);
+  return ' Размер базы изменился на ' + fmtBytesDelta(d) + '.';
+}
 
 function setMeasureButton(text, title, enabled, onclick){
   const btn = document.getElementById('measureCloseBtn');
@@ -4112,18 +4228,22 @@ async function abortMeasure(){
   // Сообщение «✗ Прервано» появится по событию error/aborted от потока.
 }
 
-async function startMeasure(scope, modulePath, label){
+async function startMeasure(scope, modulePath, label, platScope){
   if(!currentProject){ toast('Сначала откройте проект', 'error'); return; }
   measureScope = scope;
+  measurePlatScope = platScope || 'current';
+  // Снапшот базовых размеров до замера — для расчёта дельты по завершении
+  measureBaselineBefore = scope === 'baseline' ? await fetchBaselineMap() : null;
   const r = await fetch('/api/measure/start', {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ scope: scope, module: modulePath || '' })
+    body: JSON.stringify({ scope: scope, module: modulePath || '', platforms_scope: measurePlatScope })
   });
   const d = await r.json();
   if(!d.success){ toast(d.error || 'Ошибка запуска замера', 'error'); return; }
 
   const platSel = document.getElementById('platformSelect');
   const platform = platSel ? platSel.value : '';
+  measurePlatform = platform;
   const projLabel = label || ('Проект: ' + (currentProject.name === 'PlatformIO' ? 'PlatformIO' : `${currentProject.category} / ${currentProject.name}`));
 
   if(scope === 'module'){
@@ -4132,7 +4252,9 @@ async function startMeasure(scope, modulePath, label){
       'Модуль: ' + modulePath.split('/').pop() + ' для ' + platform;
   } else if(scope === 'baseline'){
     setMeasureTitle('⚖️ Замер размера прошивки без модулей');
-    document.getElementById('measureSub').textContent = 'Платформа: ' + platform;
+    document.getElementById('measureSub').textContent = measurePlatScope === 'all'
+      ? 'Все платформы (' + (measureBaselineBefore ? Object.keys(measureBaselineBefore).length : '?') + ')'
+      : 'Платформа: ' + platform;
   } else {
     setMeasureTitle('⚖️ Замер размера модулей');
     document.getElementById('measureSub').textContent = projLabel + ' · Платформа: ' + platform;
@@ -4162,10 +4284,18 @@ async function startMeasure(scope, modulePath, label){
     measureFinish();
     // Перечитываем модифицированные modinfo.json и обновляем размеры модулей и индикаторы
     await fetch('/api/modules/reload', {method:'POST'});
+    if(measureScope === 'baseline'){
+      if(!failed){
+        // Дельта базового размера: сравниваем снапшоты платформ до/после замера
+        const after = await fetchBaselineMap();
+        const deltaText = baselineDeltaText(measureBaselineBefore, after);
+        if(deltaText){ msg.textContent += deltaText; }
+      }
+      loadPlatforms();
+    }
     await loadCompatibility();
     renderModules();
     updateGauge();
-    if(measureScope === 'baseline'){ loadPlatforms(); }
   });
   measureStream.addEventListener('error', e => {
     let aborted = false, txt = 'Ошибка замера';

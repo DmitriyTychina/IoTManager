@@ -8,6 +8,7 @@ import os
 import logging
 import shutil
 import subprocess
+import sys
 
 from utils import projects, build
 from state.globals import current_project, current_config
@@ -39,6 +40,14 @@ def get_platformio_path():
         base = os.path.join(os.environ.get('HOME', ''), '.platformio', 'penv', 'bin')
     for name in exe_names:
         candidate = os.path.join(base, name)
+        if os.path.isfile(candidate):
+            return candidate
+    # 3. Резерв: окружение самой панели (pio, установленный через
+    #    /api/tools/platformio/install) — sys.executable = <venv>/Scripts|bin/python
+    exe_names = ['pio.exe', 'platformio.exe'] if os.name == 'nt' else ['pio', 'platformio']
+    venv_dir = os.path.dirname(sys.executable)
+    for name in exe_names:
+        candidate = os.path.join(venv_dir, name)
         if os.path.isfile(candidate):
             return candidate
     # Если ни один не найден — возвращаем дефолт, чтобы вызвать понятную ошибку запуска
