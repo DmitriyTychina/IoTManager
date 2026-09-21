@@ -50,4 +50,3 @@ data_svelte/build/
 # /CHANGELOG.md [DEPRECATED-игнор] — файл версионируется и пушится на GitHub (см. CHANGELOG)
 /KODA.md
 /README.md
-/docs/
