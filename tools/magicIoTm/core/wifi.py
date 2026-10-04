@@ -33,6 +33,7 @@
 """
 
 import ipaddress
+import json
 import logging
 import os
 import re
@@ -721,6 +722,79 @@ def discover_ap_device(progress=None, gateway=AP_GATEWAY_IP, attempts=PING_ATTEM
                 "error": res.get("error") or f"Устройство по адресу {gateway} не распознано"}
     return {"success": True, "in_ap_subnet": True, "ping_ok": True,
             "local_ips": addrs, "device": res["device"], "error": None}
+
+
+# ==================== Пароли AP, сохранённые в панели ====================
+
+
+def stored_passwords():
+    """Пароли точек доступа из проектов панели и папок устройств.
+
+    Для модалки ввода пароля (кнопка 📁): проекты — myProfile.json каждого
+    проекта (`iotmSettings.apssid/appass`) плюс корневой myProfile.json
+    (проект «PlatformIO»); устройства — `settings.json` из RAM/ (fallback FS/)
+    уже просканированных папок `tools/magicIoTm/devices/<folder>/`.
+
+    Возвращает {"success": True, "projects": [...], "devices": [...]} —
+    каждый элемент {label, ssid, pass}. Ошибка чтения отдельной записи
+    записывается в logger и не роняет весь список.
+    """
+    from utils import projects as projects_util      # лениво: избежать цикла импортов
+
+    projects, devices = [], []
+
+    # --- Проекты конфигуратора ---
+    try:
+        tree = projects_util.list_projects()
+        for cat, names in sorted(tree.items()):
+            for name in sorted(names):
+                try:
+                    cfg = projects_util.load_project_config(cat, name) or {}
+                except (OSError, ValueError) as e:
+                    logger.debug(f"Проект {cat}/{name}: myProfile.json не прочитан ({e})")
+                    continue
+                s = cfg.get("iotmSettings") or {}
+                projects.append({"label": f"{cat}/{name}" if cat else name,
+                                 "ssid": str(s.get("apssid") or ""),
+                                 "pass": str(s.get("appass") or "")})
+    except Exception as e:                          # noqa: BLE001
+        logger.debug(f"Не удалось получить дерево проектов: {e}")
+
+    # Корневой myProfile.json — проект «PlatformIO» (шаблон новых проектов)
+    try:
+        with open(projects_util.ROOT_CONFIG_FILE, "r", encoding="utf-8") as f:
+            pio = json.load(f).get("iotmSettings") or {}
+        projects.append({"label": projects_util.PLATFORMIO_PROJECT,
+                         "ssid": str(pio.get("apssid") or ""),
+                         "pass": str(pio.get("appass") or "")})
+    except (OSError, ValueError):
+        pass
+
+    # --- Папки устройств на диске ---
+    with globals_._device_folders_lock:
+        entries = [dict(v) for v in globals_._device_folders.values()]
+    for e in sorted(entries, key=lambda x: str(x.get("folder") or "")):
+        settings_path = None
+        for d in (e.get("ram_dir"), e.get("fs_dir")):   # прошивка пишет в корень FS
+            p = os.path.join(d, "settings.json") if d else None
+            if p and os.path.isfile(p):
+                settings_path = p
+                break
+        if not settings_path:
+            continue
+        try:
+            with open(settings_path, "r", encoding="utf-8") as f:
+                s = json.load(f)
+        except (OSError, ValueError) as err:
+            logger.debug(f"Устройство {e.get('folder')}: settings.json не прочитан ({err})")
+            continue
+        # label — имя папки устройства (в _device_folders.folder лежит полный путь)
+        folder = str(e.get("folder") or "")
+        devices.append({"label": os.path.basename(folder.rstrip("\\/")) or str(e.get("name") or ""),
+                        "ssid": str(s.get("apssid") or ""),
+                        "pass": str(s.get("appass") or "")})
+
+    return {"success": True, "projects": projects, "devices": devices}
 
 
 # ==================== Домашняя сеть: куда возвращаться из AP модуля ====================

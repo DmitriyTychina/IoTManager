@@ -187,6 +187,17 @@ def api_wifi_return():
                     "connect": wifi_core.connect_state()})
 
 
+@devices_bp.route("/devices/wifi/passwords", methods=["GET"])
+def api_wifi_passwords():
+    """Пароли AP из проектов (myProfile.json) и устройств (settings.json) —
+    список для подстановки в модалке ввода пароля (кнопка 📁)."""
+    try:
+        return jsonify(wifi_core.stored_passwords())
+    except Exception as e:
+        logger.error(f"WiFi passwords error: {e}", exc_info=True)
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 # ==================== Device Management Routes ====================
 
 

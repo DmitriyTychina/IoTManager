@@ -66,6 +66,12 @@ body.dark{background:var(--bg);color:var(--text)}
 .wifi-ap-error{font-size:12px;color:var(--danger)}
 .wifi-ap-note{font-size:11px;color:var(--muted);margin-top:6px}
 .wifi-ap-empty{color:var(--muted);font-size:13px;padding:8px 0}
+.wifi-pass-row{display:flex;gap:6px;align-items:center}
+.wifi-pass-row input{flex:1;min-width:0;padding:6px 8px;border:1px solid var(--border);border-radius:4px;background:var(--panel);color:var(--text);font-size:13px}
+.wifi-pass-btn{min-width:34px;padding:6px 8px;font-size:14px}
+.wifi-pass-btn:hover{border-color:var(--accent)}
+.wifi-pick-list{display:flex;flex-direction:column;gap:6px;margin:10px 0;max-height:44vh;overflow-y:auto}
+.wifi-pick-group{font-size:12px;color:var(--muted);font-weight:600;margin-top:6px}
 .tree-devices{padding:0 8px 8px}
 /* Список найденных хостов в модалке сканирования */
 .scan-host-list{margin-top:10px;max-height:220px;overflow-y:auto;font-size:12px;border:1px solid var(--border);border-radius:6px;padding:6px}
@@ -805,17 +811,13 @@ function updateWifiAlert(st){
               'Показать список сетей';
 }
 
-function showWifiApModal(){
-  wifiSelected = null;
+function showWifiApModal(keepSel){
+  if(keepSel !== true) wifiSelected = null;   // клик по «!» в шапке — чистый выбор сети
   // Клик по фону модалку НЕ закрывает: подключение к сети идёт фоном, случайный
   // клик мимо окна не должен уносить прогресс и выбор сети (закрытие — «Закрыть»)
   noCloseOverlay = true;
   showModal(`<h3>📶 Сети WiFi</h3>
     <div id="wifiApList" class="wifi-ap-list"><div class="wifi-ap-empty">Ожидание данных сканера…</div></div>
-    <div id="wifiApPassRow" style="display:none">
-      <div class="form-row"><label>Пароль сети</label>
-        <input type="password" id="wifiApPass" placeholder="если сеть защищена паролем"></div>
-    </div>
     <div class="wifi-ap-stage" id="wifiApStage"></div>
     <div class="wifi-ap-error" id="wifiApError"></div>
     <div class="wifi-ap-note" id="wifiApNote" style="display:none"></div>
@@ -835,10 +837,7 @@ function bindWifiApHandlers(){
   if(list) list.onclick = (e) => {
     const row = e.target.closest('.wifi-ap-item');
     if(!row || !row.dataset.ssid) return;
-    const changed = !wifiSelected || wifiSelected.ssid !== row.dataset.ssid;
     wifiSelected = {ssid: row.dataset.ssid, secured: row.dataset.secured === '1'};
-    // Пароль прежней сети не переносим на новую выбранную
-    if(changed){ const passEl = document.getElementById('wifiApPass'); if(passEl) passEl.value = ''; }
     renderWifiApModal();
   };
   const btn = document.getElementById('wifiConnectBtn');
@@ -850,7 +849,7 @@ function wifiApListHtml(st){
   if(!st.supported) return '<div class="wifi-ap-empty">WiFi-подсистема этой ОС недоступна.</div>';
   // Показываем ВСЕ сети эфира, но сети модулей (iotm*) — впереди остальных
   // (backend уже кладёт их так в st.all). Так до точки доступа модуля рукой подать,
-  // а подключиться можно и к любой обычной сети (пароль спросим — см. renderWifiApModal).
+  // а подключиться можно и к любой обычной сети (пароль — в отдельной модалке).
   const nets = (st.all && st.all.length) ? st.all : (st.networks || []);
   const total = st.total || 0;
   if(!nets.length){
@@ -897,11 +896,9 @@ function renderWifiApModal(){
   const conn = (wifiState && wifiState.connected) || '';
   const stage = document.getElementById('wifiApStage');
   const err = document.getElementById('wifiApError');
-  const passRow = document.getElementById('wifiApPassRow');
   const btn = document.getElementById('wifiConnectBtn');
   if(stage) stage.textContent = c.running ? (c.stage || 'Подключение…') : '';
   if(err) err.textContent = (!c.running && c.error) ? ('WiFi: ' + c.error) : '';
-  if(passRow) passRow.style.display = (wifiSelected && wifiSelected.secured) ? '' : 'none';
   if(btn){
     btn.disabled = !!c.running || !wifiSelected;
     btn.textContent = (wifiSelected && wifiSelected.ssid === conn) ? 'Искать модуль' : 'Подключиться';
@@ -935,13 +932,18 @@ async function wifiScanNow(btn){
   finally{ if(btn) btn.disabled = false; }
 }
 
-async function startWifiConnect(){
+// Защищённая сеть: после «Подключиться» показывается отдельная модалка ввода
+// пароля (см. showWifiPassModal). Открытая сеть и уже активное подключение —
+// подключаемся сразу, без модалки (профиль уже есть, пароль не перезаписываем).
+function startWifiConnect(){
   if(!wifiSelected){ toast('Сначала выберите сеть из списка', 'error'); return; }
-  const passEl = document.getElementById('wifiApPass');
-  // Пароль отправляем только для защищённой сети: у открытой профиль должен быть
-  // «open», иначе netsh не ассоциируется. Поле ввода при этом и не показывается.
-  const pass = wifiSelected.secured ? (passEl ? (passEl.value || '') : '') : '';
-  const body = {ssid: wifiSelected.ssid, password: pass};
+  const conn = (wifiState && wifiState.connected) || '';
+  if(wifiSelected.secured && wifiSelected.ssid !== conn){ showWifiPassModal(''); return; }
+  doWifiConnect('');
+}
+
+async function doWifiConnect(pass){
+  const body = {ssid: wifiSelected.ssid, password: pass || ''};
   try{
     const r = await fetch('/api/devices/wifi/connect', {
       method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
@@ -949,13 +951,97 @@ async function startWifiConnect(){
     const d = await r.json().catch(() => null);
     if(!r.ok || !d || d.success === false){
       toast((d && d.error) || 'Не удалось запустить подключение', 'error');
+      showWifiApModal(true);   // к списку сетей — там видны статус и ошибки
       return;
     }
     wifiConnectWasRunning = true;
     toast(`Подключение к «${body.ssid}»…`, 'info');
     startWifiConnectPoll();
-    renderWifiApModal();
+    showWifiApModal(true);     // стадии подключения — в основной модалке сетей
   }catch(_){ toast('Ошибка запроса подключения', 'error'); }
+}
+
+// ==================== Модалка ввода пароля WiFi ====================
+let wifiPassDraft = '';             // черновик пароля (возврат из модалки выбора)
+let wifiPickData = null;            // ответ /devices/wifi/passwords + _items (плоский список)
+
+function showWifiPassModal(draft){
+  wifiPassDraft = (typeof draft === 'string') ? draft : '';
+  const ssid = wifiSelected ? wifiSelected.ssid : '';
+  showModal(`<h3>🔒 Пароль сети «${esc(ssid)}»</h3>
+    <div class="form-row"><label>Пароль сети</label>
+      <div class="wifi-pass-row">
+        <input type="password" id="wifiPassInput" placeholder="если сеть защищена паролем" value="${esc(wifiPassDraft)}">
+        <button type="button" class="wifi-pass-btn" id="wifiPassEye" title="Показать пароль">🔒</button>
+        <button type="button" class="wifi-pass-btn" id="wifiPassDef" title="Пароль по умолчанию 12341234">!</button>
+        <button type="button" class="wifi-pass-btn" id="wifiPassPick" title="Взять пароль из проектов или устройств">📁</button>
+      </div>
+    </div>
+    <div class="wifi-ap-note">🔒 — показать/скрыть пароль · «!» — пароль по умолчанию 12341234 · 📁 — взять из проектов/устройств</div>
+    <div class="modal-actions">
+      <button id="wifiPassBack">← К сетям</button>
+      <button class="btn-primary" id="wifiPassOk">Подключиться</button>
+    </div>`);
+  const input = document.getElementById('wifiPassInput');
+  document.getElementById('wifiPassEye').onclick = (e) => {
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    e.currentTarget.textContent = show ? '🔓' : '🔒';
+    e.currentTarget.title = show ? 'Скрыть пароль' : 'Показать пароль';
+    input.focus();
+  };
+  document.getElementById('wifiPassDef').onclick = () => { input.value = '12341234'; input.focus(); };
+  document.getElementById('wifiPassPick').onclick = () => showWifiPickModal(input.value);
+  document.getElementById('wifiPassBack').onclick = () => showWifiApModal(true);
+  document.getElementById('wifiPassOk').onclick = () => doWifiConnect(input.value);
+  input.addEventListener('keydown', (e) => { if(e.key === 'Enter') doWifiConnect(input.value); });
+  input.focus();
+}
+
+// Выбор пароля из существующих: проекты (myProfile.json) и устройства (settings.json)
+function showWifiPickModal(draft){
+  wifiPassDraft = (typeof draft === 'string') ? draft : '';
+  showModal(`<h3>📁 Пароли из проектов и устройств</h3>
+    <div class="wifi-pick-list" id="wifiPickList"><div class="wifi-ap-empty">Загрузка…</div></div>
+    <div class="modal-actions">
+      <button id="wifiPickBack">← Назад</button>
+    </div>`);
+  document.getElementById('wifiPickBack').onclick = () => showWifiPassModal(wifiPassDraft);
+  fetch('/api/devices/wifi/passwords')
+    .then(r => r.json())
+    .then(d => { wifiPickData = d; renderWifiPickList(); })
+    .catch(() => {
+      const box = document.getElementById('wifiPickList');
+      if(box) box.innerHTML = '<div class="wifi-ap-empty">Не удалось загрузить список паролей</div>';
+    });
+}
+
+function renderWifiPickList(){
+  const box = document.getElementById('wifiPickList');
+  if(!box || !wifiPickData) return;
+  wifiPickData._items = [];        // плоский список строк — индексы для data-idx
+  let html = '';
+  for(const [title, items] of [['📁 Проекты', wifiPickData.projects || []],
+                               ['💾 Устройства', wifiPickData.devices || []]]){
+    if(!items.length) continue;
+    html += `<div class="wifi-pick-group">${title}</div>`;
+    for(const it of items){
+      const idx = wifiPickData._items.length;
+      wifiPickData._items.push(it);
+      html += `<div class="wifi-ap-item" data-idx="${idx}" title="Подставить этот пароль">
+        <div><div class="wifi-ap-ssid">${esc(it.label || '')}</div>
+        <div class="wifi-ap-sub">apssid: ${esc(it.ssid || '—')} · appass: ${esc(it.pass || '—')}</div></div></div>`;
+    }
+  }
+  if(!wifiPickData._items.length)
+    html = '<div class="wifi-ap-empty">Ни в проектах, ни в устройствах AP-сетей не найдено</div>';
+  box.innerHTML = html;
+  box.onclick = (e) => {
+    const row = e.target.closest('.wifi-ap-item');
+    if(!row || row.dataset.idx === undefined) return;
+    const it = wifiPickData._items[+row.dataset.idx];
+    showWifiPassModal(it ? (it.pass || '') : wifiPassDraft);   // подстановка и возврат
+  };
 }
 
 // Возврат в домашнюю сеть (сохранённый профиль): панель выйдет из AP модуля
