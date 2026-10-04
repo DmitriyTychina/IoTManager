@@ -5,6 +5,7 @@
 расчётом размеров FLASH/RAM и FS-использования.
 """
 
+import configparser
 import json
 import os
 import glob
@@ -367,25 +368,75 @@ def _dir_size(path):
     return total
 
 
+# Имена собранного образа файловой системы.
+# littlefs.bin/spiffs.bin — обычный таргет buildfs, кладёт образ в .pio/build/<env>/.
+# lt_littlefs.bin — LibreTiny (bk7231n): образ собирает кастомный таргет
+# tools/lt_fsbuild.py и кладёт его в корень проекта (PROJECT_DIR).
+FS_IMAGE_NAMES = ("littlefs.bin", "spiffs.bin")
+LT_FS_IMAGE_NAME = "lt_littlefs.bin"
+LT_FS_SCRIPT = "lt_fsbuild.py"     # признак env с LibreTiny-ФС в platformio.ini
+
+
+def _is_lt_env(env):
+    """True, если env собирает ФС кастомным таргетом LibreTiny (tools/lt_fsbuild.py).
+
+    У таких платформ образ ФС — lt_littlefs.bin в корне проекта, а не
+    littlefs.bin/spiffs.bin в .pio/build/<env>/. Признак берём из platformio.ini
+    (секция [env:<env>], поле extra_scripts), чтобы не искать образ чужой платформы.
+    """
+    if not env:
+        return False
+    try:
+        cp = configparser.ConfigParser(strict=False, interpolation=None)
+        cp.read(PLATFORMIO_INI_FILE, encoding="utf-8")
+        scripts = cp.get(f"env:{env}", "extra_scripts", fallback="")
+    except Exception:  # noqa: BLE001 — при любой проблеме считаем env обычной ESP
+        return False
+    return LT_FS_SCRIPT in scripts
+
+
+def _fs_image_size():
+    """Ёмкость раздела ФС по свежесобранному образу (0, если образа нет).
+
+    Для обычных ESP ищем littlefs.bin/spiffs.bin в .pio/build/<current_platform>/;
+    для LibreTiny (bk7231n) — lt_littlefs.bin в корне проекта. Размер образа равен
+    ёмкости раздела ФС.
+    """
+    env = globals_.current_platform
+    names = list(FS_IMAGE_NAMES)
+    bases = [os.path.join(PROJECT_ROOT, ".pio", "build", env)]
+    if _is_lt_env(env):
+        names.append(LT_FS_IMAGE_NAME)
+        bases.append(PROJECT_ROOT)
+    if globals_.current_project:
+        proj_dir = _project_dir(globals_.current_project)
+        bases.append(os.path.join(proj_dir, ".pio", "build", env))
+        if LT_FS_IMAGE_NAME in names and os.path.abspath(proj_dir) != os.path.abspath(PROJECT_ROOT):
+            bases.append(proj_dir)
+    for base in bases:
+        for name in names:
+            p = os.path.join(base, name)
+            if os.path.isfile(p):
+                try:
+                    size = os.path.getsize(p)
+                except OSError:
+                    continue
+                if size:
+                    return size
+    return 0
+
+
 def get_fs_usage():
     """Возвращает (fs_pct, fs_used, fs_total) для текущей платформы.
 
     fs_total — ёмкость раздела ФС (total_fs из platforms.json; если его ещё нет —
-               размер только что собранного образа .pio/build/<платформа>/littlefs.bin).
+               размер свежесобранного образа ФС: .pio/build/<платформа>/littlefs.bin
+               либо lt_littlefs.bin в корне проекта — так собирает ФС для bk7231n).
     fs_used  — занятое: размер папки data_svelte проекта (в корне проекта).
     """
     fs_total = globals_.platforms_cache.get(globals_.current_platform, {}).get("total_fs", 0)
     if not fs_total:
-        # Запасной источник ёмкости — свежесобранный образ файловой системы
-        img_dir = os.path.join(PROJECT_ROOT, ".pio", "build", globals_.current_platform)
-        for name in ("littlefs.bin", "spiffs.bin"):
-            p = os.path.join(img_dir, name)
-            if os.path.isfile(p):
-                try:
-                    fs_total = os.path.getsize(p)
-                except OSError:
-                    fs_total = 0
-                break
+        fs_total = _fs_image_size()
     fs_used = 0
     if globals_.current_project:
         # data_svelte всегда лежит в корне проекта

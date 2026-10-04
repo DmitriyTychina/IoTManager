@@ -8,6 +8,20 @@
 
 ### Панель magicIoTm
 
+- **Исправлен gauge FS = 0 % для платформы bk7231n.** Для LibreTiny образ ФС
+  собирает кастомный таргет `tools/lt_fsbuild.py` и кладёт его как
+  `lt_littlefs.bin` в корень проекта, а весь расчёт FS искал только
+  `littlefs.bin`/`spiffs.bin` в `.pio/build/<env>/` — ёмкость получалась нулевой,
+  и верхний индикатор «Файловая система» показывал 0 % (теперь, например,
+  113 568 / 151 552 Б = 74,9 %). Образ ФС теперь ищется по обоим именам; для env
+  с LibreTiny-ФС (признак — `tools/lt_fsbuild.py` в `extra_scripts` секции
+  `[env:<env>]` файла `platformio.ini`) дополнительно проверяется корень проекта,
+  так что образ чужой платформы не подставляется (`core/config.py`:
+  `_is_lt_env`, `_fs_image_size`; `utils/build.py`: `_is_lt_env`, `_fs_total`;
+  `measure_size/measure.py`: `is_lt_env`, `fs_image_size`, `get_fs_total`).
+  В `platforms.json` для `bk7231n` записана ёмкость раздела `total_fs` = 151 552 Б
+  (`0x25000`), поэтому базовый замер её больше не перезаписывает нулём.
+
 - **WiFi: сбой подключения показывается сразу, а не через 25 с.** Во время
   ожидания ассоциации панель опрашивает журнал
   `Microsoft-Windows-WLAN-AutoConfig/Operational` (`wevtutil`, каждые

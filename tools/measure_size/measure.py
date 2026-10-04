@@ -69,6 +69,7 @@ platformio.ini также временно сохраняется и восст�
 """
 
 import argparse
+import configparser
 import fnmatch
 import json
 import os
@@ -1038,6 +1039,14 @@ def get_size_from_output(env, timeout=1800):
 # ФАЙЛОВАЯ СИСТЕМА (FS)
 # ----------------------------------------------------------------------------
 
+# Имена собранного образа ФС:
+#   littlefs.bin / spiffs.bin — обычный таргет buildfs, образ в .pio/build/<env>/;
+#   lt_littlefs.bin           — LibreTiny (bk7231n), образ кладёт кастомный таргет
+#                               tools/lt_fsbuild.py в корень проекта (PROJECT_DIR).
+FS_IMAGE_NAMES = ("littlefs.bin", "spiffs.bin")
+LT_FS_IMAGE_NAME = "lt_littlefs.bin"
+LT_FS_SCRIPT = "lt_fsbuild.py"     # признак env с LibreTiny-ФС в platformio.ini
+
 def dir_size(path):
     """Суммарный размер всех файлов в каталоге (байты)."""
     if not path or not os.path.isdir(path):
@@ -1056,7 +1065,16 @@ def get_fs_total(env, timeout=600):
     """Ёмкость раздела ФС — размер собранного образа littlefs.bin (spiffs.bin).
 
     Выполняет `pio run -t buildfs -e ENV`, как при нажатии кнопки Build,
-    и возвращает размер полученного образа (.pio/build/<env>/littlefs.bin).
+    и возвращает размер полученного образа.
+
+    Где искать образ:
+      * .pio/build/<env>/littlefs.bin — ESP (esp8266/esp32), обычный таргет buildfs;
+      * .pio/build/<env>/spiffs.bin  — если FS проекта на базе spiffs;
+      * lt_littlefs.bin               — LibreTiny (bk7231n): образ собирает кастомный
+                                        таргет tools/lt_fsbuild.py и кладёт его в корень
+                                        проекта (PROJECT_DIR), а не в .pio/build/<env>.
+
+    Размер образа равен ёмкости раздела ФС, поэтому размер файла и есть «total_fs».
     """
     cmd = [PIO_BIN or "pio", "run", "-t", "buildfs", "-e", env]
     try:
@@ -1068,15 +1086,48 @@ def get_fs_total(env, timeout=600):
     if proc.returncode != 0:
         log_fail(f"buildfs завершился с ошибкой для env={env}")
         return 0
-    base = os.path.join(PROJECT_ROOT, ".pio", "build", env)
-    for name in ("littlefs.bin", "spiffs.bin"):
-        p = os.path.join(base, name)
-        if os.path.isfile(p):
-            try:
-                return os.path.getsize(p)
-            except OSError:
-                pass
+    return fs_image_size(env)
+
+
+def fs_image_size(env):
+    """Размер свежесобранного образа ФС (0, если образа нет).
+
+    Имена образов и каталоги поиска — см. FS_IMAGE_NAMES и get_fs_total().
+    Образ lt_littlefs.bin (LibreTiny) ищется только для env с tools/lt_fsbuild.py
+    в platformio.ini, чтобы не принять образ другой платформы за свой.
+    """
+    names = list(FS_IMAGE_NAMES)
+    bases = [os.path.join(PROJECT_ROOT, ".pio", "build", env)]
+    if is_lt_env(env):
+        names.append(LT_FS_IMAGE_NAME)
+        bases.append(str(PROJECT_ROOT))
+    for base in bases:
+        for name in names:
+            p = os.path.join(base, name)
+            if os.path.isfile(p):
+                try:
+                    size = os.path.getsize(p)
+                except OSError:
+                    continue
+                if size:
+                    return size
     return 0
+
+
+def is_lt_env(env):
+    """True, если env собирает ФС кастомным таргетом LibreTiny (tools/lt_fsbuild.py).
+
+    Признак берём из platformio.ini (секция [env:<env>], поле extra_scripts).
+    """
+    if not env:
+        return False
+    try:
+        cp = configparser.ConfigParser(strict=False, interpolation=None)
+        cp.read(str(PROJECT_ROOT / "platformio.ini"), encoding="utf-8")
+        scripts = cp.get(f"env:{env}", "extra_scripts", fallback="")
+    except Exception:  # noqa: BLE001 — при любой проблеме считаем env обычной ESP
+        return False
+    return LT_FS_SCRIPT in scripts
 
 
 def fs_used_dir(project_dir, env):

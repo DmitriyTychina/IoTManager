@@ -311,7 +311,8 @@
         "baseline_flash": 822232,
         "baseline_ram": 96364,
         "total_flash": 1083136,
-        "total_ram": 262144
+        "total_ram": 262144,
+        "total_fs": 151552
     },
     "esp32_16mb": [
         {

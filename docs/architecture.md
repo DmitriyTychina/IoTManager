@@ -183,6 +183,7 @@ magicIoTm/
 - Замер размеров: `measure_size/measure.py` в фоне; режимы: все модули / отдельный / baseline / профиль / без размера; обновляет кэши `modinfo`/`platforms`. Базовый замер (baseline) дописывает запись в историю платформы в `platforms.json` (версия прошивки из `Const.h` + время замера); потребительские кэши берут последнюю запись.
 - USB: esptool (автоустановка/обновление), определение чипа, режимы FS/прошивка/full, защита от нехватки flash.
 - OTA: режимы firmware/fs/full; запись FS образом (`flash` — `littlefs.bin`/`spiffs.bin`) или пофайлово (`copy`); локальный HTTP-сервер `.bin`; проверка совместимости платформы.
+- Ёмкость FS для расчёта размера берётся из `total_fs` в `platforms.json`, иначе — из размера собранного образа: `.pio/build/<env>/littlefs.bin` (ESP) либо `lt_littlefs.bin` в корне проекта (LibreTiny/bk7231n, таргет `tools/lt_fsbuild.py`); env с LibreTiny-ФС определяется по `tools/lt_fsbuild.py` в `extra_scripts` секции `[env:<env>]` `platformio.ini`.
 - Проверка `scenario.txt`: скобки, if/then/else, циклические зависимости, неизвестные переменные относительно `config.json`, встроенные функции `ID.функция()` по `modinfo.json`/`sceninfo.json`.
 
 ### Ограничения панели
