@@ -67,6 +67,7 @@ body.dark{background:var(--bg);color:var(--text)}
 .wifi-ap-note{font-size:11px;color:var(--muted);margin-top:6px}
 .wifi-ap-empty{color:var(--muted);font-size:13px;padding:8px 0}
 .wifi-pass-row{display:flex;gap:6px;align-items:center}
+.wifi-pass-row .pw-wrap{flex:1;min-width:0}
 .wifi-pass-row input{flex:1;min-width:0;padding:6px 8px;border:1px solid var(--border);border-radius:4px;background:var(--panel);color:var(--text);font-size:13px}
 .wifi-pass-btn{min-width:34px;padding:6px 8px;font-size:14px}
 .wifi-pass-btn:hover{border-color:var(--accent)}
@@ -984,8 +985,10 @@ function showWifiPassModal(draft){
   showModal(`<h3>🔒 Пароль сети «${esc(ssid)}»</h3>
     <div class="form-row"><label>Пароль сети</label>
       <div class="wifi-pass-row">
-        <input type="password" id="wifiPassInput" placeholder="если сеть защищена паролем" value="${esc(wifiPassDraft)}">
-        <button type="button" class="wifi-pass-btn" id="wifiPassEye" title="Показать пароль">🔒</button>
+        <div class="pw-wrap">
+          <input type="password" id="wifiPassInput" value="${esc(wifiPassDraft)}">
+          <button type="button" class="pw-toggle" id="wifiPassEye" title="Показать пароль">🔒</button>
+        </div>
         <button type="button" class="wifi-pass-btn" id="wifiPassDef" title="Пароль по умолчанию 12341234">!</button>
         <button type="button" class="wifi-pass-btn" id="wifiPassPick" title="Взять пароль из проектов или устройств">📁</button>
       </div>
