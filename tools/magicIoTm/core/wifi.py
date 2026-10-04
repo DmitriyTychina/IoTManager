@@ -687,14 +687,20 @@ def discover_ap_device(progress=None, gateway=AP_GATEWAY_IP, attempts=PING_ATTEM
 
     addrs = local_ipv4()
     if not _in_ap_subnet(addrs):
-        # Только IPv4 без loopback: полный список всех интерфейсов нечитаем
-        shown = ", ".join(a for a in addrs if not a.startswith("127.")) or "не определён"
+        # Только реальные IPv4 (без loopback): полный список всех интерфейсов нечитаем.
+        # 169.254.x.x — APIPA, значит DHCP не ответил вообще; перечислять их поимённо
+        # незачем — показываем количество.
+        others = [a for a in addrs if not a.startswith(("127.", "169.254."))]
+        apipa = sum(1 for a in addrs if a.startswith("169.254."))
+        shown = ", ".join(others) or "нет"
+        if apipa:
+            shown += f" (+{apipa} адрес(ов) APIPA 169.254.x.x — DHCP не отвечает)"
         return {"success": False, "in_ap_subnet": False, "ping_ok": False,
                 "local_ips": addrs, "device": None,
-                "error": f"Нужен адрес в подсети модуля {AP_SUBNET} (192.168.4.x), "
-                         f"а у панели: {shown}. Панель подключена к точке доступа, "
-                         f"но адрес по DHCP не получил — вероятно, подключились "
-                         f"не к сети модуля"}
+                "error": f"Панель не получила адрес в подсети модуля {AP_SUBNET}: "
+                         f"нужен 192.168.4.x, а у панели — {shown}. "
+                         f"Точка доступа отвечает, но адрес по DHCP не выдал — "
+                         f"возможно, подключились не к сети модуля"}
     stage(f"Ping {gateway}")
     ping_ok = False
     for i in range(attempts):
