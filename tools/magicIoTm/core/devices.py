@@ -94,8 +94,10 @@ logger = logging.getLogger(__name__)
 
 
 # ==================== Multicast Device Detection ====================
-_devices = {}  # ip -> {ip, name, wg, id, status, fv, last_seen}
-_device_thread = None
+# Внимание: _devices и _device_thread живут в state/globals.py (импортированы
+# выше). Дублировать их здесь нельзя: локальная копия _devices = {} перекрывала бы
+# импорт, и routes/devices.py (удаление устройства → _devices.pop) чистил бы не тот
+# словарь, что наполняет multicast-слушатель.
 
 
 def _mark_device_seen(ip, name=""):
@@ -189,6 +191,30 @@ def _fetch_settings_identity(ip):
     if not data:
         return None
     return str(data.get("name", "")), str(data.get("id", ""))
+
+
+# Чтение identity из settings.json с повторами. Сразу после ассоциации с точкой
+# доступа модуля (192.168.4.x) его WebSocket/HTTP могут ещё не отвечать, поэтому
+# однократный запрос вернул бы пусто — и папка получилась бы «по IP» вместо
+# <name> <id>. Прошивка всегда пишет в settings.json `id` (= getChipId) и `name`
+# (src/EspFileSystem.cpp), так что имя/id появятся, как только устройство откликнется.
+AP_IDENTITY_ATTEMPTS = 6         # попытки чтения settings.json в AP-потоке
+AP_IDENTITY_DELAY = 2.0          # пауза между попытками, сек
+
+
+def fetch_identity_with_retry(ip, attempts=AP_IDENTITY_ATTEMPTS, delay=AP_IDENTITY_DELAY):
+    """(name, id) из settings.json, с повторами. ('', '') — не удалось за все попытки."""
+    attempts = max(1, int(attempts))
+    name = dev_id = ""
+    for i in range(attempts):
+        sj = _fetch_settings_identity(ip)
+        if sj:
+            name, dev_id = str(sj[0] or "").strip(), str(sj[1] or "").strip()
+            if name or dev_id:
+                return name, dev_id
+        if i + 1 < attempts:
+            time.sleep(delay)
+    return name, dev_id
 
 
 def _device_busy_fetching(ip):
@@ -303,8 +329,12 @@ def _ping_cycle():
                 sj = _fetch_settings_identity(ip)
                 sj_name, sj_id = (sj[0], sj[1]) if sj else ("", "")
                 sj_keys = set(_folder_key_candidates(sj[0], sj[1], ip)) if sj else set()
+                # Сопоставление с папками: точное имя+id, папка «по IP» (усыновляет
+                # имя/id) либо папка с тем же именем при «переехавшем» id устройства
+                matched = resolve_identity_folder(ip, sj_name, sj_id) if sj else None
+                matched_key = matched["key"] if matched else None
                 for key in pending:
-                    if key in sj_keys:
+                    if key in sj_keys or (matched_key and key == matched_key):
                         _confirm_device(key, now)
                         confirmed_here.append(key)
                         logger.info(f"Ping+settings OK: {ip} ({key})")
@@ -314,7 +344,8 @@ def _ping_cycle():
                                 key, {"state": STATE_GREY, "fails": 0, "last_confirm": 0.0})
                             st["state"], st["fails"] = _next_state(
                                 st["state"], st["fails"], False, True)
-                        logger.info(f"Ping OK, no identity confirmation: {ip} ({key})")
+                        logger.info(f"Ping OK, no identity confirmation: {ip} ({key}), "
+                                    f"reported name/id: '{sj_name}'/'{sj_id}'")
             else:
                 logger.info(f"Ping fail (no response): {ip}")
                 # Чужая подсеть — следующий полный пинг только через паузу;
@@ -400,7 +431,10 @@ def _ingest_payload(src_ip, text):
                 live["status"] = bool(it.get("status", False))
                 live["fv"] = it.get("fv", "")
         entry = ensure_device_folder(src_ip, name, dev_id)
-        if entry and entry["key"] in mc_candidates:
+        if entry:
+            # Папка именно этого устройства (созданная по имени/id либо папка «по IP»,
+            # усыновившая имя/id) — подтверждаем её
+            mc_candidates.add(entry["key"])
             _confirm_device(entry["key"])
             confirmed_keys.append(entry["key"])
     _grey_peers_on_ip(src_ip, mc_candidates, confirmed_keys)
@@ -573,16 +607,139 @@ def _folder_base_name(name, dev_id, ip):
     return _folder_key_candidates(name, dev_id, ip)[0]
 
 
+def _ip_based_folder_keys(ip):
+    """Ключи папок, созданных по IP (discovery не получил имя/id устройства).
+
+    Это `<ip> <ip>` и легаси-вариант `unnamed <ip>` — единственные ключи, которые
+    могут относиться к устройству, ещё не сообщившему своё имя и id.
+    """
+    return set(_folder_key_candidates("", "", ip))
+
+
+def _folder_has_identity(entry, ip):
+    """True, если в папке уже прописано настоящее имя/id (а не сам IP)."""
+    return bool(str(entry.get("id") or "").strip()) or \
+        str(entry.get("name") or "").strip() not in ("", ip)
+
+
+def _key_name_part(key):
+    """Имя устройства из ключа папки: ключ — «<имя> <id>» либо легаси «<имя>_<id>»."""
+    key = str(key or "")
+    for sep in (" ", "_"):
+        if sep in key:
+            return key.rpartition(sep)[0]
+    return key
+
+
+def _entry_holds_device(entry, key, name):
+    """True, если папка относится к устройству с таким именем.
+
+    Имя в записи бывает чистым («Модуль»), «как ключ» («Модуль 14810077-1458392»)
+    или IP (папки, созданные по адресу), поэтому сверяем и запись, и часть ключа.
+    """
+    bare = str(name or "").strip()
+    if not bare:
+        return False
+    for form in (str(entry.get("name") or "").strip(), _key_name_part(key)):
+        if not form:
+            continue
+        if form == bare or _sanitize_name(form) == _sanitize_name(bare):
+            return True
+        if form.startswith(bare + " "):          # метка вида «<имя> <id>» / «<имя> <ip>»
+            return True
+    return False
+
+
+def _apply_identity(entry, name, dev_id):
+    """Прописывает имя/id в запись папки (если изменились) и сохраняет meta."""
+    name = str(name or "").strip()
+    dev_id = str(dev_id or "").strip()
+    changed = False
+    if name and entry.get("name") != name:
+        entry["name"] = name
+        changed = True
+    if dev_id and str(entry.get("id") or "") != dev_id:
+        entry["id"] = dev_id
+        changed = True
+    if changed:
+        _save_folder_meta(entry)
+        logger.info(f"Identity adopted for folder '{entry['key']}': "
+                    f"'{entry.get('name')}'/'{entry.get('id')}'")
+    return entry
+
+
+def resolve_identity_folder(ip, name, dev_id):
+    """Находит папку, которую подтверждает отклик устройства (имя/id с его IP).
+
+    Порядок поиска:
+      1) точное совпадение ключа `<имя> <id>` (или легаси `<имя>_<id>`) — обычный случай;
+      2) папка «по IP» (`<ip> <ip>`, легаси `unnamed <ip>`, создана discovery, когда
+         устройство ещё не отдавало имя/id) — в неё прописываются настоящие имя/id,
+         иначе она навсегда серая, а multicast заводит папку-дубль;
+      3) папка с тем же именем на том же IP, но другим id — у части прошивок id
+         (`getChipId()`) меняется при перезагрузке, поэтому id обновляется в той же
+         папке (ключ и каталог на диске не меняются — иначе на каждый ребут
+         появлялась бы новая папка).
+
+    Папку, в которой уже прописано ДРУГОЕ имя, не перезаписываем (подмена модуля
+    на том же адресе). Возвращает запись папки или None.
+    """
+    name = str(name or "").strip()
+    dev_id = str(dev_id or "").strip()
+    if not (name or dev_id):
+        return None
+    cands = set(_folder_key_candidates(name, dev_id, ip))
+    ip_keys = _ip_based_folder_keys(ip)
+    target = need_update = None
+    with _device_folders_lock:
+        same_ip = [(k, e) for k, e in _device_folders.items() if e.get("ip") == ip]
+        for key, entry in same_ip:                       # 1) точное совпадение
+            if key in cands:
+                return entry
+        for key, entry in same_ip:                       # 2) папка «по IP»
+            if key not in ip_keys:
+                continue
+            if _folder_has_identity(entry, ip) and not _entry_holds_device(entry, key, name):
+                continue                                 # там уже другое устройство
+            target, need_update = entry, True
+            break
+        if target is None and name:                      # 3) «переехавший» id
+            for key, entry in same_ip:
+                if _entry_holds_device(entry, key, name):
+                    target, need_update = entry, True
+                    break
+    if target is not None and need_update:
+        _apply_identity(target, name, dev_id)
+    return target
+
+
 def _folder_key_candidates(name, dev_id, ip):
     """Possible folder keys for (name, id/ip): new separator ' ' and legacy '_'.
 
     Backward compatibility: folders created with separator '_' must continue
     to match, so no duplicates after update.
+
+    Имя может быть пустым (свежий модуль в режиме точки доступа ещё не назван):
+    папку в этом случае создают по IP (`name or ip` в `add_device_by_ip`),
+    поэтому и кандидаты строим от IP — иначе устройство никогда не проходит
+    проверку идентичности (multicast/settings приносят пустые имя и id) и
+    навсегда остаётся в сером статусе. Вариант `unnamed` сохранён для
+    совместимости с папками, созданными прежней версией.
     """
-    base = _sanitize_name(name)
-    if dev_id:
-        return [f"{base} {dev_id}", f"{base}_{dev_id}"]
-    return [f"{base} {ip}", f"{base}_{ip}"]
+    raw = str(name or "")
+    if raw.strip():
+        bases = [_sanitize_name(raw)]
+    else:
+        bases = [_sanitize_name(ip), "unnamed"]
+    keys = []
+    for base in bases:
+        if dev_id:
+            keys.append(f"{base} {dev_id}")
+            keys.append(f"{base}_{dev_id}")
+        else:
+            keys.append(f"{base} {ip}")
+            keys.append(f"{base}_{ip}")
+    return keys
 
 
 def _device_meta_path(folder):
@@ -649,6 +806,10 @@ def ensure_device_folder(ip, name, dev_id=""):
     Idempotent: if folder with this name already exists in memory or on disk,
     not recreated. On repeated discovery by broadcast, UPDATES
     the current IP record (otherwise device forever stays offline).
+
+    Если папки по имени ещё нет, но есть папка «по IP» (создана, когда устройство
+    не отдавало имя/id), она и будет использована — с прописыванием в неё имени/id
+    (adopt_identity): без этого получилось бы две папки на одно устройство.
     """
     base = _folder_base_name(name, dev_id, ip)
     with _device_folders_lock:
@@ -661,7 +822,15 @@ def ensure_device_folder(ip, name, dev_id=""):
                 logger.info(f"Updated IP for device '{cand}': {ip}")
                 _save_folder_meta(entry)
             return entry
-    return _register_folder_entry(base, ip=ip, name=base)
+    adopted = resolve_identity_folder(ip, name, dev_id)
+    if adopted:
+        return adopted
+    # Имени у устройства ещё нет (свежий модуль в режиме точки доступа): ключ и
+    # папка остаются «<ip> <ip>», но в дереве показываем сам IP, а не «ip ip»
+    bare_name = str(name or "").strip()
+    label = ip if (not str(dev_id or "").strip()
+                   and (not bare_name or bare_name == ip)) else base
+    return _register_folder_entry(base, ip=ip, name=label)
 
 
 def get_device_folder(key):
@@ -702,6 +871,9 @@ def _scan_device_folders():
             ip = m.group(0) if m else None
             name = folder_name
             dev_id = ""
+        if ip and not str(dev_id or "").strip() and folder_name in (
+                f"{ip} {ip}", f"{ip}_{ip}", f"unnamed {ip}", f"unnamed_{ip}"):
+            name = ip          # папка безымянного модуля: в дереве показываем IP
         _register_folder_entry(folder_name, ip=ip, name=name)
         if dev_id and meta is None:
             with _device_folders_lock:
@@ -985,33 +1157,55 @@ def identify_device(ip):
     return None
 
 
-def add_device_by_ip(ip):
-    """Add device by IP. Returns result dict."""
+def add_device_by_ip(ip, attempts=1, delay=AP_IDENTITY_DELAY):
+    """Add device by IP. Returns result dict.
+
+    Идентичность берётся как у multicast-устройств: имя и id — из `settings.json`
+    (`fetch_identity_with_retry` → `_fetch_settings_identity`), папка формируется по
+    ключу `<name> <id>` (`ensure_device_folder`) — без дублирующей папки «по IP».
+    `/devlist.json` (`identify_device`) — запасной источник имени/id и признак, что
+    по адресу действительно IoTManager.
+
+    attempts/delay — сколько раз читать settings.json и с какой паузой. Поток
+    подключения к AP модуля передаёт `AP_IDENTITY_ATTEMPTS`: сразу после
+    ассоциации устройство может отвечать не с первого раза.
+    """
     ip = (ip or "").strip()
     try:
         ipaddress.ip_address(ip)
     except ValueError:
         return {"success": False, "error": "Invalid IP address"}
     ident = identify_device(ip)
-    if not ident:
-        return {"success": False,
-                "error": "Could not recognize IoTManager device at this IP"}
-    name = ident.get("name") or ip
-    entry = ensure_device_folder(ip, name, ident.get("id", ""))
+    sj_name, sj_id = fetch_identity_with_retry(ip, attempts=attempts, delay=delay)
+    ident = ident or {}
+    kind = ident.get("kind", "iotmanager")
+    name = (sj_name or str(ident.get("name") or "")).strip()
+    dev_id = (sj_id or str(ident.get("id") or "")).strip()
+    if not name and not dev_id:
+        if kind != "esp":
+            # У IoTManager имя и id всегда есть (settings.json: name + id=getChipId).
+            # Пусто = устройство не откликнулось. Папку «по IP» не заводим: ключ
+            # папки — имя+id, как и у устройств, найденных multicast-пакетом.
+            return {"success": False,
+                    "error": "Device did not report name/id (settings.json) at this IP"}
+        name = ip                       # ESP-редактор ФС: имени нет — папка по адресу
+    entry = ensure_device_folder(ip, name or ip, dev_id)
     return {"success": True, "device": {
         "key": entry["key"],
         "ip": ip,
-        "name": name,
+        "name": name or ip,
         "wg": ident.get("wg", ""),
-        "id": ident.get("id", ""),
+        "id": dev_id,
         "fv": ident.get("fv", ""),
-        "kind": ident["kind"],
+        "kind": kind,
         "folder": entry["folder"],
     }}
 
 
 # ==================== Fetch Progress ====================
-_fetch_progress = {}  # (device_key, section) -> {stage, done, total, name, files, error, ip}
+# _fetch_progress импортирован из state/globals.py (см. список импорта выше):
+# локальная копия {} перекрывала бы импорт, и routes/devices.py, который берёт
+# _fetch_progress отсюда, писал бы прогресс в другой словарь.
 
 
 # ==================== Utility Functions ====================

@@ -81,6 +81,7 @@ def init():
         start_device_listener,
         start_ping_worker,
     )
+    from core.wifi import start_wifi_worker
     from core.flasher import startup_check
     from utils import platformio_tools
 
@@ -90,6 +91,7 @@ def init():
     _scan_device_folders()
     start_device_listener()
     start_ping_worker()
+    start_wifi_worker()           # поиск AP-сетей модулей (iotm*) в эфире
     startup_check()               # esptool: проверка + автоустановка при отсутствии
     platformio_tools.startup_check()  # PlatformIO: только проверка (установку предлагает UI)
     logger.info("Готов к работе")

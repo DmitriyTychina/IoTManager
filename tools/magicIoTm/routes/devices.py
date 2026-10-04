@@ -25,6 +25,7 @@ from core.devices import (
     _fetch_progress,
     ws_client,
 )
+from core import wifi as wifi_core
 from utils import projects
 
 # Import locks and state from state.globals
@@ -93,6 +94,97 @@ def api_devices_stream():
         "Cache-Control": "no-cache",
         "X-Accel-Buffering": "no",
     })
+
+
+# ==================== WiFi-антенна: AP-сети модулей (iotm*) ====================
+
+
+@devices_bp.route("/devices/wifi", methods=["GET"])
+def api_wifi_state():
+    """Снимок WiFi-сканера: AP-сети iotm*, счётчик новых, статус подключения."""
+    return jsonify(wifi_core.get_state())
+
+
+@devices_bp.route("/devices/wifi/stream")
+def api_wifi_stream():
+    """SSE-поток состояния WiFi-сканера (кадры — только при изменениях)."""
+    def gen():
+        last_sig = None
+        while True:
+            sig = wifi_core.signature()
+            if sig != last_sig:
+                last_sig = sig
+                yield f"data: {json.dumps(wifi_core.get_state(), ensure_ascii=False)}\n\n"
+            time.sleep(2)
+
+    return Response(gen(), mimetype="text/event-stream", headers={
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no",
+    })
+
+
+@devices_bp.route("/devices/wifi/scan", methods=["POST"])
+def api_wifi_scan():
+    """Скан эфира по требованию, не дожидаясь очередного цикла потока.
+
+    force=True — активный поиск WlanScan, а не чтение кэша драйвера.
+    """
+    try:
+        wifi_core.scan_once(force=True)
+    except Exception as e:
+        logger.error(f"WiFi scan error: {e}", exc_info=True)
+        return jsonify({"success": False, "error": str(e)}), 500
+    return jsonify({"success": True, **wifi_core.get_state()})
+
+
+@devices_bp.route("/devices/wifi/seen", methods=["POST"])
+def api_wifi_seen():
+    """Список AP-сетей показан пользователю — гасит счётчик «новых» (кнопку «!»)."""
+    body = request.get_json(silent=True) or {}
+    ssids = body.get("ssids")
+    try:
+        wifi_core.mark_seen(ssids if isinstance(ssids, list) and ssids else None)
+    except Exception as e:
+        logger.error(f"WiFi seen error: {e}", exc_info=True)
+        return jsonify({"success": False, "error": str(e)}), 500
+    return jsonify({"success": True, **wifi_core.get_state()})
+
+
+@devices_bp.route("/devices/wifi/connect", methods=["POST"])
+def api_wifi_connect():
+    """Подключение панели к AP-сети модуля + поиск модуля (подсеть/ping/devlist).
+
+    Тело: {ssid, password?}. Выполняется фоном; ход — в /devices/wifi (connect.stage).
+    """
+    body = request.get_json(silent=True) or {}
+    ssid = str(body.get("ssid") or "").strip()
+    password = str(body.get("password") or "")
+    if not ssid:
+        return jsonify({"success": False, "error": "Не указано имя сети (ssid)"}), 400
+    if not wifi_core.start_connect(ssid, password):
+        return jsonify({"success": False, "error": "Подключение уже выполняется",
+                        "connect": wifi_core.connect_state()}), 409
+    return jsonify({"success": True, "ssid": ssid,
+                    "connect": wifi_core.connect_state()})
+
+
+@devices_bp.route("/devices/wifi/return", methods=["POST"])
+def api_wifi_return():
+    """Возврат панели в «домашнюю» сеть (сохранённый профиль) после AP модуля.
+
+    Домашней считается последняя обычная сеть панели (не AP с префиксом iotm):
+    она запоминается при каждом WiFi-скане и перед подключением к AP.
+    """
+    home = wifi_core.home_network()
+    if not home["ssid"]:
+        return jsonify({"success": False,
+                        "error": "Домашняя сеть неизвестна: панель ещё не работала "
+                                 "в обычной WiFi-сети"}), 400
+    if not wifi_core.start_return():
+        return jsonify({"success": False, "error": "Смена WiFi-сети уже выполняется",
+                        "connect": wifi_core.connect_state()}), 409
+    return jsonify({"success": True, "ssid": home["ssid"],
+                    "connect": wifi_core.connect_state()})
 
 
 # ==================== Device Management Routes ====================

@@ -49,6 +49,23 @@ body.dark{background:var(--bg);color:var(--text)}
 .tree-devices-title-row .btn-sm{padding:2px 6px;font-size:12px;line-height:1.2;white-space:nowrap}
 .tree-devices-title-row .btn-sm:last-child{margin-left:auto}
 .tree-devices-title-row .btn-sm[disabled]{opacity:.5;cursor:wait}
+/* WiFi-антенна: кнопка «!» в правом углу заголовка и модалка списка AP-сетей модулей.
+   Кнопка «!» последняя в ряду и прижата вправо — это и есть её «правый угол»;
+   правило :last-child{margin-left:auto} теперь попадает именно на неё. */
+.wifi-alert-btn{margin-left:auto}
+.wifi-alert-new{color:#fff;background:var(--danger);border-color:var(--danger);animation:wifiPulse 1.6s ease-in-out infinite}
+@keyframes wifiPulse{0%,100%{box-shadow:0 0 0 0 rgba(217,74,74,.6)}50%{box-shadow:0 0 0 6px rgba(217,74,74,0)}}
+.wifi-ap-list{display:flex;flex-direction:column;gap:6px;margin:10px 0;max-height:44vh;overflow-y:auto}
+.wifi-ap-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 8px;border:1px solid var(--border);border-radius:4px;cursor:pointer}
+.wifi-ap-item:hover{border-color:var(--accent)}
+.wifi-ap-item.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.wifi-ap-item.cur{border-style:dashed}
+.wifi-ap-ssid{font-size:13px;font-weight:600}
+.wifi-ap-sub{font-size:11px;color:var(--muted)}
+.wifi-ap-stage{font-size:12px;color:var(--accent);min-height:16px}
+.wifi-ap-error{font-size:12px;color:var(--danger)}
+.wifi-ap-note{font-size:11px;color:var(--muted);margin-top:6px}
+.wifi-ap-empty{color:var(--muted);font-size:13px;padding:8px 0}
 .tree-devices{padding:0 8px 8px}
 /* Список найденных хостов в модалке сканирования */
 .scan-host-list{margin-top:10px;max-height:220px;overflow-y:auto;font-size:12px;border:1px solid var(--border);border-radius:6px;padding:6px}
@@ -165,7 +182,7 @@ button.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent
 /* Modal */
 .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;z-index:1000}
 .modal-overlay.active{display:flex}
-.modal{background:var(--panel);border-radius:8px;padding:20px;min-width:360px;max-width:500px}
+.modal{background:var(--panel);border-radius:8px;padding:20px;width:500px;max-width:95vw}
 .modal h3{margin-bottom:12px}
 .modal .form-row{margin-bottom:10px}
 .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
@@ -362,6 +379,7 @@ body.dark .tok-bracket{background:#f9a825;color:#1a1a1a}
       <div class="tree-section-title">💡 Устройства</div>
       <button class="btn-sm" id="scanNetBtn" onclick="scanNetwork(this)" title="Сканировать сеть (поиск ESP-устройств пингованием)">🔍</button>
       <button class="btn-sm" onclick="showAddDeviceModal()" title="Добавить устройство по IP" style="display:none">➕</button>
+      <button class="btn-sm wifi-alert-btn" id="wifiAlertBtn" onclick="showWifiApModal()" title="Точки доступа модулей — показать список сетей">!</button>
     </div>
     <div class="tree-devices" id="deviceTree">
       <div class="empty-state" style="padding:16px"><p>Устройства не найдены</p></div>
@@ -736,6 +754,256 @@ function connectDevicesStream(){
   };
 }
 
+// ==================== WiFi-антенна: AP-сети модулей (iotm*) ====================
+// Сервер раз в минуту сканирует эфир (core/wifi.py). Если видит сети iotm*,
+// в заголовке списка устройств появляется кнопка «!»; по нажатию — список AP,
+// подключение к выбранной сети и поиск модуля (подсеть 192.168.4.0/24, ping
+// 192.168.4.1, /devlist.json) — устройство добавляется на сервере и приходит
+// по SSE-потоку списка устройств.
+let wifiStream = null;             // EventSource /api/devices/wifi/stream
+let wifiState = null;              // последний снимок состояния сканера
+let wifiSelected = null;           // {ssid, secured} — выбранная в модалке сеть
+let wifiConnectPoll = null;        // таймер опроса статуса подключения
+let wifiConnectWasRunning = false;
+
+function connectWifiAntenna(){
+  if(wifiStream) wifiStream.close();
+  wifiStream = new EventSource('/api/devices/wifi/stream');
+  wifiStream.onmessage = (e) => {
+    try{ onWifiState(JSON.parse(e.data)); }catch(_){}
+  };
+  wifiStream.onerror = () => {
+    if(wifiStream){ wifiStream.close(); wifiStream = null; }
+    setTimeout(connectWifiAntenna, 5000);
+  };
+}
+
+function onWifiState(st){
+  if(!st || typeof st !== 'object') return;
+  wifiState = st;
+  updateWifiAlert(st);
+  handleWifiConnect(st.connect || {});
+  renderWifiApModal();
+}
+
+// Кнопка «!» в правом углу заголовка «Устройства»: всегда видима, ведёт к списку
+// AP-сетей модулей. Подсвечивается, когда есть новые сети или панель «в гостях».
+function updateWifiAlert(st){
+  const btn = document.getElementById('wifiAlertBtn');
+  if(!btn) return;
+  const nets = st.networks || [];
+  const fresh = (st.new || []).length;
+  const home = st.home || {};
+  const away = !!home.ssid && st.connected !== home.ssid;   // мы не в домашней сети
+  btn.textContent = fresh ? `! ${fresh}` : '!';
+  btn.classList.toggle('wifi-alert-new', fresh > 0 || away);
+  const total = st.total || 0;
+  btn.title = (fresh ? `Новых точек доступа модулей: ${fresh}. ` : '') +
+              (nets.length ? `Точек доступа модулей: ${nets.length}. ` : '') +
+              (away ? `Панель не в домашней сети «${home.ssid}» — можно вернуться. `
+                    : (total ? `Сейчас видно сетей в эфире: ${total}. ` : '')) +
+              'Показать список сетей';
+}
+
+function showWifiApModal(){
+  wifiSelected = null;
+  // Клик по фону модалку НЕ закрывает: подключение к сети идёт фоном, случайный
+  // клик мимо окна не должен уносить прогресс и выбор сети (закрытие — «Закрыть»)
+  noCloseOverlay = true;
+  showModal(`<h3>📶 Сети WiFi</h3>
+    <div id="wifiApList" class="wifi-ap-list"><div class="wifi-ap-empty">Ожидание данных сканера…</div></div>
+    <div id="wifiApPassRow" style="display:none">
+      <div class="form-row"><label>Пароль сети</label>
+        <input type="password" id="wifiApPass" placeholder="если сеть защищена паролем"></div>
+    </div>
+    <div class="wifi-ap-stage" id="wifiApStage"></div>
+    <div class="wifi-ap-error" id="wifiApError"></div>
+    <div class="wifi-ap-note" id="wifiApNote" style="display:none"></div>
+    <div class="modal-actions">
+      <button onclick="closeModal()">Закрыть</button>
+      <button id="wifiReturnBtn" onclick="returnToHomeNetwork()" style="display:none" title="Вернуться в домашнюю сеть">🏠 Домашняя сеть</button>
+      <button id="wifiScanBtn" onclick="wifiScanNow(this)" title="Отсканировать эфир прямо сейчас">🔄 Обновить</button>
+      <button class="btn-primary" id="wifiConnectBtn" title="Подключиться к выбранной сети и найти модуль">Подключиться</button>
+    </div>`);
+  bindWifiApHandlers();
+  renderWifiApModal();
+  acknowledgeWifiNetworks();   // счётчик «новых» гасим: список пользователь уже видит
+}
+
+function bindWifiApHandlers(){
+  const list = document.getElementById('wifiApList');
+  if(list) list.onclick = (e) => {
+    const row = e.target.closest('.wifi-ap-item');
+    if(!row || !row.dataset.ssid) return;
+    const changed = !wifiSelected || wifiSelected.ssid !== row.dataset.ssid;
+    wifiSelected = {ssid: row.dataset.ssid, secured: row.dataset.secured === '1'};
+    // Пароль прежней сети не переносим на новую выбранную
+    if(changed){ const passEl = document.getElementById('wifiApPass'); if(passEl) passEl.value = ''; }
+    renderWifiApModal();
+  };
+  const btn = document.getElementById('wifiConnectBtn');
+  if(btn) btn.onclick = () => startWifiConnect();
+}
+function wifiApListHtml(st){
+  if(!st) return '<div class="wifi-ap-empty">Ожидание данных сканера…</div>';
+  if(st.error) return `<div class="wifi-ap-empty">${esc(st.error)}</div>`;
+  if(!st.supported) return '<div class="wifi-ap-empty">WiFi-подсистема этой ОС недоступна.</div>';
+  // Показываем ВСЕ сети эфира, но сети модулей (iotm*) — впереди остальных
+  // (backend уже кладёт их так в st.all). Так до точки доступа модуля рукой подать,
+  // а подключиться можно и к любой обычной сети (пароль спросим — см. renderWifiApModal).
+  const nets = (st.all && st.all.length) ? st.all : (st.networks || []);
+  const total = st.total || 0;
+  if(!nets.length){
+    // Различаем «скан не работает» и «эфир не сканируется» — по общему числу сетей
+    const hint = st.error ? esc(st.error)
+      : (total ? `В эфире видно сетей: ${total} — обновите список ещё раз`
+               : 'Эфир пуст — сеть не сканируется или WiFi-адаптер выключен');
+    return `<div class="wifi-ap-empty">Сетей в эфире не найдено.<br><span style="font-size:12px">${hint}</span></div>`;
+  }
+  const conn = st.connected || '';
+  const sel = wifiSelected ? wifiSelected.ssid : '';
+  let html = '';
+  for(const n of nets){
+    const sig = (n.signal === null || n.signal === undefined) ? '?' : n.signal;
+    const isAp = n.iotm || (n.ssid || '').toLowerCase().startsWith('iotm');
+    const sub = (isAp ? '📶 модуль · ' : '') +
+      `${esc(n.auth || (n.secured ? 'защищённая' : 'открытая'))} · сигнал ${sig}%` +
+      (n.channel ? ` · канал ${n.channel}` : '') +
+      (n.ssid === conn ? ' · <span style="color:var(--accent2)">подключено</span>' : '');
+    html += `<div class="wifi-ap-item${n.ssid === sel ? ' sel' : ''}${n.ssid === conn ? ' cur' : ''}"` +
+            ` data-ssid="${esc(n.ssid)}" data-secured="${n.secured ? 1 : 0}" title="Выбрать сеть">` +
+            `<div><div class="wifi-ap-ssid">${esc(n.ssid)}</div><div class="wifi-ap-sub">${sub}</div></div></div>`;
+  }
+  return html;
+}
+
+// Обновление открытой модалки (кадры SSE и ответы on-demand запросов)
+function renderWifiApModal(){
+  const box = document.getElementById('wifiApList');
+  if(!box) return;                        // модалка закрыта — обновлять нечего
+  box.innerHTML = wifiApListHtml(wifiState);
+  // Сетей < 2 — список мог устареть: подсказываем обновить его средствами ОС
+  // (netsh показывает кэш драйвера; активный поиск WlanScan доступен не всегда).
+  const noteEl = document.getElementById('wifiApNote');
+  if(noteEl){
+    const allNets = (wifiState && (wifiState.all || wifiState.networks)) || [];
+    const few = !!wifiState && allNets.length < 2;
+    noteEl.textContent = few
+      ? 'Попробуйте обновить список сетей WiFi вручную средствами операционной системы.'
+      : '';
+    noteEl.style.display = few ? '' : 'none';
+  }
+  const c = (wifiState && wifiState.connect) || {};
+  const conn = (wifiState && wifiState.connected) || '';
+  const stage = document.getElementById('wifiApStage');
+  const err = document.getElementById('wifiApError');
+  const passRow = document.getElementById('wifiApPassRow');
+  const btn = document.getElementById('wifiConnectBtn');
+  if(stage) stage.textContent = c.running ? (c.stage || 'Подключение…') : '';
+  if(err) err.textContent = (!c.running && c.error) ? ('WiFi: ' + c.error) : '';
+  if(passRow) passRow.style.display = (wifiSelected && wifiSelected.secured) ? '' : 'none';
+  if(btn){
+    btn.disabled = !!c.running || !wifiSelected;
+    btn.textContent = (wifiSelected && wifiSelected.ssid === conn) ? 'Искать модуль' : 'Подключиться';
+  }
+  const ret = document.getElementById('wifiReturnBtn');
+  if(ret){
+    const home = (wifiState && wifiState.home) || {};
+    const away = !!home.ssid && conn !== home.ssid;
+    ret.style.display = away ? '' : 'none';
+    ret.disabled = !!c.running;
+    ret.textContent = '🏠 ' + (home.ssid || 'Домашняя сеть');
+    ret.title = `Вернуться в домашнюю сеть «${home.ssid}» (сохранённый профиль, пароль не нужен)`;
+  }
+}
+
+function acknowledgeWifiNetworks(){
+  fetch('/api/devices/wifi/seen', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'})
+    .then(r => r.ok ? r.json() : null)
+    .then(st => { if(st && st.networks !== undefined) onWifiState(st); })
+    .catch(()=>{});
+}
+
+async function wifiScanNow(btn){
+  if(btn) btn.disabled = true;
+  try{
+    const r = await fetch('/api/devices/wifi/scan', {method:'POST'});
+    const st = await r.json().catch(() => null);
+    if(!r.ok || !st || st.success === false){ toast((st && st.error) || 'Сканирование не удалось', 'error'); return; }
+    onWifiState(st);
+  }catch(_){ toast('Ошибка запроса сканирования', 'error'); }
+  finally{ if(btn) btn.disabled = false; }
+}
+
+async function startWifiConnect(){
+  if(!wifiSelected){ toast('Сначала выберите сеть из списка', 'error'); return; }
+  const passEl = document.getElementById('wifiApPass');
+  // Пароль отправляем только для защищённой сети: у открытой профиль должен быть
+  // «open», иначе netsh не ассоциируется. Поле ввода при этом и не показывается.
+  const pass = wifiSelected.secured ? (passEl ? (passEl.value || '') : '') : '';
+  const body = {ssid: wifiSelected.ssid, password: pass};
+  try{
+    const r = await fetch('/api/devices/wifi/connect', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
+    });
+    const d = await r.json().catch(() => null);
+    if(!r.ok || !d || d.success === false){
+      toast((d && d.error) || 'Не удалось запустить подключение', 'error');
+      return;
+    }
+    wifiConnectWasRunning = true;
+    toast(`Подключение к «${body.ssid}»…`, 'info');
+    startWifiConnectPoll();
+    renderWifiApModal();
+  }catch(_){ toast('Ошибка запроса подключения', 'error'); }
+}
+
+// Возврат в домашнюю сеть (сохранённый профиль): панель выйдет из AP модуля
+async function returnToHomeNetwork(){
+  const home = (wifiState && wifiState.home) || {};
+  if(!home.ssid){ toast('Домашняя сеть неизвестна — панель ещё не была в обычной сети', 'error'); return; }
+  try{
+    const r = await fetch('/api/devices/wifi/return', {method:'POST'});
+    const d = await r.json().catch(() => null);
+    if(!r.ok || !d || d.success === false){
+      toast((d && d.error) || 'Не удалось вернуться в домашнюю сеть', 'error');
+      return;
+    }
+    wifiConnectWasRunning = true;
+    toast(`Возврат в сеть «${home.ssid}»…`, 'info');
+    startWifiConnectPoll();
+    renderWifiApModal();
+  }catch(_){ toast('Ошибка запроса возврата в домашнюю сеть', 'error'); }
+}
+
+// Во время подключения состояние опрашивается чаще, чем раз в минуту по SSE
+function startWifiConnectPoll(){
+  if(wifiConnectPoll) return;
+  wifiConnectPoll = setInterval(async () => {
+    try{
+      const r = await fetch('/api/devices/wifi');
+      if(r.ok) onWifiState(await r.json());
+    }catch(_){}
+  }, 1500);
+}
+
+function stopWifiConnectPoll(){
+  if(wifiConnectPoll){ clearInterval(wifiConnectPoll); wifiConnectPoll = null; }
+}
+
+// Завершение смены сети: итог — в тост, и сразу обновляем список устройств
+function handleWifiConnect(c){
+  const running = !!c.running;
+  if(wifiConnectWasRunning && !running){
+    stopWifiConnectPoll();
+    if(c.error) toast('WiFi: ' + c.error, 'error');
+    else if(c.mode === 'return') toast(`Панель вернулась в домашнюю сеть «${c.ssid || ''}»`, 'success');
+    else if(c.result) toast(`Устройство «${dispDeviceName(c.result.name)}» добавлено (${c.result.ip})`, 'success');
+    else toast('Подключение к WiFi выполнено', 'success');
+    connectDevicesStream();   // подтягиваем свежий список устройств
+  }
+  wifiConnectWasRunning = running;
+}
 // ==================== Сканирование сети / добавление по IP ====================
 let scanStreamSource = null;
 let scanBtnState = null;   // {btn, original} — для разблокировки кнопки 🔍 после отмены
@@ -2689,6 +2957,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (localStorage.getItem('magicIoTm_dark') === '1') document.body.classList.add('dark');
   loadProjects();
   connectDevicesStream();
+  connectWifiAntenna();   // поиск AP-сетей модулей (кнопка «!» в списке устройств)
   checkEsptoolUpdate();
   checkPlatformio();
   // По умолчанию открываем проект PlatformIO
