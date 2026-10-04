@@ -382,10 +382,10 @@ body.dark .tok-bracket{background:#f9a825;color:#1a1a1a}
       <div class="empty-state" style="padding:20px"><p>Нет проектов</p></div>
     </div>
     <div class="tree-devices-title-row">
-      <div class="tree-section-title">💡 Устройства</div>
+      <div class="tree-section-title">💡 Устройства<span id="treeWifiNet"></span></div>
       <button class="btn-sm" id="scanNetBtn" onclick="scanNetwork(this)" title="Сканировать сеть (поиск ESP-устройств пингованием)">🔍</button>
       <button class="btn-sm" onclick="showAddDeviceModal()" title="Добавить устройство по IP" style="display:none">➕</button>
-      <button class="btn-sm wifi-alert-btn" id="wifiAlertBtn" onclick="showWifiApModal()" title="Точки доступа модулей — показать список сетей">!</button>
+      <button class="btn-sm wifi-alert-btn" id="wifiAlertBtn" onclick="showWifiApModal()" title="Точки доступа модулей — показать список сетей">📶</button>
     </div>
     <div class="tree-devices" id="deviceTree">
       <div class="empty-state" style="padding:16px"><p>Устройства не найдены</p></div>
@@ -762,7 +762,7 @@ function connectDevicesStream(){
 
 // ==================== WiFi-антенна: AP-сети модулей (iotm*) ====================
 // Сервер раз в минуту сканирует эфир (core/wifi.py). Если видит сети iotm*,
-// в заголовке списка устройств появляется кнопка «!»; по нажатию — список AP,
+// в заголовке списка устройств загорается кнопка 📶; по нажатию — список AP,
 // подключение к выбранной сети и поиск модуля (подсеть 192.168.4.0/24, ping
 // 192.168.4.1, /devlist.json) — устройство добавляется на сервере и приходит
 // по SSE-потоку списка устройств.
@@ -788,20 +788,33 @@ function onWifiState(st){
   if(!st || typeof st !== 'object') return;
   wifiState = st;
   updateWifiAlert(st);
+  updateWifiTitleNet(st);
   handleWifiConnect(st.connect || {});
   renderWifiApModal();
 }
 
-// Кнопка «!» в правом углу заголовка «Устройства»: всегда видима, ведёт к списку
-// AP-сетей модулей. Подсвечивается, когда есть новые сети или панель «в гостях».
+// Текущая сеть WiFi панели — в скобках после «💡 Устройства» (поле connected
+// из /devices/wifi; до первого кадра SSE скобки скрыты)
+function updateWifiTitleNet(st){
+  const el = document.getElementById('treeWifiNet');
+  if(!el) return;
+  const ssid = (st && st.connected) || '';
+  el.textContent = ssid ? ` (${ssid})` : '';
+  el.title = ssid ? `Панель подключена к сети WiFi «${ssid}»` : '';
+}
+
+// Кнопка «📶» в правом углу заголовка «Устройства»: всегда видима, ведёт к списку
+// AP-сетей модулей. Подсвечивается, когда есть новые сети или панель «в гостях»;
+// счётчик новых сетей — число рядом с иконкой.
 function updateWifiAlert(st){
   const btn = document.getElementById('wifiAlertBtn');
   if(!btn) return;
   const nets = st.networks || [];
   const fresh = (st.new || []).length;
   const home = st.home || {};
-  const away = !!home.ssid && st.connected !== home.ssid;   // мы не в домашней сети
-  btn.textContent = fresh ? `! ${fresh}` : '!';
+  // мы не в домашней сети
+  const away = !!home.ssid && st.connected !== home.ssid;
+  btn.textContent = fresh ? `📶 ${fresh}` : '📶';
   btn.classList.toggle('wifi-alert-new', fresh > 0 || away);
   const total = st.total || 0;
   btn.title = (fresh ? `Новых точек доступа модулей: ${fresh}. ` : '') +
@@ -3048,7 +3061,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (localStorage.getItem('magicIoTm_dark') === '1') document.body.classList.add('dark');
   loadProjects();
   connectDevicesStream();
-  connectWifiAntenna();   // поиск AP-сетей модулей (кнопка «!» в списке устройств)
+  connectWifiAntenna();   // поиск AP-сетей модулей (кнопка 📶 в списке устройств)
   checkEsptoolUpdate();
   checkPlatformio();
   // По умолчанию открываем проект PlatformIO
