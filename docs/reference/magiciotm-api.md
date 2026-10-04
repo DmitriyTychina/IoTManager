@@ -113,7 +113,7 @@
 | POST | `/devices/wifi/seen` | Погасить счётчик «новых» сетей: список показан пользователю (`{}` или `{"ssids": [...]}`) |
 | POST | `/devices/wifi/connect` | Подключить панель к AP-сети модуля и найти его: `{ssid, password?}`; фон, ход — в `connect.stage` |
 | POST | `/devices/wifi/return` | Вернуть панель в «домашнюю» сеть (сохранённый профиль обычной сети) после работы в AP модуля |
-| GET | `/devices/wifi/passwords` | Пароли AP для подстановки: проекты (`myProfile.json` → `iotmSettings.apssid/appass`, включая «PlatformIO») и устройства (`settings.json` из RAM/FS → `apssid/appass`); элементы `{label, ssid, pass}` |
+| GET | `/devices/wifi/passwords` | Пароли AP для подстановки: `platformio` — корневой `myProfile.json` («PlatformIO», показывается первой строкой до групп), `projects` — проекты (`myProfile.json` → `iotmSettings.apssid/appass`), `devices` — устройства (`settings.json` из RAM/FS → `apssid/appass`); элементы `{label, ssid, pass}` |
 | DELETE | `/device/<device_key>` | Удалить устройство (папка + записи) |
 | POST | `/device/<device_key>/copy-to-project` | Копировать устройство в проект (существующий или создаётся из шаблона): `{dst_cat, dst_name, section: ram\|fs}`; правила кнопок «⤵ Из устройства»: settings.json → iotmSettings (кроме id/ip/root), profile.json/flashProfile.json → платформа из default_envs (несовместимые модули отключаются) и активность модулей по path |
 | GET | `/device/<device_key>/info` | Инфо устройства и путь к папке |

@@ -1021,17 +1021,14 @@ function renderWifiPickList(){
   if(!box || !wifiPickData) return;
   wifiPickData._items = [];        // плоский список строк — индексы для data-idx
   let html = '';
+  // PlatformIO (корневой myProfile.json) — всегда первой строкой, ДО групп
+  const pio = wifiPickData.platformio;
+  if(pio && typeof pio === 'object') html += wifiPickRowHtml(pio);
   for(const [title, items] of [['📁 Проекты', wifiPickData.projects || []],
                                ['💾 Устройства', wifiPickData.devices || []]]){
     if(!items.length) continue;
     html += `<div class="wifi-pick-group">${title}</div>`;
-    for(const it of items){
-      const idx = wifiPickData._items.length;
-      wifiPickData._items.push(it);
-      html += `<div class="wifi-ap-item" data-idx="${idx}" title="Подставить этот пароль">
-        <div><div class="wifi-ap-ssid">${esc(it.label || '')}</div>
-        <div class="wifi-ap-sub">apssid: ${esc(it.ssid || '—')} · appass: ${esc(it.pass || '—')}</div></div></div>`;
-    }
+    for(const it of items) html += wifiPickRowHtml(it);
   }
   if(!wifiPickData._items.length)
     html = '<div class="wifi-ap-empty">Ни в проектах, ни в устройствах AP-сетей не найдено</div>';
@@ -1042,6 +1039,14 @@ function renderWifiPickList(){
     const it = wifiPickData._items[+row.dataset.idx];
     showWifiPassModal(it ? (it.pass || '') : wifiPassDraft);   // подстановка и возврат
   };
+}
+
+function wifiPickRowHtml(it){
+  const idx = wifiPickData._items.length;
+  wifiPickData._items.push(it);
+  return `<div class="wifi-ap-item" data-idx="${idx}" title="Подставить этот пароль">
+        <div><div class="wifi-ap-ssid">${esc(it.label || '')}</div>
+        <div class="wifi-ap-sub">apssid: ${esc(it.ssid || '—')} · appass: ${esc(it.pass || '—')}</div></div></div>`;
 }
 
 // Возврат в домашнюю сеть (сохранённый профиль): панель выйдет из AP модуля

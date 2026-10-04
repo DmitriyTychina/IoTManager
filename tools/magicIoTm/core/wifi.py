@@ -742,6 +742,7 @@ def stored_passwords():
     from utils import projects as projects_util      # лениво: избежать цикла импортов
 
     projects, devices = [], []
+    platformio = None
 
     # --- Проекты конфигуратора ---
     try:
@@ -760,13 +761,14 @@ def stored_passwords():
     except Exception as e:                          # noqa: BLE001
         logger.debug(f"Не удалось получить дерево проектов: {e}")
 
-    # Корневой myProfile.json — проект «PlatformIO» (шаблон новых проектов)
+    # Корневой myProfile.json — проект «PlatformIO» (шаблон новых проектов).
+    # Отдельным полем: фронт показывает его первой строкой, ДО группы «Проекты».
     try:
         with open(projects_util.ROOT_CONFIG_FILE, "r", encoding="utf-8") as f:
             pio = json.load(f).get("iotmSettings") or {}
-        projects.append({"label": projects_util.PLATFORMIO_PROJECT,
-                         "ssid": str(pio.get("apssid") or ""),
-                         "pass": str(pio.get("appass") or "")})
+        platformio = {"label": projects_util.PLATFORMIO_PROJECT,
+                      "ssid": str(pio.get("apssid") or ""),
+                      "pass": str(pio.get("appass") or "")}
     except (OSError, ValueError):
         pass
 
@@ -794,7 +796,8 @@ def stored_passwords():
                         "ssid": str(s.get("apssid") or ""),
                         "pass": str(s.get("appass") or "")})
 
-    return {"success": True, "projects": projects, "devices": devices}
+    return {"success": True, "platformio": platformio,
+            "projects": projects, "devices": devices}
 
 
 # ==================== Домашняя сеть: куда возвращаться из AP модуля ====================

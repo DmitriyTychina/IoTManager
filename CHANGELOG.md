@@ -41,7 +41,8 @@
   «!» вставить пароль по умолчанию `12341234`, 📁 выбор пароля из существующих —
   проекты (`myProfile.json` → `iotmSettings.apssid/appass`) и устройства
   (`settings.json` из RAM/FS → `apssid/appass`), новый эндпоинт
-  `GET /api/devices/wifi/passwords` (`{projects, devices}` → `{label, ssid, pass}`).
+  `GET /api/devices/wifi/passwords` (`{platformio, projects, devices}` →
+  `{label, ssid, pass}`; «PlatformIO» — первой строкой, до группы «Проекты»).
   После отправки панель возвращается к списку сетей, где видны стадии и ошибки
   подключения; открытая сеть и уже активное подключение — без модалки пароля
   (рабочий профиль не перезаписывается). Старое inline-поле пароля в модалке
