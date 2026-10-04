@@ -140,10 +140,13 @@ void setup() {
 
     initErrorMarker(SETUPCONF_ERRORMARKER);
 
+#ifndef LIBRETINY
     // настраиваем i2c шину
     // ВАЖНО: jsonRead при ошибке чтения НЕ меняет переменную (см. utils/JsonUtils.cpp),
     // поэтому при недоступном settings.json сюда попадает мусор со стека. Инициализируем
     // значениями по умолчанию и проверяем валидность пинов перед Wire.begin().
+    // Для LibreTiny (bk72xx) шины I2C в Arduino-ядре нет: Wire.h не подключается,
+    // макросы SCL/SDA не определены, вызовы Wire.* ниже и так только под ESP32/ESP8266.
     int i2c = 0, pinSCL = SCL, pinSDA = SDA, i2cFreq = 100000;
     jsonRead(settingsFlashJson, "pinSCL", pinSCL, false);
     jsonRead(settingsFlashJson, "pinSDA", pinSDA, false);
@@ -171,6 +174,8 @@ void setup() {
         Wire.setClock(100000);
 #endif
     }
+#endif  // !LIBRETINY
+
 #if defined(RESTART_DEBUG_INFO)
   esp_reset_reason_t esp_reason = esp_reset_reason();
   if (esp_reason == ESP_RST_UNKNOWN || esp_reason == ESP_RST_POWERON) 

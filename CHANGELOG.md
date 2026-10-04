@@ -77,6 +77,34 @@
   отвергается). Проверено на живом `netsh`: открытая сеть и WPA2-PSK (ASCII и
   не-ASCII SSID) добавляются без ошибок.
 
+### Прошивка
+
+- **Сборка bk7231n (LibreTiny) снова работает: `pio run -t buildfs` и `pio run`.**
+  Шаг buildfs падал ещё до компиляции:
+  `TypeError: Library.__post_init__() missing 1 required positional argument: 'env'`
+  в `~/.platformio/platforms/libretiny/builder/utils/libs-queue.py` — builder-скрипт
+  платформы объявляет поле `env: InitVar[Environment]`, но `dataclasses` не
+  распознавал его как `InitVar`, и сгенерированный `__init__` вызывал
+  `self.__post_init__()` без аргумента. Локально в файле платформы поле `env`
+  сделано обычным, а `__post_init__()` — без аргументов (берёт `self.env`);
+  функционально это эквивалентно и не зависит от причины, почему `InitVar`
+  не распознался. Правка лежит вне репозитория и будет затёрта при обновлении
+  платформы (откат — `git -C ~/.platformio/platforms/libretiny checkout --
+  builder/utils/libs-queue.py`, после чего правку нужно наложить заново).
+- **LibreTiny: блок настройки i2c-шины больше не ломает компиляцию.** `src/Main.cpp`
+  объявлял дефолты `pinSCL = SCL, pinSDA = SDA`, но для `LIBRETINY` `Wire.h` не
+  подключается и макросов `SCL`/`SDA` в Arduino-ядре нет — `error: 'SCL' was not
+  declared in this scope` (регрессия после коммита с защитой i2c от мусорных пинов,
+  проверенного только на ESP32-C6). Блок обёрнут в `#ifndef LIBRETINY`: вызовы
+  `Wire.*` там и так были только под ESP32/ESP8266.
+- **bk7231n больше не тянет `ESPAsyncWebServer`.** Зависимость приходила из общего
+  `[common_env_data].lib_deps_external`, хотя для `LIBRETINY` асинхронный
+  веб-сервер запрещён (`#error` в `include/Const.h`), а `lib_compat_mode = off`
+  заставлял собирать её всегда — падало на `using ::emptyString;`
+  (`literals.h`): глобального `emptyString` в Arduino-ядре LibreTiny нет.
+  Список разделён: `lib_deps_external_base` (ArduinoJson, PubSubClient) — для всех
+  платформ, `ESPAsyncWebServer` остаётся только в ESP-окружениях.
+
 ## [2026-09-30]
 
 ### Панель magicIoTm
