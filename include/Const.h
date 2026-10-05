@@ -5,7 +5,7 @@
 // Первое число поднимается вручную при значимых изменениях, второе перезаписывается
 // автоматически pre-скриптом tools/version_bump.py при каждой сборке прошивки —
 // править вручную нужно только первое число (и то не обязательно).
-#define FIRMWARE_VERSION "463.2238"
+#define FIRMWARE_VERSION "463.2240"
 
 #ifdef esp8266_1mb_ota
 #define FIRMWARE_NAME "esp8266_1mb_ota"
@@ -89,23 +89,26 @@ WEB_SOCKETS_FRAME_SIZE создан для того что бы не загру�
 // #define LOOP_DEBUG
 
 // выбор сервера и веб-сокетов
-//   асинхронный вариант: ESPAsyncWebServer + AsyncWebSocket — задаётся флагами
-//     -DASYNC_WEB_SERVER -DASYNC_WEB_SOCKETS из [common_env_data].build_flags
-//     (platformio.ini); на них ссылаются все базовые env плат, поэтому все сборки идут
-//     с асинхронным сервером; библиотеки ESPAsyncWebServer/AsyncTCP(ESPAsyncTCP) должны
-//     быть в lib_deps env (ESP8266 — ESPAsyncTCP)
-//   стандартный вариант: WebServer/ESP8266WebServer + WebSocketsServer — резервный,
-//     срабатывает по умолчанию ниже, если ASYNC-флаги не заданы (например в bk7231n)
-//   ВНИМАНИЕ: раскомментировать здесь ASYNC-пару нельзя — макрос включит её во всех
-//   окружениях, включая bk7231n/LIBRETINY, для которого вариант запрещён ниже (#error),
-//   и лишит возможности собрать стандартный вариант только флагами.
-// #define ASYNC_WEB_SERVER
-// #define ASYNC_WEB_SOCKETS
-// если вариант сервера задан флагами -D в platformio.ini
-// ([common_env_data].build_flags), значения по умолчанию не применяются
+//   асинхронный вариант: ESPAsyncWebServer + AsyncWebSocket
+//   стандартный вариант: WebServer/ESP8266WebServer + WebSocketsServer — резервный
+//
+// Единый переключатель для всех окружений: раскомментирован — асинхронный,
+// закомментирован — стандартный. Флагов -DASYNC_* в platformio.ini больше нет;
+// точечно вариант можно переопределить флагами конкретного окружения
+// (-DASYNC_WEB_SERVER или -DSTANDARD_WEB_SERVER, пара *_SOCKETS) — тогда
+// ветка ниже не участвует. Для LibreTiny асинхронный вариант требует esphome-форки
+// библиотек в lib_deps окружения (см. docs/articles/async-web-server.md, раздел 6.1).
+#define LT_ASYNC_WEB_SERVER    // ← закомментировать для стандартного стека (LT_WebSockets)
+
+// если вариант сервера задан флагами -D окружения, значения по умолчанию не применяются
 #if !defined(ASYNC_WEB_SERVER) && !defined(STANDARD_WEB_SERVER)
+#ifdef LT_ASYNC_WEB_SERVER
+#define ASYNC_WEB_SERVER
+#define ASYNC_WEB_SOCKETS
+#else
 #define STANDARD_WEB_SERVER
 #define STANDARD_WEB_SOCKETS
+#endif
 #endif
 
 // взаимозависимости вариантов: асинхронные сокеты работают на объекте асинхронного сервера
@@ -114,8 +117,14 @@ WEB_SOCKETS_FRAME_SIZE создан для того что бы не загру�
 #endif
 
 // проверка недопустимых сочетаний (в коде поддержаны оба варианта, но вместе они не собираются)
-#if defined(LIBRETINY) && defined(ASYNC_WEB_SERVER)
-#error "ASYNC_WEB_SERVER/ASYNC_WEB_SOCKETS не поддерживаются для LIBRETINY (bk7231n): используйте STANDARD_WEB_SERVER/STANDARD_WEB_SOCKETS (LT_WebSockets)"
+// [DEPRECATED] Раньше здесь стоял безусловный запрет «ASYNC не поддерживается для LIBRETINY»;
+// он снят 2026-10: поддержка появилась в ESPAsyncWebServer 3.7.8 (PR ESP32Async/187),
+// см. docs/articles/async-web-server.md (раздел 6.1).
+// Гвард ловит случай, когда на LIBRETINY ASYNC пришёл флагом -D из ESP-окружения,
+// а переключатель LT_ASYNC_WEB_SERVER выключен: esphome-форки в lib_deps, скорее всего,
+// не выставлены — и сборка упала бы невнятной ошибкой literals.h/emptyString.
+#if defined(LIBRETINY) && defined(ASYNC_WEB_SERVER) && !defined(LT_ASYNC_WEB_SERVER)
+#error "ASYNC на LIBRETINY: не копируйте -DASYNC_* из ESP-окружений — включайте переключателем LT_ASYNC_WEB_SERVER в include/Const.h (нужны esphome-форки, см. docs/articles/async-web-server.md)"
 #endif
 #if defined(ASYNC_WEB_SERVER) && defined(STANDARD_WEB_SERVER)
 #error "Выберите один веб-сервер: ASYNC_WEB_SERVER или STANDARD_WEB_SERVER (оба занимают порт 80)"

@@ -54,23 +54,21 @@
 - **ESP32-C3: после смены flash-режима прошивать с полным стиранием** —
   `pio run -e esp32c3m_4mb -t erase`, затем `-t upload` (bootloader + партиции + приложение)
   и `-t uploadfs` (LittleFS стирается при `erase`).
-- **Веб-сервер: асинхронный у всех плат, кроме `bk7231n`.** Флаги
-  `-DASYNC_WEB_SERVER -DASYNC_WEB_SOCKETS` заданы один раз в
-  `[common_env_data].build_flags` (`platformio.ini`) и подключены в env ссылкой
-  `${common_env_data.build_flags}` (18 секций env: все платы, кроме `bk7231n`).
-  Библиотеки: `ESP32Async/ESPAsyncWebServer`
+- **Веб-сервер: асинхронный у всех плат, включая `bk7231n`.** Вариант задаётся
+  единым переключателем `LT_ASYNC_WEB_SERVER` в `include/Const.h` (по умолчанию
+  раскомментирован, т.е. async); флагов `-DASYNC_*` в `platformio.ini` больше нет.
+  Точечно для одного окружения вариант переопределяется `-DASYNC_*`/`-DSTANDARD_*`
+  флагами его `build_flags` (тогда переключатель для него не участвует).
+  Библиотеки ESP-плат: `ESP32Async/ESPAsyncWebServer`
   (общий `lib_deps_external`) + `ESP32Async/ESPAsyncTCP` в `lib_deps` каждой
   ESP8266/ESP8285-env; у ESP32/ESP32-S2/S3/C3/C6 `AsyncTCP` приходит зависимостью
-  `ESPAsyncWebServer`. Стандартный вариант (`STANDARD_WEB_SERVER` + `STANDARD_WEB_SOCKETS`,
-  `WebServer`/`ESP8266WebServer` + `WebSocketsServer`) сохранён в коде как **резервный** —
-  он включается значениями по умолчанию в `include/Const.h`, если ASYNC-флаги не заданы;
-  так собирается `bk7231n` (LibreTiny, `LT_WebSockets`), так же можно собрать любую плату,
-  убрав ссылку на `${common_env_data.build_flags}` из её env. Готовых окружений
-  `esp8266_4mb_async` / `esp32s2_4mb_async` в `platformio.ini` **нет** (планировались, но
-  флаги сделали общими для всех сборок — коммит `f0d80db6`). Подробнее —
+  `ESPAsyncWebServer`. Для `bk7231n` — esphome-форки в `lib_deps` его секции
+  (см. [articles/async-web-server.md](../articles/async-web-server.md), раздел 6.1).
+  Стандартный вариант (`STANDARD_WEB_SERVER` + `STANDARD_WEB_SOCKETS`,
+  `WebServer`/`ESP8266WebServer` + `WebSocketsServer`) сохранён в коде как **резервный**:
+  включается закомментированием переключателя (глобально) либо `-DSTANDARD_*` флагами
+  окружения. Готовых окружений `esp8266_4mb_async` / `esp32s2_4mb_async` в `platformio.ini`
+  **нет** — вариант общий для всех сборок (коммит `f0d80db6`). Подробнее —
   [guides/build-firmware.md](../guides/build-firmware.md#вариант-веб-сервера-асинхронный-по-умолчанию-или-стандартный).
-  Асинхронный вариант включается **только** флагами окружения: `#define ASYNC_WEB_SERVER` в
-  `include/Const.h` действует во всех окружениях сразу, включая `bk7231n`, где вариант
-  запрещён (`#error`), и лишает возможности собрать резервный стандартный вариант.
 - Файловая система: LittleFS (`platformio.ini`: `filesystem = littlefs`, `data_dir = data_svelte`).
 - После успешной сборки в `iotm/` остаётся только одна папка с прошивками (текущей платформы) — см. [ADR-0002](../decisions/0002-data-svelte-canonical-path.md).

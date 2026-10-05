@@ -234,8 +234,11 @@ void AsyncWebServerCompat::send(int code, const __FlashStringHelper* content_typ
 void AsyncWebServerCompat::send_P(int code, const char* content_type, const char* content, size_t len) {
     if (!_request || isAnswerSent(_request)) return;
     _answeredRequest = _request;
-#ifdef ESP8266
-    // на ESP8266 содержимое может лежать в PROGMEM — нужен вариант библиотеки для flash
+#if defined(ESP8266) || defined(LIBRETINY)
+    // на ESP8266 содержимое может лежать в PROGMEM — нужен вариант библиотеки для flash;
+    // на LibreTiny используется форк esphome/ESPAsyncWebServer-esphome, где перегрузки
+    // send(code, contentType, const uint8_t*, len) нет (добавлена только в ESP32Async 3.11+),
+    // поэтому здесь тоже идём через beginResponse_P
     _request->send(_request->beginResponse_P(code, String(content_type), (const uint8_t*)content, len));
 #else
     // на ESP32 PROGMEM не отличается от обычной памяти — используем современный API

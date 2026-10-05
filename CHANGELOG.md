@@ -4,6 +4,35 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/).
 Полная история: `git log --oneline`.
 
+## [2026-10-05]
+
+### Прошивка
+
+- **BK7231N переключён на асинхронный веб-сервер** (ветка `bk7231n-async`).
+  В `[env:bk7231n]` вместо `LT_WebSockets` подключены форки ESPHome
+  (`esphome/AsyncTCP-esphome ^2.0.0`, `esphome/ESPAsyncWebServer-esphome ^3.0.0` —
+  ESPAsyncWebServer 3.12.x не собирается на форке `Mit4el/libretiny`: `literals.h`
+  требует `::emptyString`), стек AsyncTCP уменьшен до 4 КБ, очередь — до 32.
+  Вариант (async/standard) выбирается единым переключателем `LT_ASYNC_WEB_SERVER`
+  в `include/Const.h` (по умолчанию async); флагов `-DASYNC_*` нет ни в `bk7231n`,
+  ни в ESP-окружениях (`[common_env_data].build_flags` очищен) — точечно вариант
+  переопределяется флагами конкретного env.
+  Сборка: flash 80,2 % (869 208 Б), RAM 36,6 % (95 924 Б). Поддержка LibreTiny
+  появилась в ESPAsyncWebServer 3.7.8 (PR ESP32Async#187); прежний безусловный
+  `#error` в `Const.h` заменён переключателем и гвардом от копирования `-DASYNC_*`
+  из ESP-окружений. Детали: `docs/articles/async-web-server.md`, раздел 6.1.
+
+- Правки кода под LibreTiny: `#include <WiFi.h>` в `include/Global.h` (раньше
+  приходил транзитивно из `WebServer.h`); `send_P()` в `src/AsyncWebServer.cpp`
+  для LIBRETINY идёт через `beginResponse_P()` — в esphome-форке нет перегрузки
+  `send(code, contentType, const uint8_t*, len)`.
+
+- **Upstream LibreTiny заблокирован**: в 1.13.0 нет `LittleFS` (его добавил форк
+  `Mit4el/libretiny`), в реестре PlatformIO библиотеки тоже нет — остаёмся на
+  форке `Mit4el/libretiny#master`. **Для LibreTiny нужен стабильный PlatformIO**:
+  глобальный 6.2.1b2 (beta) роняет билд-скрипт платформы (`Library.__post_init__()
+  missing 1 required positional argument: 'env'`); проверено на 6.1.18.
+
 ## [2026-10-04]
 
 ### Панель magicIoTm

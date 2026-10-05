@@ -12,14 +12,13 @@
 | Вариант | HTTP (порт 80) | WebSocket (порт 81) | Статус |
 |---|---|---|---|
 | `STANDARD_WEB_SERVER` + `STANDARD_WEB_SOCKETS` | `WebServer` / `ESP8266WebServer` | `WebSocketsServer` (arduinoWebSockets) | резервный, по умолчанию |
-| `ASYNC_WEB_SERVER` + `ASYNC_WEB_SOCKETS` | `ESPAsyncWebServer` | `AsyncWebSocket` | **основной для всех сборок ESP8266/ESP32** |
+| `ASYNC_WEB_SERVER` + `ASYNC_WEB_SOCKETS` | `ESPAsyncWebServer` | `AsyncWebSocket` | **основной для всех сборок, включая BK7231N** |
 
-Асинхронный вариант выбран основным: все окружения в `platformio.ini`
-собираются с флагами `-DASYNC_WEB_SERVER -DASYNC_WEB_SOCKETS`
-(`platformio.ini`, секция `[common_env_data].build_flags`).
-Стандартный стек оставлен как резервный — он включается автоматически,
-если ASYNC-флаги не заданы (например, на BK7231N/LIBRETINY, где асинхронные
-библиотеки не поддерживаются, см. `include/Const.h`, строки 91–128).
+Асинхронный вариант выбран основным: во всех окружениях он включён единым
+переключателем `LT_ASYNC_WEB_SERVER` в `include/Const.h` (флагов `-DASYNC_*`
+в `platformio.ini` нет). Стандартный стек оставлен как резервный — он
+включается тем же переключателем (закомментировать) либо `-DSTANDARD_*`
+флагами конкретного окружения.
 
 Внешне для пользователя ничего не меняется: тот же веб-интерфейс, тот же
 протокол команд, тот же порт 81. Меняется «под капотом» — и меняется
@@ -209,19 +208,82 @@ WRITE → END` эмулируется поверх асинхронных кол
 
 ## 6. Как это включить и проверить
 
-- **По умолчанию всё уже включено**: флаги `-DASYNC_WEB_SERVER
-  -DASYNC_WEB_SOCKETS` стоят в `[common_env_data].build_flags` файла
-  `platformio.ini` (строки 11–12), на них ссылаются все базовые env плат.
-- **Резервный вариант** включается удалением этих двух флагов из
-  сборки — тогда сработают дефолты `STANDARD_*` (`include/Const.h:106-109`).
+- **По умолчанию всё уже включено**: вариант задаётся единым переключателем
+  `LT_ASYNC_WEB_SERVER` в `include/Const.h` (раскомментирован — асинхронный;
+  `-D`-флагов в `platformio.ini` больше нет).
+- **Резервный вариант** включается закомментированием этого переключателя —
+  тогда сработают дефолты `STANDARD_*`. Точечно для одного окружения —
+  задать `-DSTANDARD_WEB_SERVER -DSTANDARD_WEB_SOCKETS` в его `build_flags`.
 - **Нельзя миксовать**: оба сервера занимают порт 80, оба варианта
   сокетов — порт 81; недопустимые сочетания отсекаются на этапе
-  компиляции с понятным `#error` (`include/Const.h:116-128`).
-- **BK7231N (LIBRETINY) не поддерживает** асинхронный стек — для него
-  остаётся только стандартный вариант (`LT_WebSockets`).
+  компиляции с понятным `#error` (`include/Const.h`).
+- **BK7231N (LIBRETINY)** использует тот же переключатель; асинхронный вариант
+  там требует esphome-форки библиотек в `lib_deps` его секции (раздел 6.1).
 - Сборка асинхронного варианта требует библиотек `ESPAsyncWebServer` и
-  `AsyncTCP` (на ESP8266 — `ESPAsyncTCP`) в `lib_deps` окружения
-  (`include/Const.h:92-96`).
+  `AsyncTCP` (на ESP8266 — `ESPAsyncTCP`) в `lib_deps` окружения.
+
+---
+
+## 6.1. BK7231N (LIBRETINY): асинхронный вариант
+
+Поддержка LibreTiny появилась в ESPAsyncWebServer 3.7.8
+(PR [ESP32Async#187](https://github.com/ESP32Async/ESPAsyncWebServer/pull/187));
+автор проверял её на BK7231N и RTL8710BN. Прежний безусловный `#error` в
+`include/Const.h` заменён на переключатель `LT_ASYNC_WEB_SERVER`: он задан
+в `Const.h` по умолчанию (async включён), `-D`-флаги в окружении не нужны.
+
+### Библиотеки
+
+На форке `Mit4el/libretiny` `ESPAsyncWebServer` 3.12.x не собирается —
+`src/literals.h` требует `::emptyString`, которого в форке нет (он есть в
+upstream ≥ 1.9.1, `wiring/wiring_compat.h`). Поэтому используются форки ESPHome,
+рекомендованные LibreTiny для beken-72xx
+([External compatible libraries](https://docs.libretiny.eu/docs/dev/libs-3rd-party/)):
+
+```ini
+[env:bk7231n]
+platform = https://github.com/Mit4el/libretiny#master
+board = generic-bk7231n-qfn32-tuya
+lib_compat_mode = off
+lib_deps =
+    esphome/AsyncTCP-esphome @ ^2.0.0
+    esphome/ESPAsyncWebServer-esphome @ ^3.0.0
+    https://github.com/Mit4el/ESPAsyncUDP#master
+build_flags =              ; вариант задаётся не флагами, а переключателем
+    -DCONFIG_ASYNC_TCP_STACK_SIZE=4096   ; в include/Const.h (LT_ASYNC_WEB_SERVER)
+    -DCONFIG_ASYNC_TCP_QUEUE_SIZE=32
+```
+
+Вторая правка кода — в `src/AsyncWebServer.cpp`: у esphome-форка нет перегрузки
+`send(code, contentType, const uint8_t*, len)` (добавлена в ESP32Async 3.11+),
+поэтому `send_P()` для LIBRETINY идёт через `beginResponse_P()`, как на ESP8266.
+На ESP32 путь не изменился.
+
+### Результат сборки
+
+| | flash | RAM |
+|---|---|---|
+| ASYNC (текущий `bk7231n`) | 80,2 % — 869 208 Б | 36,6 % — 95 924 Б |
+| STANDARD (до перехода) | ≈ 849 КБ (`raw_firmware.bin`) | — |
+
+Стек задачи AsyncTCP уменьшен с 16 КБ до 4 КБ, очередь — с 64 до 32: на 256 КБ SRAM
+стандартные значения слишком дороги.
+
+### Ограничения
+
+- **Upstream LibreTiny не подходит.** В 1.13.0 нет `LittleFS` (его добавил форк
+  `Mit4el/libretiny`), и сборка падает на `#include <LittleFS.h>` в
+  `include/EspFileSystem.h`; в реестре PlatformIO такой библиотеки тоже нет
+  (`LibreTiny/LittleFS` → `UnknownPackageError`). Переход на upstream — отдельная
+  задача (портировать ФС), а не вопрос `platformio.ini`.
+- **Нужен стабильный PlatformIO.** Глобальный 6.2.1b2 (beta) роняет билд-скрипт
+  платформы ещё до компиляции:
+
+  ```
+  TypeError: Library.__post_init__() missing 1 required positional argument: 'env'
+  ```
+
+  Проверено: на 6.1.18 форк и upstream собираются нормально.
 
 ---
 
@@ -265,9 +327,9 @@ WRITE → END` эмулируется поверх асинхронных кол
 (magicIoTm, мобильное приложение) продолжают работать как раньше.
 
 Для разработчика рекомендация простая: **собирайте новые модули и
-проверяйте поведение на ASYNC-варианте** — это основной путь проекта;
-стандартный стек держите в уме только как запасной для платформ, где
-асинхронные библиотеки недоступны (BK7231N).
+проверяйте поведение на ASYNC-варианте** — это основной путь проекта
+(на всех платформах, включая BK7231N). Стандартный стек держите как
+запасной: он включается снятием асинхронных флагов с окружения.
 
 ---
 

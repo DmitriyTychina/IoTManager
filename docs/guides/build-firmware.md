@@ -36,25 +36,21 @@ pio device monitor
 
 ### Вариант веб-сервера: асинхронный (по умолчанию) или стандартный
 
-У всех плат, кроме `bk7231n`, собирается **асинхронный** вариант — `ASYNC_WEB_SERVER` +
-`ASYNC_WEB_SOCKETS` (`ESPAsyncWebServer` + `AsyncTCP`/`ESPAsyncTCP`). Флаги заданы один раз
-в общем блоке `[common_env_data]` файла `platformio.ini`:
+У всех плат собирается **асинхронный** вариант — `ASYNC_WEB_SERVER` + `ASYNC_WEB_SOCKETS`
+(`ESPAsyncWebServer` + `AsyncTCP`/`ESPAsyncTCP`). Вариант задаётся единым переключателем
+в `include/Const.h`; флагов `-DASYNC_*` в `platformio.ini` больше нет:
 
-```ini
-[common_env_data]
-lib_deps_external = 
-	...
-	ESP32Async/ESPAsyncWebServer ;@^3.12.1
-build_flags = 
-	-DASYNC_WEB_SERVER
-	-DASYNC_WEB_SOCKETS
+```cpp
+// include/Const.h
+#define LT_ASYNC_WEB_SERVER    // ← закомментировать для стандартного стека
 ```
 
-и подключаются в env ссылкой `${common_env_data.build_flags}` (18 секций env: все платы,
-кроме `bk7231n`).
+У `bk7231n` переключатель тот же, но асинхронный вариант там требует esphome-форки
+библиотек в `lib_deps` его секции
+(см. [articles/async-web-server.md](../articles/async-web-server.md), раздел 6.1).
 Поэтому ничего включать вручную не нужно — `pio run -e esp8266_4mb` уже собирает
 асинхронный вариант, отдельных окружений `esp8266_4mb_async` / `esp32s2_4mb_async` в
-`platformio.ini` нет (флаги общие для всех сборок, коммит `f0d80db6`).
+`platformio.ini` нет (коммит `f0d80db6`).
 
 ```bash
 # Обычная сборка и загрузка — вариант уже асинхронный
@@ -69,24 +65,26 @@ pio run -e esp32s2_4mb -t size   # проверить запас по flash/RAM
 |---|---|
 | ESP8266 / ESP8285 | `ESP32Async/ESPAsyncWebServer` (из `lib_deps_external`) + `ESP32Async/ESPAsyncTCP` — прописан в `lib_deps` каждой env |
 | ESP32 / ESP32-S2 / S3 / C3 / C6 | `ESP32Async/ESPAsyncWebServer`; `AsyncTCP` приходит его зависимостью |
-| BK7231N (LibreTiny) | асинхронный вариант запрещён — стандартный на `LT_WebSockets` |
+| BK7231N (LibreTiny) | `esphome/AsyncTCP-esphome` + `esphome/ESPAsyncWebServer-esphome` (форки; `ESP32Async` на форке LibreTiny не собирается) |
 
 **Стандартный вариант** (`STANDARD_WEB_SERVER` + `STANDARD_WEB_SOCKETS`: `WebServer` /
 `ESP8266WebServer` + `WebSocketsServer`) остался в коде как **резервный**: он включается
-значениями по умолчанию в `include/Const.h`, если не задан ни один ASYNC-флаг. Так
-собирается `bk7231n`, и так же можно собрать любую плату — убрав
-`${common_env_data.build_flags}` из `build_flags` её окружения. Порты и протокол у
+закомментированием переключателя `LT_ASYNC_WEB_SERVER` в `include/Const.h` (глобально)
+либо точечно — флагами `-DSTANDARD_WEB_SERVER -DSTANDARD_WEB_SOCKETS` в `build_flags`
+нужного окружения (тогда переключатель для него не участвует). Порты и протокол у
 вариантов одинаковые (HTTP 80, WS 81), поэтому веб-интерфейс и приложение работают с
 обоими.
 
-Нельзя включать оба варианта одновременно (оба занимают порты 80 и 81) и нельзя использовать
-асинхронный вариант на `bk7231n` (LibreTiny): недопустимые сочетания ловит препроцессор
-(`#error` в `include/Const.h`).
+Нельзя включать оба варианта одновременно (оба занимают порты 80 и 81); недопустимые
+сочетания ловит препроцессор (`#error` в `include/Const.h`). Гвард там же отсекает
+копирование `-DASYNC_WEB_SERVER` из ESP-окружения в LibreTiny-окружение: для `bk7231n`
+асинхронный вариант включается только переключателем в `Const.h` (и требует esphome-форки
+библиотек в `lib_deps`).
 
-**Чего делать нельзя:** раскомментировать `#define ASYNC_WEB_SERVER` / `#define ASYNC_WEB_SOCKETS`
-в `include/Const.h`. Эти макросы действуют во **всех** окружениях сразу, включая `bk7231n`,
-где вариант запрещён (`#error`), и лишают возможности собрать резервный стандартный вариант
-флагами. Асинхронный вариант включается только флагами окружения.
+**Чего делать нельзя:** держать в `include/Const.h` раскомментированными одновременно и
+переключатель `LT_ASYNC_WEB_SERVER`, и `#define STANDARD_*` — компилятор поймает конфликт
+на `#error` «Выберите один веб-сервер». Переключатель — единственный источник варианта
+для окружений без `-D`-флагов.
 
 Особенности ESP8266:
 

@@ -64,25 +64,30 @@
 
 Веб-интерфейс обслуживают два взаимозаменяемых стека (выбор — флагами сборки в `platformio.ini`
 → `[common_env_data].build_flags`, значения по умолчанию и проверки — в `include/Const.h`).
-Сейчас асинхронный вариант включён у всех плат, кроме `bk7231n`: флаги заданы один раз в
-`[common_env_data]` и подключены в env ссылкой `${common_env_data.build_flags}` (18 секций env;
-подробнее — [guides/build-firmware.md](guides/build-firmware.md#вариант-веб-сервера-асинхронный-по-умолчанию-или-стандартный)).
+Вариант веб-сервера задаётся единым переключателем `LT_ASYNC_WEB_SERVER` в
+`include/Const.h` (по умолчанию async; `-D`-флагов варианта в окружениях нет,
+точечно — `-DASYNC_*`/`-DSTANDARD_*` в `build_flags` конкретного env). Подробнее —
+[guides/build-firmware.md](guides/build-firmware.md#вариант-веб-сервера-асинхронный-по-умолчанию-или-стандартный);
+для `bk7231n` особые библиотеки — esphome-форки в `[env:bk7231n]` (см.
+[articles/async-web-server.md](articles/async-web-server.md), раздел 6.1).
 
-| | Стандартный (резервный) | Асинхронный (все сборки, кроме `bk7231n`) |
+| | Стандартный (резервный) | Асинхронный (все сборки) |
 |---|---|---|
 | Флаги | `STANDARD_WEB_SERVER` + `STANDARD_WEB_SOCKETS` | `ASYNC_WEB_SERVER` + `ASYNC_WEB_SOCKETS` |
 | HTTP, порт 80 | `WebServer` (ESP32) / `ESP8266WebServer` | `ESPAsyncWebServer` (обёртка `AsyncWebServerCompat`) |
 | WS, порт 81 | `WebSocketsServer` (объект `standWebSocket`) | `AsyncWebSocket` (объект `ws`) |
-| Библиотеки | `lib/WebSockets`, `lib/LT_WebSockets` (LibreTiny) | `ESP32Async/ESPAsyncWebServer` (общий `lib_deps_external`), `AsyncTCP` (ESP32, зависимость) / `ESP32Async/ESPAsyncTCP` (ESP8266, прописан в каждой env) |
+| Библиотеки | `lib/WebSockets`, `lib/LT_WebSockets` (LibreTiny) | `ESP32Async/ESPAsyncWebServer` (общий `lib_deps_external`), `AsyncTCP` (ESP32, зависимость) / `ESP32Async/ESPAsyncTCP` (ESP8266, прописан в каждой env); для `bk7231n` — `esphome/AsyncTCP-esphome` + `esphome/ESPAsyncWebServer-esphome` |
 | Обработчики | `StandWebServer.cpp`, `WsServer.cpp` — одни и те же | `StandWebServer.cpp`, `WsServer.cpp` |
-| Готовые окружения | нет: включается значениями по умолчанию в `Const.h` (так собирается `bk7231n`) либо снятием `${common_env_data.build_flags}` с env | все env `platformio.ini`, кроме `bk7231n` |
+| Готовые окружения | нет: включается закомментированием переключателя `LT_ASYNC_WEB_SERVER` в `Const.h` (глобально) либо `-DSTANDARD_*` флагами env | все env `platformio.ini` по умолчанию (переключатель в `Const.h`) |
 
 `AsyncWebServerCompat` (`include/WebServerCompat.h`) повторяет интерфейс синхронного сервера
 (`HTTP.on/serveStatic/hasArg/arg/send/send_P/sendHeader/streamFile/upload`), поэтому
 `StandWebServer.cpp`, `UpgradeFirm.cpp` и модуль `EspCam` собираются без изменений в обоих
 вариантах. Веб-сокеты сохраняют протокол `standWebSocket`: заголовки сообщений вида
 `xxxxxx|0012|`, ограничение в 3 клиента, отправка файлов фреймами RFC 6455 (fin/continuation).
-Асинхронный вариант не поддерживается для `bk7231n` (LibreTiny, `LT_WebSockets`).
+На `bk7231n` асинхронный вариант включён переключателем `LT_ASYNC_WEB_SERVER`
+в `include/Const.h` и использует форки ESPHome вместо `ESP32Async` (см.
+[articles/async-web-server.md](articles/async-web-server.md), раздел 6.1).
 
 Особенности платформ:
 
@@ -90,11 +95,10 @@
   (`CLOSED`, `LISTEN`, …) конфликтует с `enum wl_tcp_state` из `wl_definitions.h` esp8266-core
   (`error: 'CLOSED' conflicts with a previous declaration`). Поэтому в `include/Global.h` блок
   `#ifdef ASYNC_WEB_SERVER` стоит **до** `#include <ESP8266WiFi.h>` — порядок менять нельзя.
-- **Область видимости флага**: асинхронный вариант задаётся только `-D`-флагами окружения
-  (`platformio.ini` → `[common_env_data].build_flags`, на них ссылаются env через
-  `${common_env_data.build_flags}`); `#define ASYNC_WEB_SERVER` в `Const.h` включил бы его во
-  всех env сразу, включая `bk7231n`, где вариант запрещён (`#error`), и лишил бы возможности
-  собрать резервный стандартный вариант.
+- **Область видимости**: вариант решает переключатель `LT_ASYNC_WEB_SERVER` в `Const.h` —
+  он вложен в ветку «ни один вариант не задан флагами», поэтому на окружения с явными
+  `-DASYNC_*`/`-DSTANDARD_*` не влияет. Безусловное `#define ASYNC_WEB_SERVER` в `Const.h`
+  обошло бы эту ветку и конфликтовало с явными STANDARD-флагами — так делать нельзя.
 
 ### Классы (`src/classes/`)
 
@@ -208,9 +212,10 @@ wqtt.ru). Мобильное приложение (iOS/Android) подключа
 | `ESPAsyncUDP` | — | Асинхронный UDP |
 | `AsyncWebServer` | — | Асинхронный веб-сервер |
 | `WebSocketsServer` | — | WebSocket-сервер |
-| `LT_WebSockets` | — | Для BK7231N |
+| `LT_WebSockets` | — | STANDARD-вариант для BK7231N (резерв) |
 
-Для BK7231N используется кастомная ветка `libretiny` и `LT_WebSockets`;
-имя прошивки — `iotm_tiny`. Flask-панель: `flask>=3.0`, `flask-cors>=4.0`.
+Для BK7231N используется кастомная ветка `libretiny`; асинхронный стек — форки ESPHome
+(раздел 6.1 [articles/async-web-server.md](articles/async-web-server.md)). Имя прошивки —
+`iotm_tiny`. Flask-панель: `flask>=3.0`, `flask-cors>=4.0`.
 
 Подробнее о форматах — [reference/data-formats.md](reference/data-formats.md).

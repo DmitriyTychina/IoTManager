@@ -13,6 +13,7 @@
 #include <Update.h>
 #include <vector>
 #include <typedef.h>
+#include <WiFi.h>
 #ifdef STANDARD_WEB_SERVER
 #include <WebServer.h>
 #endif 
