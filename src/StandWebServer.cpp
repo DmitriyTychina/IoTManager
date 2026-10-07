@@ -202,6 +202,16 @@ void handleCors() {
     {
         typeOTAfile = FILESYSTEM;
     }
+    #ifdef LIBRETINY
+    // LibreTiny (bk7231n): Update.begin() принимает только U_FLASH — OTA образа ФС
+    // невозможна в принципе. Отвергаем явно, чтобы не было невнятной ошибки ниже.
+    if (typeOTAfile == FILESYSTEM && upload.status == UPLOAD_FILE_START)
+    {
+        SerialPrint("E", F("OTA"), "FS OTA не поддерживается на LibreTiny (bk7231n): используйте copy или USB (ltchiptool)");
+        HTTP.send(500, "text/plain", "FS OTA не поддерживается на LibreTiny (bk7231n)");
+        return;
+    }
+    #endif
     #ifdef ESP8266
     size_t size = upload.totalSize;
     int updatePartition = (typeOTAfile == FIRMWARE)? U_FLASH : U_FS; //U_FS
