@@ -4,6 +4,39 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/).
 Полная история: `git log --oneline`.
 
+## [2026-10-07]
+
+### Прошивка
+
+- **Включена OTA прошивки для BK7231N (LibreTiny).** Раньше `upgradeBuild()` и
+  `upgradeFS()` целиком вырезались для LIBRETINY (`#ifndef LIBRETINY`), поэтому все
+  точки OTA (`/localota_handler`, WS `/update|`, `/update1|`) молча ничего не делали.
+  Теперь в `upgradeBuild()` есть ветка LibreTiny: `HTTPClient::GET` → `Update.begin(size, U_FLASH)`
+  → `Update.writeStream()` → `Update.end(true)` + перезагрузка — входной поток UF2
+  (сигнатура «UF2\n»), как того ждёт `lt_ota_*` из beken-72xx. `upgradeFS()` для
+  LibreTiny явно отключён с понятным сообщением и статусом `PATH_ERROR` в `ota.json`:
+  `Update.begin()` в LibreTiny принимает **только U_FLASH**, поэтому OTA образа ФС
+  невозможна в принципе (ФС — copy через `POST /edit` либо USB, таргет `flashfs`).
+- `handleUpdateOTA()` (multipart `/update`): для LibreTiny `littlefs.bin` отклоняется
+  с явной ошибкой 500 вместо невнятной «Недостаточно памяти».
+
+### Панель magicIoTm
+
+- **OTA: учёт LibreTiny в шагах.** `build_steps()` принимает `env`/`ini` и для
+  LibreTiny-окружений (признак — `lt_fsbuild.py` в `extra_scripts`, как в
+  `core/config.py`) отдаёт шаг `kind="error"` при `fs_method=flash` с `mode=fs|full`;
+  воркер превращает его в `OtaError`, а `/api/ota/start` возвращает 400 до запуска
+  воркера. `mode=full` для LT = copy (ФС) + pull `type=1` (прошивка).
+- UI модалка OTA: для устройства `bk7231n` скрыты пункты «ФС: записать образ» и
+  «Полная (образ ФС + прошивка)» + пояснение про copy/USB.
+
+### Документация
+
+- `TODO.md`: чек-лист тестов на железе (платы BK7231N в наличии нет — тесты
+  не выполнены) и известные ограничения реализации (UF2, лимит download-раздела
+  664 KiB, `UPDATE_TIMEOUT_MS = 30 с`).
+- `docs/reference/platforms.md`, `docs/guides/use-magiciotm.md`: статус OTA для `bk7231n`.
+
 ## [2026-10-05]
 
 ### Прошивка

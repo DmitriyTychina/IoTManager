@@ -27,7 +27,7 @@
 | `esp32c6_4mb` | ESP32-C6 DevKitM-1 | 4MB | espressif32 @6.9.0 |
 | `esp32c6_8mb` | ESP32-C6 DevKitM-1 | 8MB | Кастомные партиции (`tools/partitions_custom_8mb.csv`) |
 | `esp32_wifirep` | ESP32 Dev | 4MB | Tasmota platform (`platform-espressif32` 2.0.5.3) |
-| `bk7231n` | BK7231N QFN32 | — | LibreTiny, имя прошивки `iotm_tiny`, только стандартный веб-сервер |
+| `bk7231n` | BK7231N QFN32 | — | LibreTiny, имя прошивки `iotm_tiny`, только стандартный веб-сервер; OTA прошивки поддерживается, OTA образа ФС — нет (только copy/USB), см. [TODO.md](../../TODO.md) |
 
 ## По семействам
 
