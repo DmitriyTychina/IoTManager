@@ -173,7 +173,12 @@ def api_ota_start():
     from core.ota import resolve_ota_files
     files = resolve_ota_files(cfg)
 
-    steps = build_steps(mode, fs_method)
+    steps = build_steps(mode, fs_method, cfg.get("env", ""), cfg.get("ini", ""))
+    # неподдерживаемая комбинация (например, LibreTiny + fs_method=flash):
+    # не запускаем воркер, отвечаем сразу — шаг 'error' содержит текст отказа
+    err_steps = [st for st in steps if st.get("kind") == "error"]
+    if err_steps:
+        return jsonify({"success": False, "error": err_steps[0]["label"]}), 400
     missing = []
     for st in steps:
         if st["kind"] == "pull":
@@ -201,6 +206,7 @@ def api_ota_start():
         "fs_method": fs_method,
         "ip": ip,
         "env": cfg.get("env", ""),
+        "ini": cfg.get("ini", ""),
         "project_label": cfg.get("project_label", ""),
         "files": files,
         "data_dir": cfg.get("data_dir", ""),

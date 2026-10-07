@@ -28,6 +28,7 @@ ota — прошивка выбранного проекта на IoTManager-у�
 Прогресс отдаётся по SSE через event_stream() (паттерн как в flash.py).
 """
 
+import configparser
 import json
 import os
 import time
@@ -49,6 +50,15 @@ _BETWEEN_STEPS_DELAY = 1.5       # пауза между шагами
 _PULL_SERVE_CHUNK = 4096
 _PULL_SERVE_DELAY = 0.006        # секунд между чанками
 _UPDATE_TYPES = {"firmware": 1, "fs": 2, "full": 3}   # типы UpgradeFirm
+# Признак LibreTiny-окружения в platformio.ini (как в core/config.py: LT_FS_SCRIPT).
+LT_FS_SCRIPT = "lt_fsbuild.py"
+# Отказ OTA-образа ФС для LibreTiny: Update.begin() принимает только U_FLASH,
+# поэтому образ littlefs.bin загрузить нельзя — только copy либо USB (ltchiptool).
+_LT_FS_FLASH_ERROR = (
+    "Для LibreTiny (bk7231n) запись образа ФС по воздуху невозможна "
+    "(Update принимает только U_FLASH): выберите «ФС: скопировать файлы» "
+    "или прошейте ФС по USB (таргет flashfs)."
+)
 
 
 class OtaError(Exception):
@@ -57,20 +67,47 @@ class OtaError(Exception):
 
 # ==================== Шаги ====================
 
-def build_steps(mode, fs_method):
+def _is_libretiny_env(ini_path, env):
+    """True, если env собирает ФС кастомным таргетом LibreTiny (lt_fsbuild.py).
+
+    Признак берётся из platformio.ini (секция [env:<env>], поле extra_scripts) —
+    как в core/config.py:_is_lt_env, чтобы не решать по имени env (там могут
+    быть и esp-окружения с похожими именами).
+    """
+    if not env or not ini_path or not os.path.isfile(ini_path):
+        return False
+    try:
+        cp = configparser.ConfigParser(strict=False, interpolation=None)
+        cp.read(ini_path, encoding="utf-8")
+        scripts = cp.get(f"env:{env}", "extra_scripts", fallback="")
+    except Exception:  # noqa: BLE001 — при любой проблеме считаем обычной ESP
+        return False
+    return LT_FS_SCRIPT in scripts
+
+
+def build_steps(mode, fs_method, env="", ini_path=""):
     """Список шагов для (mode, fs_method).
 
     kind:
       'pull' — устройство само скачивает .bin с локального сервера
                (fields: type, files[label], label)
       'copy' — пофайловая загрузка data_svelte через POST /edit
+      'error' — неподдерживаемая комбинация (env + fs_method); воркер превращает
+               такой шаг в OtaError, API возвращает 400 до запуска воркера
+
+    Для LibreTiny (bk7231n): запись образа ФС невозможна (только U_FLASH),
+    поэтому fs_method='flash' с mode='fs'/'full' отдаёт шаг 'error';
+    mode='full' там = copy (ФС) + pull type=1 (прошивка).
     """
+    lt = _is_libretiny_env(ini_path, env)
     if mode == "firmware":
         return [{"kind": "pull", "type": 1, "files": ["firmware.bin"],
                  "label": "Загрузка прошивки"}]
     if mode == "fs":
         if fs_method == "copy":
             return [{"kind": "copy", "label": "Копирование файлов FS на устройство"}]
+        if lt:
+            return [{"kind": "error", "label": _LT_FS_FLASH_ERROR}]
         return [{"kind": "pull", "type": 2, "files": ["littlefs.bin"],
                  "label": "Загрузка файловой системы FS"}]
     # mode == full
@@ -80,6 +117,8 @@ def build_steps(mode, fs_method):
             {"kind": "pull", "type": 1, "files": ["firmware.bin"],
              "label": "Загрузка прошивки"},
         ]
+    if lt:
+        return [{"kind": "error", "label": _LT_FS_FLASH_ERROR}]
     return [{"kind": "pull", "type": 3,
              "files": ["littlefs.bin", "firmware.bin"],
              "label": "Полная прошивка (FS + прошивка)"}]
@@ -118,9 +157,9 @@ def _set_running(flag):
         _state["cond"].notify_all()
 
 
-def _reset_state(project_label="", mode="", fs_method="flash", ip=""):
+def _reset_state(project_label="", mode="", fs_method="flash", ip="", env="", ini_path=""):
     steps = []
-    for i, st in enumerate(build_steps(mode, fs_method), start=1):
+    for i, st in enumerate(build_steps(mode, fs_method, env, ini_path), start=1):
         steps.append({"id": i, "label": st["label"], "status": "pending"})
     with _state["cond"]:
         _state.update({
@@ -193,7 +232,8 @@ def start(cfg):
             return False
         mode = cfg.get("mode", "firmware")
         fs_method = cfg.get("fs_method", "flash")
-        _reset_state(cfg.get("project_label", ""), mode, fs_method, cfg.get("ip", ""))
+        _reset_state(cfg.get("project_label", ""), mode, fs_method, cfg.get("ip", ""),
+                     cfg.get("env", ""), cfg.get("ini", ""))
         _set_running(True)
     t = threading.Thread(target=_worker, args=(cfg,), daemon=True)
     t.start()
@@ -261,7 +301,7 @@ def _worker(cfg):
         fs_method = cfg.get("fs_method", "flash")
         ip = cfg.get("ip", "")
         timeout = int(cfg.get("timeout", 240))
-        steps = build_steps(mode, fs_method)
+        steps = build_steps(mode, fs_method, cfg.get("env", ""), cfg.get("ini", ""))
 
         _append_line(f"OTA прошивка проекта: {cfg.get('project_label', '')}")
         _append_line(f"Режим: {mode} ({fs_method}) | Устройство: {ip}")
@@ -273,6 +313,10 @@ def _worker(cfg):
             _set_step_running(step_id)
             _append_line("")
             _append_line(f"=== Шаг {step_id}. {st['label']} ===")
+            if st["kind"] == "error":
+                # неподдерживаемая комбинация (например, LibreTiny + fs flash)
+                _set_step_error(step_id)
+                raise OtaError(st["label"])
             if st["kind"] == "pull":
                 _run_pull(ip, cfg, st, timeout)
             elif st["kind"] == "copy":

@@ -4367,13 +4367,21 @@ function showOtaModeModal(device){
     {id:'full', fs:'flash', label:'Полная (образ ФС + прошивка)', desc:'Сначала littlefs.bin, затем firmware.bin, settings.json, layout.json, scenario.txt не перезаписываются'},
     {id:'full', fs:'copy', label:'Полная (копия ФС + прошивка)', desc:'Скопировать файлы ФС, затем прошивка'}
   ];
+  // LibreTiny (bk7231n): Update принимает только U_FLASH — OTA образа ФС невозможна,
+  // поэтому режимы «запись образа» (fs_method=flash) из списка убираем (см. TODO.md).
+  const isLibreTiny = (device.platform || '') === 'bk7231n';
+  const visible = isLibreTiny ? actions.filter(a => a.fs !== 'flash') : actions;
   const platHtml = device.platform
     ? `платформа: <b>${esc(device.platform)}</b>`
     : '<span style="color:var(--warn)">платформа неизвестна — возможна несовместимость</span>';
+  const ltNote = isLibreTiny
+    ? '<p style="color:var(--muted);font-size:12px;margin:0 0 10px">LibreTiny: запись образа ФС по воздуху недоступна — ФС обновляется копированием либо по USB (таргет flashfs).</p>'
+    : '';
   showModal(`<h3>📡 OTA · Прошивка "по воздуху"</h3>
     <p style="color:var(--muted);font-size:12px;margin-bottom:12px">Устройство: <b>${esc(device.name)}</b> · ${esc(device.ip)} · ${platHtml}</p>
+    ${ltNote}
     <div class="measure-scope-list">
-      ${actions.map(a=>`<button class="btn-sm" onclick="pickOtaMode('${a.id}','${a.fs}','${esc(device.key)}','${esc(device.name)}')">${a.label}<span class="ms-desc">${a.desc}</span></button>`).join('')}
+      ${visible.map(a=>`<button class="btn-sm" onclick="pickOtaMode('${a.id}','${a.fs}','${esc(device.key)}','${esc(device.name)}')">${a.label}<span class="ms-desc">${a.desc}</span></button>`).join('')}
     </div>
     <div class="modal-actions"><button onclick="closeModal()">Отмена</button></div>`);
 }
